@@ -38,8 +38,7 @@ class Homeserver {
   /// Queries `$url/.well-known/matrix/client` for information.
   ///
   /// Throws [WellKnownException] on failure.
-  static Future<Homeserver> fromWellKnown(
-    Uri url, {
+  static Future<Homeserver> fromWellKnown(Uri url, {
     http.Client? httpClient,
   }) async {
     final wellKnownUrl = url.resolve('/.well-known/matrix/client');
@@ -90,8 +89,7 @@ class Homeserver {
     // TODO: Validation
   }
 
-  Homeserver(
-    this.url, {
+  Homeserver(this.url, {
     this.wellKnownUrl,
     http.Client? httpClient,
   }) : api = Api(url: url, httpClient: httpClient);
@@ -102,14 +100,13 @@ class Homeserver {
     }
 
     return this.url.resolve(
-          '${MediaService.baseUrl}'
+      '${MediaService.baseUrl}'
           '/${MediaService.downloadSegment}'
           '/${url.authority}/${url.pathSegments[0]}',
-        );
+    );
   }
 
-  Uri resolveThumbnailUrl(
-    Uri url, {
+  Uri resolveThumbnailUrl(Uri url, {
     required int width,
     required int height,
     ResizeMethod resizeMethod = ResizeMethod.scale,
@@ -121,10 +118,10 @@ class Homeserver {
     return this
         .url
         .resolve(
-          '${MediaService.baseUrl}'
+      '${MediaService.baseUrl}'
           '/${MediaService.thumbnailSegment}'
           '/${url.authority}/${url.pathSegments[0]}',
-        )
+    )
         .replace(
       queryParameters: {
         'width': width.toString(),
@@ -134,8 +131,7 @@ class Homeserver {
     );
   }
 
-  Future<MyUser> _prepareUser(
-    Map<String, dynamic> body, {
+  Future<MyUser> _prepareUser(Map<String, dynamic> body, {
     Device? device,
   }) async {
     final accessToken = body['access_token'];
@@ -155,24 +151,35 @@ class Homeserver {
       );
     }
 
+    late final MyUser myUser;
     // Get profile information of this user
-    final profile = await api.profile.get(
-      accessToken: accessToken,
-      userId: userId.toString(),
-    );
+    try {
+      final profile = await api.profile.get(
+        accessToken: accessToken,
+        userId: userId.toString(),
+      );
+      final displayName = profile['displayname'] ?? "";
+      final avatarUrl = tryParseMxcUrl(profile['avatar_url']);
 
-    final displayName = profile['displayname'] ?? "";
-    final avatarUrl = tryParseMxcUrl(profile['avatar_url']);
-
-    final myUser = MyUser.base(
-      id: userId,
-      accessToken: accessToken,
-      name: displayName,
-      avatarUrl: avatarUrl,
-      currentDevice: device,
-      hasSynced: false,
-      isLoggedOut: false,
-    );
+      myUser = MyUser.base(
+        id: userId,
+        accessToken: accessToken,
+        name: displayName,
+        avatarUrl: avatarUrl,
+        currentDevice: device,
+        hasSynced: false,
+        isLoggedOut: false,
+      );
+    } catch (error) {
+      myUser = MyUser.base(
+        id: userId,
+        accessToken: accessToken,
+        avatarUrl: null,
+        currentDevice: device,
+        hasSynced: false,
+        isLoggedOut: false,
+      );
+    }
 
     /// TODO(alex): saveMyUserToStore
 
@@ -231,11 +238,10 @@ class Homeserver {
   ///
   /// If [isolated] is true, syncing and other operations will happen in a
   /// different [Isolate], transparently.
-  Future<MyUser> login(
-    UserIdentifier user,
-    String password, {
-    Device? device,
-  }) async {
+  Future<MyUser> login(UserIdentifier user,
+      String password, {
+        Device? device,
+      }) async {
     final body = await api.login(
       userIdentifier: user.toIdentifierJson(),
       password: password,
@@ -262,8 +268,7 @@ class Homeserver {
   }
 
   /// Download a thumbnail via this [Homeserver].
-  Future<Stream<List<int>>> downloadThumbnail(
-    Uri url, {
+  Future<Stream<List<int>>> downloadThumbnail(Uri url, {
     required int width,
     required int height,
     ResizeMethod resizeMethod = ResizeMethod.scale,
