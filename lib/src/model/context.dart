@@ -28,6 +28,11 @@ class Context {
   });
 
   @override
+  String toString() {
+    return 'Context{myId: $myId}';
+  }
+
+  @override
   bool operator ==(dynamic other) => other is Context && myId == other.myId;
 
   @override
