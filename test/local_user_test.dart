@@ -4,15 +4,12 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart';
 import 'package:http/testing.dart';
 import 'package:matrix_sdk/matrix_sdk.dart';
 import 'package:test/test.dart';
-
-import 'util.dart';
 
 void testLocalUser() {
   group('LocalUser', () {
@@ -213,36 +210,7 @@ void testLocalUser() {
         user = await hs.login(
           Username('pat'),
           'password',
-          store: createMemoryStore(),
         );
-      });
-
-      test('stops sync process', () async {
-        StreamSubscription? sub;
-        sub = user?.outUpdates?.listen((_) async {
-          expect(user?.isSyncing, isTrue);
-          await user?.stopSync();
-          expect(user?.isSyncing, isFalse);
-
-          await sub?.cancel();
-        });
-
-        user?.startSync();
-      });
-
-      test('.updates delta has correct rooms', () async {
-        StreamSubscription? sub;
-        sub = user?.outUpdates?.listen((update) {
-          final room = update.delta.rooms?.first;
-
-          expect(room?.id, RoomId('!726s6s6q:example.com'));
-          expect(room?.summary?.joinedMembersCount, 2);
-
-          user?.stopSync();
-          sub?.cancel();
-        });
-
-        user?.startSync();
       });
     });
 
@@ -278,7 +246,6 @@ void testLocalUser() {
       final user = await hs.login(
         Username('pat'),
         'password',
-        store: createMemoryStore(),
       );
 
       await user.pushers?.add(
