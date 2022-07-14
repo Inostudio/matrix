@@ -11,29 +11,19 @@ import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:collection/collection.dart';
+import 'package:matrix_sdk/src/util/logger.dart';
 import 'package:moor/backends.dart';
 import 'package:moor/ffi.dart';
 import 'package:moor/moor.dart';
 import 'package:pedantic/pedantic.dart';
 
 import '../../../matrix_sdk.dart';
-import '../../model/context.dart';
-import '../../room/member/member.dart';
-import '../../model/my_user.dart';
-import '../../room/rooms.dart';
-import '../../room/timeline.dart';
-
-import '../../event/room/raw_room_event.dart';
-
 import '../../event/ephemeral/ephemeral.dart';
 import '../../event/ephemeral/ephemeral_event.dart';
-import '../../event/ephemeral/receipt_event.dart';
 import '../../event/ephemeral/typing_event.dart';
-
-import '../../event/room/state/canonical_alias_change_event.dart';
-
+import '../../model/context.dart';
 import 'database.dart' hide Rooms;
-import 'package:collection/collection.dart';
 
 class MoorStore extends Store {
   final DelegatedDatabase _executor;
@@ -74,6 +64,34 @@ class MoorStore extends Store {
     );
   }
 
+  @override
+  Stream<MyUser> myUserStorageSink(
+    String userID, {
+    Iterable<RoomId>? roomIds,
+    int timelineLimit = 100,
+  }) {
+    final first = DateTime.now();
+    return _db!
+        .getUserSink(userID)
+        .where((userRecord) => userRecord != null)
+        .cast<MyUserRecordWithDeviceRecord>()
+        .asyncMap(
+      (user) async {
+        final data = await _userRecordToUser(
+          user,
+          roomIds: roomIds,
+          timelineLimit: timelineLimit,
+        );
+        final second = DateTime.now();
+        Log().writer.log(
+              "Seconds elapsed ${second.difference(first).inSeconds} - ${second.difference(first)}",
+              "myUserStorageSinkNewData:",
+            );
+        return data;
+      },
+    );
+  }
+
   /// If [isolated] is true, will create an [IsolatedUpdater] to manage
   /// the user's updates.
   @override
@@ -88,15 +106,28 @@ class MoorStore extends Store {
     if (myUserWithDeviceRecord == null) {
       return null;
     }
+    final user = _userRecordToUser(
+      myUserWithDeviceRecord,
+      roomIds: roomIds,
+      timelineLimit: timelineLimit,
+    );
 
+    await close();
+
+    return user;
+  }
+
+  Future<MyUser> _userRecordToUser(
+    MyUserRecordWithDeviceRecord myUserWithDeviceRecord, {
+    Iterable<RoomId>? roomIds,
+    int timelineLimit = 100,
+  }) async {
     final myUserRecord = myUserWithDeviceRecord.myUserRecord;
     final deviceRecord = myUserWithDeviceRecord.deviceRecord;
-
     final myId = UserId(myUserRecord.id!);
-
     final context = Context(myId: myId);
 
-    final user = MyUser(
+    return MyUser(
       id: myId,
       name: myUserRecord.name!,
       avatarUrl: myUserRecord.avatarUrl != null
@@ -117,10 +148,6 @@ class MoorStore extends Store {
       hasSynced: myUserRecord.hasSynced ?? false,
       isLoggedOut: myUserRecord.isLoggedOut ?? true,
     );
-
-    await close();
-
-    return user;
   }
 
   @override
