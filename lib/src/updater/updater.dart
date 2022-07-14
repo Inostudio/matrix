@@ -6,17 +6,21 @@
 
 import 'dart:async';
 import 'dart:io';
+
+import 'package:collection/collection.dart';
+import 'package:image/image.dart';
 import 'package:matrix_sdk/src/model/api_call_statistics.dart';
 import 'package:matrix_sdk/src/model/request_update.dart';
 import 'package:matrix_sdk/src/model/sync_token.dart';
 import 'package:matrix_sdk/src/model/sync_update.dart';
 import 'package:matrix_sdk/src/model/update.dart';
+import 'package:matrix_sdk/src/services/local/sink_storage.dart';
+import 'package:matrix_sdk/src/services/network/base_network.dart';
 import 'package:matrix_sdk/src/updater/syncer.dart';
 import 'package:mime/mime.dart';
 import 'package:pedantic/pedantic.dart';
-import 'package:image/image.dart';
 import 'package:synchronized/synchronized.dart';
-import '../model/context.dart';
+
 import '../event/ephemeral/ephemeral.dart';
 import '../event/ephemeral/typing_event.dart';
 import '../event/event.dart';
@@ -26,17 +30,19 @@ import '../event/room/room_event.dart';
 import '../event/room/state/room_creation_event.dart';
 import '../event/room/state/state_event.dart';
 import '../homeserver.dart';
+import '../model/context.dart';
+import '../model/error_with_stacktrace.dart';
 import '../model/identifier.dart';
+import '../model/my_user.dart';
 import '../room/member/member_timeline.dart';
 import '../room/member/membership.dart';
-import '../model/my_user.dart';
 import '../room/room.dart';
 import '../room/rooms.dart';
-import '../store/store.dart';
 import '../room/timeline.dart';
+import '../services/local/base_sink_storage.dart';
+import '../services/network/home_server_network.dart';
+import '../store/store.dart';
 import '../util/random.dart';
-import '../model/error_with_stacktrace.dart';
-import 'package:collection/collection.dart';
 
 /// Manages updates to [MyUser].
 class Updater {
@@ -52,31 +58,39 @@ class Updater {
 
   final Homeserver homeServer;
 
-  final Store _store;
+  late BaseNetwork _networkService;
+  late BaseSinkStorage _sinkStorage;
 
   /// Most up to date instance of our user.
   MyUser get user => _user;
 
   MyUser _user;
 
+  bool initialDataSend = false;
   late final Syncer _syncer = Syncer(this);
 
   Syncer get syncer => _syncer;
 
+  final _lock = Lock();
+
   final _updatesSubject = StreamController<Update>.broadcast();
+
   Stream<Update> get updates => _updatesSubject.stream;
 
   final _errorSubject = StreamController<ErrorWithStackTraceString>.broadcast();
+
   Stream<ErrorWithStackTraceString> get outError => _errorSubject.stream;
+
   Sink<ErrorWithStackTraceString> get inError => _errorSubject.sink;
 
   final _tokenSubject = StreamController<SyncToken>.broadcast();
+
   Stream<SyncToken> get outSyncToken => _tokenSubject.stream;
 
   Stream<ApiCallStatistics> get outApiCallStatistics =>
       homeServer.outApiCallStats;
 
-  bool get isReady => _store.isOpen && !_updatesSubject.isClosed;
+  bool get isReady => _sinkStorage.isReady() && !_updatesSubject.isClosed;
 
   /// Initializes the [myUser] with a valid [Context], and will also
   /// initialize it's properties that need the context, such as [Rooms].
@@ -87,71 +101,84 @@ class Updater {
     this.homeServer,
     StoreLocation storeLocation, {
     bool saveMyUserToStore = false,
-  }) : _store = storeLocation.create() {
+  }) {
     Updater.register(_user.id, this);
-
-    _store.open();
+    _initHomeServer();
+    _initSinkStorage(storeLocation);
 
     if (saveMyUserToStore) {
-      unawaited(_store.setMyUserDelta(_user));
+      unawaited(_sinkStorage.setUserDelta(_user));
     }
   }
 
-  Future<void> saveRoomToDB(Room room) {
-    return _store.setRoom(room);
+  void _initHomeServer() {
+    _networkService = HomeServerNetworking(homeServer: homeServer);
   }
 
-  Future<List<String?>?> getRoomIDs() {
-    return _store.getRoomIDs();
+  void _initSinkStorage(StoreLocation storeLocation) {
+    _sinkStorage = SinkStorage(storeLocation: storeLocation);
+    _sinkStorage.myUserStorageSink(user.id.value).listen(
+          (storeUpdate) => _notifyWithUpdate(
+            storeUpdate,
+            (user, delta) => SyncUpdate(user, delta),
+          ),
+        );
   }
+
+  Future<void> saveRoomToDB(Room room) => _sinkStorage.setRoom(room);
+
+  Future<List<String?>?> getRoomIDs() => _sinkStorage.getRoomIds();
 
   Future<void> startSync({
     Duration maxRetryAfter = const Duration(seconds: 30),
     int timelineLimit = 30,
     String? syncToken,
-  }) async {
-    if (syncToken == null) {
-      final local = await _store.getMyUser(
-        _user.id.value,
+  }) async =>
+      _syncer.start(
+        maxRetryAfter: maxRetryAfter,
+        timelineLimit: timelineLimit,
+        syncToken: syncToken ?? await _sinkStorage.getToken(_user.id.value),
       );
-      syncToken = local?.syncToken;
-    }
-    _syncer.start(
-      maxRetryAfter: maxRetryAfter,
-      timelineLimit: timelineLimit,
-      syncToken: syncToken,
-    );
-  }
 
-  final _lock = Lock();
+  ///Notify out sink with new update with data
+  void _notifyWithUpdate<U extends Update>(
+    MyUser delta,
+    U Function(MyUser user, MyUser delta) createUpdate,
+  ) {
+    initialDataSend = true;
+    _user = _user.merge(delta);
+    final update = createUpdate(_user, delta);
+    _updatesSubject.add(update);
+  }
 
   /// Send out an update, with a new user which is the current [user]
   /// merged with [delta].
-  Future<U> _update<U extends Update>(
+  Future<U> _createUpdate<U extends Update>(
     MyUser delta,
-    U Function(MyUser user, MyUser delta) createUpdate,
-  ) async {
+    U Function(MyUser user, MyUser delta) createUpdate, {
+    bool withSaveInStore = false,
+  }) async {
     return _lock.synchronized(() async {
       _user = _user.merge(delta);
-
-      await _store.setMyUserDelta(delta.copyWith(id: _user.id));
-
-      final update = createUpdate(_user, delta);
-      _updatesSubject.add(update);
-      return update;
+      if (withSaveInStore) {
+        //TODO add comparing user with delta to avoid save duplicate
+        await _sinkStorage.setUserDelta(delta.copyWith(id: _user.id));
+      }
+      return createUpdate(_user, delta);
     });
   }
 
+  @Deprecated("unused, should be removed")
   Future<RequestUpdate<MyUser>?> setDisplayName({
     required String name,
   }) async {
-    await homeServer.api.profile.putDisplayName(
+    await _networkService.putProfileDisplayName(
       accessToken: _user.accessToken!,
       userId: _user.id.toString(),
       value: name,
     );
 
-    return _update(
+    return _createUpdate(
       _user.delta(name: name)!,
       (user, delta) => RequestUpdate(
         user,
@@ -176,7 +203,7 @@ class Updater {
       );
     }
 
-    await homeServer.api.rooms.kick(
+    await _networkService.kickFromRoom(
       accessToken: _user.accessToken!,
       roomId: from.toString(),
       userId: id.toString(),
@@ -244,7 +271,7 @@ class Updater {
       return;
     }
 
-    yield await _update(
+    yield await _createUpdate(
       _user.delta(rooms: [roomDelta])!,
       (user, delta) => RequestUpdate(
         user,
@@ -264,7 +291,7 @@ class Updater {
 
       final fileName = file.path.split(Platform.pathSeparator).last;
 
-      final matrixUrl = await _user.context?.updater?.homeServer.upload(
+      final matrixUrl = await _networkService.uploadImage(
         as: _user,
         bytes: file.openRead(),
         length: await file.length(),
@@ -296,7 +323,7 @@ class Updater {
 
     Map<String, dynamic> body;
     if (event is StateEvent) {
-      body = await homeServer.api.rooms.sendState(
+      body = await _networkService.sendRoomsState(
         accessToken: _user.accessToken!,
         roomId: roomId.toString(),
         eventType: event.type,
@@ -304,7 +331,7 @@ class Updater {
         content: event.content?.toJson() ?? {},
       );
     } else {
-      body = await homeServer.api.rooms.send(
+      body = await _networkService.roomsSend(
         accessToken: _user.accessToken!,
         roomId: roomId.toString(),
         eventType: event.type,
@@ -344,7 +371,7 @@ class Updater {
       return;
     }
 
-    yield await _update(
+    yield await _createUpdate(
       _user.delta(rooms: [roomDelta])!,
       (user, delta) => RequestUpdate(
         user,
@@ -372,7 +399,7 @@ class Updater {
 
     transactionId ??= randomString();
 
-    await homeServer.api.rooms.edit(
+    await _networkService.roomEdit(
       accessToken: _user.accessToken ?? "",
       roomId: roomId.value,
       transactionId: transactionId,
@@ -385,7 +412,7 @@ class Updater {
             orElse: () => null) ??
         await updates.first;
 
-    return _update(
+    return _createUpdate(
       relevantUpdate.delta,
       (user, delta) => RequestUpdate(
         user,
@@ -414,12 +441,13 @@ class Updater {
 
     transactionId ??= randomString();
 
-    await homeServer.api.rooms.redact(
-        accessToken: _user.accessToken ?? '',
-        roomId: roomId.value,
-        eventId: eventId.value,
-        transactionId: transactionId,
-        reason: reason);
+    await _networkService.roomsRedact(
+      accessToken: _user.accessToken ?? '',
+      roomId: roomId.value,
+      eventId: eventId.value,
+      transactionId: transactionId,
+      reason: reason,
+    );
 
     final relevantUpdate = await updates.cast<Update?>().firstWhere(
               (update) =>
@@ -432,7 +460,7 @@ class Updater {
             ) ??
         await updates.first;
 
-    return _update(
+    return _createUpdate(
       relevantUpdate.delta,
       (user, delta) => RequestUpdate(
         user,
@@ -469,7 +497,7 @@ class Updater {
       }
     }
 
-    await homeServer.api.rooms.readMarkers(
+    await _networkService.setRoomsReadMarkers(
       accessToken: _user.accessToken!,
       roomId: roomId.toString(),
       fullyRead: until.toString(),
@@ -500,9 +528,9 @@ class Updater {
 
   Future<RequestUpdate<MyUser>?> logout() async {
     await syncer.stop();
-    await homeServer.api.logout(accessToken: _user.accessToken!);
+    await _networkService.logout(accessToken: _user.accessToken!);
 
-    final update = await _update(
+    final update = await _createUpdate(
       _user.delta(isLoggedOut: true)!,
       (user, delta) => RequestUpdate(
         user,
@@ -513,7 +541,7 @@ class Updater {
       ),
     );
 
-    await _store.close();
+    await _sinkStorage.close();
 
     return update;
   }
@@ -522,14 +550,14 @@ class Updater {
     Iterable<RoomId> roomIds,
     int timelineLimit,
   ) async {
-    final rooms = await _store.getRoomsByIDs(
+    final rooms = await _sinkStorage.getRoomsByIds(
       roomIds,
       timelineLimit: timelineLimit,
       context: _user.context!,
       memberIds: [_user.id],
     );
 
-    return _update(
+    return _createUpdate(
       _user.delta(rooms: rooms)!,
       (user, delta) => RequestUpdate(
         user,
@@ -546,7 +574,7 @@ class Updater {
     int offset,
     int timelineLimit,
   ) async {
-    final rooms = await _store.getRooms(
+    final rooms = await _sinkStorage.getRooms(
       timelineLimit: timelineLimit,
       context: _user.context!,
       memberIds: [_user.id],
@@ -579,7 +607,7 @@ class Updater {
       return Future.value(null);
     }
 
-    final messages = await _store.getMessages(
+    final messages = await _sinkStorage.getMessages(
       roomId,
       count: count,
       fromTime: currentRoom?.timeline?.last.time,
@@ -598,7 +626,7 @@ class Updater {
     if (timeline.length < count) {
       count -= timeline.length;
 
-      final body = await homeServer.api.rooms.messages(
+      final body = await _networkService.getRoomMessages(
         accessToken: _user.accessToken ?? '',
         roomId: roomId.toString(),
         limit: count,
@@ -636,7 +664,7 @@ class Updater {
       memberTimeline: memberTimeline,
     );
 
-    return _update(
+    return _createUpdate(
       _user.delta(rooms: [newRoom])!,
       (user, delta) => RequestUpdate(user, delta,
           data: user.rooms?[newRoom.id]?.timeline,
@@ -658,7 +686,7 @@ class Updater {
       return Future.value(null);
     }
 
-    final members = await _store.getMembers(
+    final members = await _sinkStorage.getMembers(
       roomId,
       fromTime: currentRoom.memberTimeline?.last.since,
       count: count,
@@ -672,7 +700,7 @@ class Updater {
     if (members.length < count) {
       count -= members.length;
 
-      final body = await homeServer.api.rooms.members(
+      final body = await _networkService.getRoomMembers(
         accessToken: _user.accessToken ?? '',
         roomId: roomId.toString(),
         at: currentRoom.timeline?.previousBatch ?? '',
@@ -694,7 +722,7 @@ class Updater {
       memberTimeline: memberTimeline,
     );
 
-    return _update(
+    return _createUpdate(
       _user.delta(rooms: [newRoom])!,
       (user, delta) => RequestUpdate(
         user,
@@ -711,7 +739,7 @@ class Updater {
     required bool isTyping,
     Duration timeout = const Duration(seconds: 30),
   }) async {
-    await homeServer.api.rooms.typing(
+    await _networkService.setRoomTyping(
       accessToken: _user.accessToken ?? '',
       roomId: roomId.toString(),
       userId: _user.id.toString(),
@@ -750,7 +778,7 @@ class Updater {
     RoomAlias? alias,
     required Uri serverUrl,
   }) async {
-    final body = await homeServer.api.join(
+    final body = await _networkService.joinToRoom(
       accessToken: _user.accessToken ?? '',
       roomIdOrAlias: id?.toString() ?? alias?.toString() ?? '',
       serverName: serverUrl.host,
@@ -769,7 +797,7 @@ class Updater {
   }
 
   Future<RequestUpdate<Room>?> leaveRoom(RoomId id) async {
-    await homeServer.api.rooms.leave(
+    await _networkService.leaveRoom(
       accessToken: _user.accessToken ?? '',
       roomId: id.toString(),
     );
@@ -786,30 +814,24 @@ class Updater {
 
   /// Note: Will return RequestUpdate<Pushers> in the future.
   Future<void> setPusher(Map<String, dynamic> pusher) {
-    return homeServer.api.pushers.set(
+    return _networkService.setPusher(
       accessToken: _user.accessToken ?? '',
       body: pusher,
     );
-
-    //  RequestUpdate.fromUpdate(
-    //   await updates.first,
-    //   data: (user) => user,
-    //   deltaData: (delta) => delta,
-    //   type: RequestType.setPusher,
-    // );
   }
 
   Future<void> processSync(Map<String, dynamic> body) async {
     final roomDeltas = await _processRooms(body);
 
     if (roomDeltas.isNotEmpty) {
-      await _update(
+      await _createUpdate(
         _user.delta(
           syncToken: body['next_batch'],
           rooms: roomDeltas,
           hasSynced: !(_user.hasSynced ?? false) ? true : null,
         )!,
         (user, delta) => SyncUpdate(user, delta),
+        withSaveInStore: true,
       );
     }
   }
@@ -839,7 +861,7 @@ class Updater {
           var isNewRoom = false;
           if (currentRoom == null) {
             isNewRoom = true;
-            currentRoom = await _store.getRoom(
+            currentRoom = await _sinkStorage.getRoom(
                   roomId,
                   context: _user.context!,
                   memberIds: [_user.id],
