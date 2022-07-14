@@ -151,46 +151,16 @@ class MoorStore extends Store {
   }
 
   @override
+  //Set data into rooms, than set data into user.
+  //Setting data into user trigger user sink, that get all room records
   Future<void> setMyUserDelta(MyUser myUser) async {
-    await _db?.setMyUser(
-      MyUsersCompanion(
-        homeserver: myUser.context?.updater?.homeServer != null
-            ? Value(myUser.context?.updater?.homeServer.url.toString())
-            : Value.absent(),
-        id: myUser.id.value.isNotEmpty
-            ? Value(myUser.id.toString())
-            : Value.absent(),
-        name: Value(myUser.name),
-        avatarUrl: myUser.avatarUrl != null
-            ? Value(myUser.avatarUrl.toString())
-            : Value.absent(),
-        accessToken: myUser.accessToken != null
-            ? Value(myUser.accessToken.toString())
-            : Value.absent(),
-        syncToken:
-            myUser.syncToken != null ? Value(myUser.syncToken) : Value.absent(),
-        currentDeviceId: myUser.currentDevice?.id != null
-            ? Value(myUser.currentDevice?.id.toString())
-            : Value.absent(),
-        hasSynced:
-            myUser.hasSynced != null ? Value(myUser.hasSynced) : Value.absent(),
-        isLoggedOut: myUser.isLoggedOut != null
-            ? Value(myUser.isLoggedOut)
-            : Value.absent(),
-      ),
-    );
-
-    if (myUser.currentDevice != null) {
-      await _db?.setDeviceRecords([myUser.currentDevice!.toCompanion()]);
-    }
-
     if (myUser.rooms != null) {
       _setInvites(myUser.rooms!);
 
       final previouslyInvitedIds = myUser.rooms
           ?.where((room) =>
-              room.me?.membership == Membership.joined &&
-              _invites.contains(room.id))
+      room.me?.membership == Membership.joined &&
+          _invites.contains(room.id))
           .map((room) => room.id.toString())
           .toList();
 
@@ -209,15 +179,15 @@ class MoorStore extends Store {
             .map((room) => room.stateEvents)
             .whereNotNull()
             .expand((stateEvents) => [
-                  stateEvents.nameChange,
-                  stateEvents.avatarChange,
-                  stateEvents.topicChange,
-                  stateEvents.powerLevelsChange,
-                  stateEvents.joinRulesChange,
-                  stateEvents.canonicalAliasChange,
-                  stateEvents.creation,
-                  stateEvents.upgrade,
-                ])
+          stateEvents.nameChange,
+          stateEvents.avatarChange,
+          stateEvents.topicChange,
+          stateEvents.powerLevelsChange,
+          stateEvents.joinRulesChange,
+          stateEvents.canonicalAliasChange,
+          stateEvents.creation,
+          stateEvents.upgrade,
+        ])
             .whereNotNull()
             .map((event) => event.toRecord(inTimeline: false))
             .toList(),
@@ -257,7 +227,7 @@ class MoorStore extends Store {
 
       //Find latest message and save time interval to room
       final Map<String, int> result =
-          eventsList.fold(<String, int>{}, (previousValue, element) {
+      eventsList.fold(<String, int>{}, (previousValue, element) {
         if (element.time != null) {
           final roomID = element.roomId;
           if (previousValue.containsKey(roomID) &&
@@ -275,6 +245,38 @@ class MoorStore extends Store {
         await _db?.setRoomsLatestMessages(result);
       }
     }
+    await _db?.setMyUser(
+      MyUsersCompanion(
+        homeserver: myUser.context?.updater?.homeServer != null
+            ? Value(myUser.context?.updater?.homeServer.url.toString())
+            : Value.absent(),
+        id: myUser.id.value.isNotEmpty
+            ? Value(myUser.id.toString())
+            : Value.absent(),
+        name: Value(myUser.name),
+        avatarUrl: myUser.avatarUrl != null
+            ? Value(myUser.avatarUrl.toString())
+            : Value.absent(),
+        accessToken: myUser.accessToken != null
+            ? Value(myUser.accessToken.toString())
+            : Value.absent(),
+        syncToken:
+            myUser.syncToken != null ? Value(myUser.syncToken) : Value.absent(),
+        currentDeviceId: myUser.currentDevice?.id != null
+            ? Value(myUser.currentDevice?.id.toString())
+            : Value.absent(),
+        hasSynced:
+            myUser.hasSynced != null ? Value(myUser.hasSynced) : Value.absent(),
+        isLoggedOut: myUser.isLoggedOut != null
+            ? Value(myUser.isLoggedOut)
+            : Value.absent(),
+      ),
+    );
+
+    if (myUser.currentDevice != null) {
+      await _db?.setDeviceRecords([myUser.currentDevice!.toCompanion()]);
+    }
+
   }
 
   @override
