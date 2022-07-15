@@ -66,7 +66,6 @@ class Updater {
 
   MyUser _user;
 
-  bool initialDataSend = false;
   late final Syncer _syncer = Syncer(this);
 
   Syncer get syncer => _syncer;
@@ -145,7 +144,6 @@ class Updater {
     MyUser delta,
     U Function(MyUser user, MyUser delta) createUpdate,
   ) {
-    initialDataSend = true;
     _user = _user.merge(delta);
     final update = createUpdate(_user, delta);
     _updatesSubject.add(update);
