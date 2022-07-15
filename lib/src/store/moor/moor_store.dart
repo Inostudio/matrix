@@ -83,7 +83,7 @@ class MoorStore extends Store {
           timelineLimit: timelineLimit,
         );
         final second = DateTime.now();
-        Log().writer.log(
+        Log.writer.log(
               "Seconds elapsed ${second.difference(first).inSeconds} - ${second.difference(first)}",
               "myUserStorageSinkNewData:",
             );

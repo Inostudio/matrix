@@ -43,9 +43,9 @@ class MatrixClient {
   })  : _homeServer = Homeserver(serverUri),
         _storeLocation = storeLocation {
     if (withDebugLog) {
-      Log().writer = LogWriterDevelopment();
+      Log.writer = LogWriterDevelopment();
     } else {
-      Log().writer = LogWriterNone();
+      Log.writer = LogWriterNone();
     }
   }
 
