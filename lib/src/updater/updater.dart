@@ -914,31 +914,6 @@ class Updater {
             }
           }
 
-          // Process redactions
-          // TODO: Redaction deltas
-          for (final event
-              in currentRoom.timeline!.whereType<RedactionEvent>()) {
-            final redactedId = event.redacts;
-
-            final original = currentRoom.timeline?[redactedId];
-            if (original != null && original is! RedactedEvent) {
-              final newTimeline = currentRoom.timeline!.merge(
-                Timeline(
-                  [
-                    ...currentRoom.timeline!.where((e) => e.id != redactedId),
-                    RedactedEvent.fromRedaction(
-                      redaction: event,
-                      original: original,
-                    ),
-                  ],
-                  context: currentRoom.context,
-                ),
-              );
-
-              roomDelta = roomDelta.copyWith(timeline: newTimeline!);
-            }
-          }
-
           if (isNewRoom) {
             roomDelta = currentRoom.merge(roomDelta);
           }

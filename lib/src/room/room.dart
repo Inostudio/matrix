@@ -265,6 +265,12 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
     );
   }
 
+
+  @override
+  String toString() {
+    return 'Room{context: $context, me: $me, id: $id, lastMessageTimeInterval: $lastMessageTimeInterval, timeline: $timeline, memberTimeline: $memberTimeline, members: $members, summary: $summary, stateEvents: $stateEvents, powerLevels: $powerLevels, ephemeral: $ephemeral, highlightedUnreadNotificationCount: $highlightedUnreadNotificationCount, totalUnreadNotificationCount: $totalUnreadNotificationCount, directUserId: $directUserId}';
+  }
+
   Room copyWith({
     Context? context,
     RoomId? id,
