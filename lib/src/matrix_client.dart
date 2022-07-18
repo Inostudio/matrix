@@ -42,11 +42,7 @@ class MatrixClient {
     required StoreLocation storeLocation,
   })  : _homeServer = Homeserver(serverUri),
         _storeLocation = storeLocation {
-    if (withDebugLog) {
-      Log.writer = LogWriterDevelopment();
-    } else {
-      Log.writer = LogWriterNone();
-    }
+    Log.setLogger(withDebugLog ? LoggerVariant.dev : LoggerVariant.none);
   }
 
   Homeserver get homeServer => _homeServer;

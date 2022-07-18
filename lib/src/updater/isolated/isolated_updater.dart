@@ -26,6 +26,7 @@ import '../../room/room.dart';
 import '../../room/rooms.dart';
 import '../../room/timeline.dart';
 import '../../store/store.dart';
+import '../../util/logger.dart';
 import '../updater.dart';
 import 'instruction.dart';
 import 'isolate_runner.dart';
@@ -105,7 +106,13 @@ class IsolatedUpdater extends Updater {
       }
     });
 
-    Isolate.spawn(IsolateRunner.run, _receivePort.sendPort);
+    Isolate.spawn<IsolateRunnerTransferModel>(
+      IsolateRunner.run,
+      IsolateRunnerTransferModel(
+        message: _receivePort.sendPort,
+        loggerVariant: Log.variant,
+      ),
+    );
   }
 
   SendPort? _sendPort;

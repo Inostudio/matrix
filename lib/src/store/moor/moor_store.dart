@@ -84,7 +84,7 @@ class MoorStore extends Store {
         );
         final second = DateTime.now();
         Log.writer.log(
-              "Seconds elapsed ${second.difference(first).inSeconds} - ${second.difference(first)}",
+              "Seconds total elapsed ${second.difference(first).inSeconds} - ${second.difference(first)}",
               "myUserStorageSinkNewData:",
             );
         return data;

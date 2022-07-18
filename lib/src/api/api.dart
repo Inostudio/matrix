@@ -8,16 +8,17 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:chopper/chopper.dart';
+import 'package:http/http.dart' as http;
 import 'package:matrix_sdk/src/event/room/message_event.dart';
 import 'package:matrix_sdk/src/homeserver.dart';
 import 'package:matrix_sdk/src/model/api_call_statistics.dart';
 import 'package:meta/meta.dart';
-import 'package:chopper/chopper.dart';
-import 'package:http/http.dart' as http;
 
-import 'client.dart';
-import 'media.dart';
 import '../util/exception.dart';
+import 'client.dart';
+import 'interceptors.dart';
+import 'media.dart';
 
 /// Low level access to all supported API calls on a homeserver.
 class Api {
@@ -30,21 +31,26 @@ class Api {
   late MediaService _mediaService;
 
   late Media _media;
+
   Media get media => _media;
 
   late Profile _profile;
+
   Profile get profile => _profile;
 
   late Pushers _pushers;
+
   Pushers get pushers => _pushers;
 
   late Rooms _rooms;
+
   Rooms get rooms => _rooms;
 
   // ignore: close_sinks
   final _apiStatsSubject = StreamController<ApiCallStatistics>.broadcast();
 
   Stream<ApiCallStatistics> get outApiCallStats => _apiStatsSubject.stream;
+
   Sink<ApiCallStatistics> get _inApiCallStats => _apiStatsSubject.sink;
 
   Api({
@@ -56,6 +62,10 @@ class Api {
           services: [
             ClientService.create(),
             MediaService.create(),
+          ],
+          interceptors: [
+            LogRequestInterceptor(),
+            LogResponseInterceptor(),
           ],
         ) {
     _clientService = _chopper.getService<ClientService>();
