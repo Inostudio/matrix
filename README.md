@@ -12,6 +12,11 @@
   Please note that this SDK is still pre-1.0 and in development. Things may
   still change a lot!
 
+## Initialization
+
+   To build database and dependencies - flutter pub run build_runner build --delete-conflicting-outputs
+   Or use  - flutter pub run build_runner watch --delete-conflicting-outputs - to update it in run time
+
 ## Usage
 
    Set the initial `MyUser`, either by logging in to a homeserver:

@@ -11,29 +11,19 @@ import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:collection/collection.dart';
+import 'package:matrix_sdk/src/util/logger.dart';
 import 'package:moor/backends.dart';
 import 'package:moor/ffi.dart';
 import 'package:moor/moor.dart';
 import 'package:pedantic/pedantic.dart';
 
 import '../../../matrix_sdk.dart';
-import '../../model/context.dart';
-import '../../room/member/member.dart';
-import '../../model/my_user.dart';
-import '../../room/rooms.dart';
-import '../../room/timeline.dart';
-
-import '../../event/room/raw_room_event.dart';
-
 import '../../event/ephemeral/ephemeral.dart';
 import '../../event/ephemeral/ephemeral_event.dart';
-import '../../event/ephemeral/receipt_event.dart';
 import '../../event/ephemeral/typing_event.dart';
-
-import '../../event/room/state/canonical_alias_change_event.dart';
-
+import '../../model/context.dart';
 import 'database.dart' hide Rooms;
-import 'package:collection/collection.dart';
 
 class MoorStore extends Store {
   final DelegatedDatabase _executor;
@@ -74,6 +64,34 @@ class MoorStore extends Store {
     );
   }
 
+  @override
+  Stream<MyUser> myUserStorageSink(
+    String userID, {
+    Iterable<RoomId>? roomIds,
+    int timelineLimit = 100,
+  }) {
+    final first = DateTime.now();
+    return _db!
+        .getUserSink(userID)
+        .where((userRecord) => userRecord != null)
+        .cast<MyUserRecordWithDeviceRecord>()
+        .asyncMap(
+      (user) async {
+        final data = await _userRecordToUser(
+          user,
+          roomIds: roomIds,
+          timelineLimit: timelineLimit,
+        );
+        final second = DateTime.now();
+        Log.writer.log(
+              "Seconds elapsed ${second.difference(first).inSeconds} - ${second.difference(first)}",
+              "myUserStorageSinkNewData:",
+            );
+        return data;
+      },
+    );
+  }
+
   /// If [isolated] is true, will create an [IsolatedUpdater] to manage
   /// the user's updates.
   @override
@@ -88,15 +106,28 @@ class MoorStore extends Store {
     if (myUserWithDeviceRecord == null) {
       return null;
     }
+    final user = _userRecordToUser(
+      myUserWithDeviceRecord,
+      roomIds: roomIds,
+      timelineLimit: timelineLimit,
+    );
 
+    await close();
+
+    return user;
+  }
+
+  Future<MyUser> _userRecordToUser(
+    MyUserRecordWithDeviceRecord myUserWithDeviceRecord, {
+    Iterable<RoomId>? roomIds,
+    int timelineLimit = 100,
+  }) async {
     final myUserRecord = myUserWithDeviceRecord.myUserRecord;
     final deviceRecord = myUserWithDeviceRecord.deviceRecord;
-
     final myId = UserId(myUserRecord.id!);
-
     final context = Context(myId: myId);
 
-    final user = MyUser(
+    return MyUser(
       id: myId,
       name: myUserRecord.name!,
       avatarUrl: myUserRecord.avatarUrl != null
@@ -117,53 +148,19 @@ class MoorStore extends Store {
       hasSynced: myUserRecord.hasSynced ?? false,
       isLoggedOut: myUserRecord.isLoggedOut ?? true,
     );
-
-    await close();
-
-    return user;
   }
 
   @override
+  //Set data into rooms, than set data into user.
+  //Setting data into user trigger user sink, that get all room records
   Future<void> setMyUserDelta(MyUser myUser) async {
-    await _db?.setMyUser(
-      MyUsersCompanion(
-        homeserver: myUser.context?.updater?.homeServer != null
-            ? Value(myUser.context?.updater?.homeServer.url.toString())
-            : Value.absent(),
-        id: myUser.id.value.isNotEmpty
-            ? Value(myUser.id.toString())
-            : Value.absent(),
-        name: Value(myUser.name),
-        avatarUrl: myUser.avatarUrl != null
-            ? Value(myUser.avatarUrl.toString())
-            : Value.absent(),
-        accessToken: myUser.accessToken != null
-            ? Value(myUser.accessToken.toString())
-            : Value.absent(),
-        syncToken:
-            myUser.syncToken != null ? Value(myUser.syncToken) : Value.absent(),
-        currentDeviceId: myUser.currentDevice?.id != null
-            ? Value(myUser.currentDevice?.id.toString())
-            : Value.absent(),
-        hasSynced:
-            myUser.hasSynced != null ? Value(myUser.hasSynced) : Value.absent(),
-        isLoggedOut: myUser.isLoggedOut != null
-            ? Value(myUser.isLoggedOut)
-            : Value.absent(),
-      ),
-    );
-
-    if (myUser.currentDevice != null) {
-      await _db?.setDeviceRecords([myUser.currentDevice!.toCompanion()]);
-    }
-
     if (myUser.rooms != null) {
       _setInvites(myUser.rooms!);
 
       final previouslyInvitedIds = myUser.rooms
           ?.where((room) =>
-              room.me?.membership == Membership.joined &&
-              _invites.contains(room.id))
+      room.me?.membership == Membership.joined &&
+          _invites.contains(room.id))
           .map((room) => room.id.toString())
           .toList();
 
@@ -182,15 +179,15 @@ class MoorStore extends Store {
             .map((room) => room.stateEvents)
             .whereNotNull()
             .expand((stateEvents) => [
-                  stateEvents.nameChange,
-                  stateEvents.avatarChange,
-                  stateEvents.topicChange,
-                  stateEvents.powerLevelsChange,
-                  stateEvents.joinRulesChange,
-                  stateEvents.canonicalAliasChange,
-                  stateEvents.creation,
-                  stateEvents.upgrade,
-                ])
+          stateEvents.nameChange,
+          stateEvents.avatarChange,
+          stateEvents.topicChange,
+          stateEvents.powerLevelsChange,
+          stateEvents.joinRulesChange,
+          stateEvents.canonicalAliasChange,
+          stateEvents.creation,
+          stateEvents.upgrade,
+        ])
             .whereNotNull()
             .map((event) => event.toRecord(inTimeline: false))
             .toList(),
@@ -230,7 +227,7 @@ class MoorStore extends Store {
 
       //Find latest message and save time interval to room
       final Map<String, int> result =
-          eventsList.fold(<String, int>{}, (previousValue, element) {
+      eventsList.fold(<String, int>{}, (previousValue, element) {
         if (element.time != null) {
           final roomID = element.roomId;
           if (previousValue.containsKey(roomID) &&
@@ -248,6 +245,38 @@ class MoorStore extends Store {
         await _db?.setRoomsLatestMessages(result);
       }
     }
+    await _db?.setMyUser(
+      MyUsersCompanion(
+        homeserver: myUser.context?.updater?.homeServer != null
+            ? Value(myUser.context?.updater?.homeServer.url.toString())
+            : Value.absent(),
+        id: myUser.id.value.isNotEmpty
+            ? Value(myUser.id.toString())
+            : Value.absent(),
+        name: Value(myUser.name),
+        avatarUrl: myUser.avatarUrl != null
+            ? Value(myUser.avatarUrl.toString())
+            : Value.absent(),
+        accessToken: myUser.accessToken != null
+            ? Value(myUser.accessToken.toString())
+            : Value.absent(),
+        syncToken:
+            myUser.syncToken != null ? Value(myUser.syncToken) : Value.absent(),
+        currentDeviceId: myUser.currentDevice?.id != null
+            ? Value(myUser.currentDevice?.id.toString())
+            : Value.absent(),
+        hasSynced:
+            myUser.hasSynced != null ? Value(myUser.hasSynced) : Value.absent(),
+        isLoggedOut: myUser.isLoggedOut != null
+            ? Value(myUser.isLoggedOut)
+            : Value.absent(),
+      ),
+    );
+
+    if (myUser.currentDevice != null) {
+      await _db?.setDeviceRecords([myUser.currentDevice!.toCompanion()]);
+    }
+
   }
 
   @override

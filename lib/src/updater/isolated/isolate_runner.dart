@@ -6,11 +6,13 @@
 
 import 'dart:async';
 import 'dart:isolate';
+
 import 'package:matrix_sdk/src/model/models.dart';
 import 'package:meta/meta.dart';
+
 import '../../homeserver.dart';
-import '../updater.dart';
 import '../../store/store.dart';
+import '../updater.dart';
 import 'instruction.dart';
 
 abstract class IsolateRunner {
@@ -206,9 +208,7 @@ abstract class IsolateRunner {
       return;
     }
 
-    if (result != null &&
-        (result is! Update ||
-            (instruction is RequestInstruction && instruction.basedOnUpdate))) {
+    if (result != null && (result is! Update || instruction.basedOnUpdate)) {
       sendPort.send(result is RequestUpdate ? result.minimize() : result);
     }
   }

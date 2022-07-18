@@ -11,8 +11,6 @@ import 'package:http/testing.dart';
 import 'package:matrix_sdk/matrix_sdk.dart';
 import 'package:test/test.dart';
 
-import 'util.dart';
-
 void testHomeserver() {
   group('Homeserver', () {
     group('.login ', () {
@@ -42,7 +40,6 @@ void testHomeserver() {
         final user = await hs.login(
           Username('pat'),
           'password',
-          store: createMemoryStore(),
         );
 
         expect(user, isNotNull);
@@ -76,7 +73,6 @@ void testHomeserver() {
         final user = await hs.login(
           Username('pat'),
           'password',
-          store: createMemoryStore(),
         );
 
         expect(user.currentDevice?.id.toString(), equals('GHTYAJCE'));
@@ -108,7 +104,6 @@ void testHomeserver() {
         final user = await hs.login(
           Username('pat'),
           'password',
-          store: createMemoryStore(),
           device: Device(
             id: DeviceId('BLABLA'),
             name: 'Pattle Android',
@@ -134,7 +129,6 @@ void testHomeserver() {
           hs.login(
             Username('pat'),
             'password',
-            store: createMemoryStore(),
           ),
           throwsA(isA<ForbiddenException>()),
         );
@@ -178,7 +172,6 @@ void testHomeserver() {
       final user = await hs.login(
         Username('pat'),
         'password',
-        store: createMemoryStore(),
       );
 
       expect(user.name, equals('Pat Pattle'));

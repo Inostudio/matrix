@@ -1,18 +1,16 @@
 import 'dart:async';
 
+import 'package:collection/collection.dart';
 import 'package:matrix_sdk/matrix_sdk.dart';
 import 'package:matrix_sdk/src/updater/isolated/isolated_updater.dart';
-import 'package:matrix_sdk/src/model/sync_filter.dart';
 import 'package:matrix_sdk/src/updater/one_room_syncer.dart';
-import 'package:matrix_sdk/src/room/room.dart';
-import 'model/api_call_statistics.dart';
-import 'model/request_update.dart';
+import 'package:matrix_sdk/src/util/logger.dart';
+
 import 'model/sync_token.dart';
-import 'model/update.dart';
-import 'package:collection/collection.dart';
 
 class MatrixClient {
   final bool isIsolated;
+  final bool withDebugLog;
   final Uri serverUri;
   final Homeserver _homeServer;
   final StoreLocation _storeLocation;
@@ -21,25 +19,35 @@ class MatrixClient {
 
   // ignore: close_sinks
   final _apiCallStatsSubject = StreamController<ApiCallStatistics>.broadcast();
+
   Stream<ApiCallStatistics> get outApiCallStatistics =>
       _apiCallStatsSubject.stream;
 
   // ignore: close_sinks
   final _errorSubject = StreamController<ErrorWithStackTraceString>.broadcast();
+
   Stream<ErrorWithStackTraceString> get outError => _errorSubject.stream;
 
   // ignore: close_sinks
   final _updatesSubject = StreamController<Update>.broadcast();
+
   Stream<Update> get outUpdates => _updatesSubject.stream;
 
   Updater? _updater;
 
   MatrixClient({
     this.isIsolated = true,
+    this.withDebugLog = false,
     required this.serverUri,
     required StoreLocation storeLocation,
   })  : _homeServer = Homeserver(serverUri),
-        _storeLocation = storeLocation;
+        _storeLocation = storeLocation {
+    if (withDebugLog) {
+      Log.writer = LogWriterDevelopment();
+    } else {
+      Log.writer = LogWriterNone();
+    }
+  }
 
   Homeserver get homeServer => _homeServer;
 
@@ -120,10 +128,9 @@ class MatrixClient {
     int timelineLimit = 30,
   }) {
     user.context?.updater?.startSync(
-      maxRetryAfter: maxRetryAfter,
-      timelineLimit: timelineLimit,
-      syncToken: user.syncToken
-    );
+        maxRetryAfter: maxRetryAfter,
+        timelineLimit: timelineLimit,
+        syncToken: user.syncToken);
   }
 
   Future<void> stopSync(MyUser user) {
@@ -221,6 +228,7 @@ class MatrixClient {
     }
     await _updater!.syncer.runSyncOnce(filter: filter);
   }
+
   Stream<SyncToken>? get outSyncToken => _updater?.outSyncToken;
 
   Stream<Update>? get outOneRoomUpdates => _oneRoomSyncer?.outUpdates;

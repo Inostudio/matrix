@@ -25,9 +25,24 @@ class Rooms extends DelegatingIterable<Room> implements Contextual<Rooms> {
     this.context,
   }) : super([]);
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Rooms &&
+          runtimeType == other.runtimeType &&
+          context == other.context;
+
+  @override
+  int get hashCode => context.hashCode;
+
   Room? operator [](RoomId id) => firstWhereOrNull((s) => s.id == id);
 
   bool containsWithId(RoomId id) => any((r) => r.id == id);
+
+  @override
+  String toString() {
+    return 'Rooms{context: $context}';
+  }
 
   /// Load more rooms, returning the [Update] where [MyUser] has more rooms.
   Future<RequestUpdate<Rooms>?> load({

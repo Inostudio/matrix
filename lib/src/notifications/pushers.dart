@@ -27,6 +27,11 @@ class Pushers {
       'append': true,
     }));
 
+  @override
+  String toString() {
+    return 'Pushers{_context: $_context}';
+  }
+
   /// Remove a pusher for this [MyUser].
   /// Returns true if successfully removed.
   Future<void> remove(Pusher pusher) {

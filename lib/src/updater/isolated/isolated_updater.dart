@@ -18,15 +18,14 @@ import 'package:matrix_sdk/src/model/update.dart';
 import '../../event/ephemeral/ephemeral.dart';
 import '../../event/event.dart';
 import '../../homeserver.dart';
+import '../../model/error_with_stacktrace.dart';
 import '../../model/identifier.dart';
-import '../../room/member/member_timeline.dart';
 import '../../model/my_user.dart';
+import '../../room/member/member_timeline.dart';
 import '../../room/room.dart';
 import '../../room/rooms.dart';
-import '../../store/store.dart';
 import '../../room/timeline.dart';
-import '../../model/error_with_stacktrace.dart';
-
+import '../../store/store.dart';
 import '../updater.dart';
 import 'instruction.dart';
 import 'isolate_runner.dart';
@@ -117,18 +116,22 @@ class IsolatedUpdater extends Updater {
   final _receivePort = ReceivePort();
 
   late final Stream<dynamic> __messageStream = _receivePort.asBroadcastStream();
+
   Stream<dynamic> get _messageStream => __messageStream;
 
   final _errorSubject = StreamController<ErrorWithStackTraceString>.broadcast();
+
   @override
   Stream<ErrorWithStackTraceString> get outError => _errorSubject.stream;
 
   final _tokenSubject = StreamController<SyncToken>.broadcast();
+
   @override
   Stream<SyncToken> get outSyncToken => _tokenSubject.stream;
 
   // ignore: close_sinks
   final _apiCallStatsSubject = StreamController<ApiCallStatistics>.broadcast();
+
   @override
   Stream<ApiCallStatistics> get outApiCallStatistics =>
       _apiCallStatsSubject.stream;
@@ -137,6 +140,7 @@ class IsolatedUpdater extends Updater {
       StreamController<RequestUpdate>.broadcast();
 
   final _initializedCompleter = Completer<void>();
+
   Future<void> get _initialized => _initializedCompleter.future;
 
   MyUser _user;
@@ -157,6 +161,7 @@ class IsolatedUpdater extends Updater {
   // ignore: close_sinks
   late final StreamController<Update> __controller =
       StreamController<Update>.broadcast();
+
   StreamController<Update> get _controller => __controller;
 
   @override
@@ -203,7 +208,8 @@ class IsolatedUpdater extends Updater {
   Future<List<String?>?> getRoomIDs() => execute(GetRoomIDsInstruction());
 
   @override
-  Future<void> saveRoomToDB(Room room) => execute(SaveRoomToDBInstruction(room));
+  Future<void> saveRoomToDB(Room room) =>
+      execute(SaveRoomToDBInstruction(room));
 
   @override
   Future<void> startSync({

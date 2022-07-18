@@ -39,6 +39,21 @@ class Timeline extends DelegatingIterable<RoomEvent>
             ),
         );
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Timeline &&
+          runtimeType == other.runtimeType &&
+          context == other.context &&
+          previousBatch == other.previousBatch &&
+          previousBatchSetBySync == other.previousBatchSetBySync;
+
+  @override
+  int get hashCode =>
+      context.hashCode ^
+      previousBatch.hashCode ^
+      previousBatchSetBySync.hashCode;
+
   Timeline.empty({
     required this.context,
   })  : previousBatch = null,

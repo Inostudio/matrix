@@ -7,6 +7,7 @@
 
 import 'package:moor/backends.dart';
 import 'package:moor/moor.dart';
+
 import '../../event/room/state/member_change_event.dart';
 
 part 'database.g.dart';
@@ -16,9 +17,13 @@ class MyUsers extends Table {
   TextColumn get homeserver => text().nullable()();
 
   TextColumn get id => text().nullable()();
+
   TextColumn get name => text().nullable()();
+
   TextColumn get avatarUrl => text().nullable()();
+
   TextColumn get accessToken => text().nullable()();
+
   TextColumn get syncToken => text().nullable()();
 
   TextColumn get currentDeviceId =>
@@ -39,29 +44,39 @@ class Rooms extends Table {
   TextColumn get id => text()();
 
   TextColumn get timelinePreviousBatch => text().nullable()();
+
   BoolColumn get timelinePreviousBatchSetBySync => boolean().nullable()();
 
   IntColumn get summaryJoinedMembersCount => integer().nullable()();
+
   IntColumn get summaryInvitedMembersCount => integer().nullable()();
 
   TextColumn get nameChangeEventId =>
       text().customConstraint('REFERENCES room_events(id)').nullable()();
+
   TextColumn get avatarChangeEventId =>
       text().customConstraint('REFERENCES room_events(id)').nullable()();
+
   TextColumn get topicChangeEventId =>
       text().customConstraint('REFERENCES room_events(id)').nullable()();
+
   TextColumn get powerLevelsChangeEventId =>
       text().customConstraint('REFERENCES room_events(id)').nullable()();
+
   TextColumn get joinRulesChangeEventId =>
       text().customConstraint('REFERENCES room_events(id)').nullable()();
+
   TextColumn get canonicalAliasChangeEventId =>
       text().customConstraint('REFERENCES room_events(id)').nullable()();
+
   TextColumn get creationEventId =>
       text().customConstraint('REFERENCES room_events(id)').nullable()();
+
   TextColumn get upgradeEventId =>
       text().customConstraint('REFERENCES room_events(id)').nullable()();
 
   IntColumn get highlightedUnreadNotificationCount => integer().nullable()();
+
   IntColumn get totalUnreadNotificationCount => integer().nullable()();
 
   IntColumn get lastMessageTimeInterval =>
@@ -76,17 +91,28 @@ class Rooms extends Table {
 @DataClassName('RoomEventRecord')
 class RoomEvents extends Table {
   TextColumn get id => text()();
+
   TextColumn get type => text()();
+
   TextColumn get roomId =>
       text().customConstraint('REFERENCES room_events(id)')();
+
   TextColumn get senderId => text()();
+
   DateTimeColumn get time => dateTime().nullable()();
+
   TextColumn get content => text().nullable()();
+
   TextColumn get previousContent => text().nullable()();
+
   TextColumn get sentState => text().nullable()();
+
   TextColumn get transactionId => text().nullable()();
+
   TextColumn get stateKey => text().nullable()();
+
   TextColumn get redacts => text().nullable()();
+
   BoolColumn get inTimeline => boolean()();
 
   @override
@@ -96,8 +122,10 @@ class RoomEvents extends Table {
 @DataClassName('EphemeralEventRecord')
 class EphemeralEvents extends Table {
   TextColumn get type => text()();
+
   TextColumn get roomId =>
       text().customConstraint('REFERENCES room_events(id)')();
+
   TextColumn get content => text().nullable()();
 
   @override
@@ -107,9 +135,13 @@ class EphemeralEvents extends Table {
 @DataClassName('DeviceRecord')
 class Devices extends Table {
   TextColumn get id => text()();
+
   TextColumn get userId => text()();
+
   TextColumn get name => text().nullable()();
+
   DateTimeColumn get lastSeen => dateTime().nullable()();
+
   TextColumn get lastIpAddress => text().nullable()();
 
   @override
@@ -138,28 +170,31 @@ class Database extends _$Database {
     return destructiveFallback;
   }
 
-  Future<MyUserRecordWithDeviceRecord?> getMyUserRecord(
+  Selectable<MyUserRecordWithDeviceRecord?> _selectUserWithDevice(
     String userID,
   ) {
     final query = select(myUsers);
     query.where((u) => u.id.like('$userID'));
     query.limit(1);
 
-    return query
-        .join([
-          leftOuterJoin(
-            devices,
-            devices.id.equalsExp(myUsers.currentDeviceId),
-          )
-        ])
-        .map(
-          (r) => MyUserRecordWithDeviceRecord(
-            myUserRecord: r.readTable(myUsers),
-            deviceRecord: r.readTableOrNull(devices),
-          ),
-        )
-        .getSingleOrNull();
+    return query.join([
+      leftOuterJoin(
+        devices,
+        devices.id.equalsExp(myUsers.currentDeviceId),
+      )
+    ]).map(
+      (r) => MyUserRecordWithDeviceRecord(
+        myUserRecord: r.readTable(myUsers),
+        deviceRecord: r.readTableOrNull(devices),
+      ),
+    );
   }
+
+  Stream<MyUserRecordWithDeviceRecord?> getUserSink(String userID) =>
+      _selectUserWithDevice(userID).watchSingleOrNull();
+
+  Future<MyUserRecordWithDeviceRecord?> getMyUserRecord(String userID) =>
+      _selectUserWithDevice(userID).getSingleOrNull();
 
   Future<void> setMyUser(MyUsersCompanion companion) async {
     await batch((batch) {

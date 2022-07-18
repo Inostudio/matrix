@@ -9,30 +9,31 @@ import 'package:collection/collection.dart';
 import 'package:matrix_sdk/src/model/request_update.dart';
 import 'package:matrix_sdk/src/model/update.dart';
 import 'package:meta/meta.dart';
-import '../model/context.dart';
-import '../event/event.dart';
-import '../event/room/message_event.dart';
-import '../event/room/room_event.dart';
+
+import '../event/ephemeral/ephemeral.dart';
 import '../event/ephemeral/ephemeral_event.dart';
 import '../event/ephemeral/receipt_event.dart';
+import '../event/event.dart';
+import '../event/room/message_event.dart';
+import '../event/room/raw_room_event.dart';
+import '../event/room/room_event.dart';
+import '../event/room/state/canonical_alias_change_event.dart';
 import '../event/room/state/join_rules_change_event.dart';
 import '../event/room/state/power_levels_change_event.dart';
+import '../event/room/state/room_avatar_change_event.dart';
 import '../event/room/state/room_creation_event.dart';
+import '../event/room/state/room_name_change_event.dart';
 import '../event/room/state/room_upgrade_event.dart';
 import '../event/room/state/state_event.dart';
 import '../event/room/state/topic_change_event.dart';
-import '../event/room/state/room_avatar_change_event.dart';
-import '../event/room/state/room_name_change_event.dart';
-import '../event/room/state/canonical_alias_change_event.dart';
-import '../event/room/raw_room_event.dart';
-import '../event/ephemeral/ephemeral.dart';
 import '../homeserver.dart';
+import '../model/context.dart';
 import '../model/identifier.dart';
 import '../model/matrix_user.dart';
+import '../model/my_user.dart';
 import 'member/member.dart';
 import 'member/member_timeline.dart';
 import 'member/membership.dart';
-import '../model/my_user.dart';
 import 'timeline.dart';
 
 @immutable
@@ -264,6 +265,12 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
     );
   }
 
+
+  @override
+  String toString() {
+    return 'Room{context: $context, me: $me, id: $id, lastMessageTimeInterval: $lastMessageTimeInterval, timeline: $timeline, memberTimeline: $memberTimeline, members: $members, summary: $summary, stateEvents: $stateEvents, powerLevels: $powerLevels, ephemeral: $ephemeral, highlightedUnreadNotificationCount: $highlightedUnreadNotificationCount, totalUnreadNotificationCount: $totalUnreadNotificationCount, directUserId: $directUserId}';
+  }
+
   Room copyWith({
     Context? context,
     RoomId? id,
@@ -348,7 +355,9 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-          other is Room && runtimeType == other.runtimeType && id.value == other.id.value;
+      other is Room &&
+          runtimeType == other.runtimeType &&
+          id.value == other.id.value;
 
   @override
   int get hashCode => id.value.hashCode;
@@ -575,11 +584,14 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
     if (context?.updater == null) {
       return Future.value(null).asStream();
     }
-    return context!.updater!.send(id, content,
-        transactionId: transactionId,
-        stateKey: stateKey,
-        type: type,
-        room: this);
+    return context!.updater!.send(
+      id,
+      content,
+      transactionId: transactionId,
+      stateKey: stateKey,
+      type: type,
+      room: this,
+    );
   }
 
   Future<RequestUpdate<Timeline>?> edit(
@@ -911,8 +923,11 @@ class RoomSummary {
 @immutable
 class PowerLevels {
   int? get ban => _content?.banLevel;
+
   int? get invite => _content?.inviteLevel;
+
   int? get kick => _content?.kickLevel;
+
   int? get redact => _content?.redactLevel;
 
   int? get roomNotification => _content?.roomNotificationLevel;
@@ -935,6 +950,7 @@ class PowerLevels {
 @immutable
 class PowerLevelDefaults {
   int? get stateEvents => _content?.stateEventsDefaultLevel;
+
   int? get events => _content?.eventsDefaultLevel;
 
   int? get users => _content?.userDefaultLevel;

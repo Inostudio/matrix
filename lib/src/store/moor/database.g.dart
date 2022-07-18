@@ -224,23 +224,28 @@ class $DevicesTable extends Devices
   final String? _alias;
   $DevicesTable(this._db, [this._alias]);
   final VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
   late final GeneratedColumn<String?> id = GeneratedColumn<String?>(
       'id', aliasedName, false,
       typeName: 'TEXT', requiredDuringInsert: true);
   final VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
   late final GeneratedColumn<String?> userId = GeneratedColumn<String?>(
       'user_id', aliasedName, false,
       typeName: 'TEXT', requiredDuringInsert: true);
   final VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
   late final GeneratedColumn<String?> name = GeneratedColumn<String?>(
       'name', aliasedName, true,
       typeName: 'TEXT', requiredDuringInsert: false);
   final VerificationMeta _lastSeenMeta = const VerificationMeta('lastSeen');
+  @override
   late final GeneratedColumn<DateTime?> lastSeen = GeneratedColumn<DateTime?>(
       'last_seen', aliasedName, true,
       typeName: 'INTEGER', requiredDuringInsert: false);
   final VerificationMeta _lastIpAddressMeta =
       const VerificationMeta('lastIpAddress');
+  @override
   late final GeneratedColumn<String?> lastIpAddress = GeneratedColumn<String?>(
       'last_ip_address', aliasedName, true,
       typeName: 'TEXT', requiredDuringInsert: false);
@@ -638,38 +643,46 @@ class $MyUsersTable extends MyUsers
   final String? _alias;
   $MyUsersTable(this._db, [this._alias]);
   final VerificationMeta _homeserverMeta = const VerificationMeta('homeserver');
+  @override
   late final GeneratedColumn<String?> homeserver = GeneratedColumn<String?>(
       'homeserver', aliasedName, true,
       typeName: 'TEXT', requiredDuringInsert: false);
   final VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
   late final GeneratedColumn<String?> id = GeneratedColumn<String?>(
       'id', aliasedName, true,
       typeName: 'TEXT', requiredDuringInsert: false);
   final VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
   late final GeneratedColumn<String?> name = GeneratedColumn<String?>(
       'name', aliasedName, true,
       typeName: 'TEXT', requiredDuringInsert: false);
   final VerificationMeta _avatarUrlMeta = const VerificationMeta('avatarUrl');
+  @override
   late final GeneratedColumn<String?> avatarUrl = GeneratedColumn<String?>(
       'avatar_url', aliasedName, true,
       typeName: 'TEXT', requiredDuringInsert: false);
   final VerificationMeta _accessTokenMeta =
       const VerificationMeta('accessToken');
+  @override
   late final GeneratedColumn<String?> accessToken = GeneratedColumn<String?>(
       'access_token', aliasedName, true,
       typeName: 'TEXT', requiredDuringInsert: false);
   final VerificationMeta _syncTokenMeta = const VerificationMeta('syncToken');
+  @override
   late final GeneratedColumn<String?> syncToken = GeneratedColumn<String?>(
       'sync_token', aliasedName, true,
       typeName: 'TEXT', requiredDuringInsert: false);
   final VerificationMeta _currentDeviceIdMeta =
       const VerificationMeta('currentDeviceId');
+  @override
   late final GeneratedColumn<String?> currentDeviceId =
       GeneratedColumn<String?>('current_device_id', aliasedName, true,
           typeName: 'TEXT',
           requiredDuringInsert: false,
           $customConstraints: 'REFERENCES devices(id)');
   final VerificationMeta _hasSyncedMeta = const VerificationMeta('hasSynced');
+  @override
   late final GeneratedColumn<bool?> hasSynced = GeneratedColumn<bool?>(
       'has_synced', aliasedName, true,
       typeName: 'INTEGER',
@@ -677,6 +690,7 @@ class $MyUsersTable extends MyUsers
       defaultConstraints: 'CHECK (has_synced IN (0, 1))');
   final VerificationMeta _isLoggedOutMeta =
       const VerificationMeta('isLoggedOut');
+  @override
   late final GeneratedColumn<bool?> isLoggedOut = GeneratedColumn<bool?>(
       'is_logged_out', aliasedName, true,
       typeName: 'INTEGER',
@@ -1177,54 +1191,66 @@ class $RoomEventsTable extends RoomEvents
   final String? _alias;
   $RoomEventsTable(this._db, [this._alias]);
   final VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
   late final GeneratedColumn<String?> id = GeneratedColumn<String?>(
       'id', aliasedName, false,
       typeName: 'TEXT', requiredDuringInsert: true);
   final VerificationMeta _typeMeta = const VerificationMeta('type');
+  @override
   late final GeneratedColumn<String?> type = GeneratedColumn<String?>(
       'type', aliasedName, false,
       typeName: 'TEXT', requiredDuringInsert: true);
   final VerificationMeta _roomIdMeta = const VerificationMeta('roomId');
+  @override
   late final GeneratedColumn<String?> roomId = GeneratedColumn<String?>(
       'room_id', aliasedName, false,
       typeName: 'TEXT',
       requiredDuringInsert: true,
       $customConstraints: 'REFERENCES room_events(id)');
   final VerificationMeta _senderIdMeta = const VerificationMeta('senderId');
+  @override
   late final GeneratedColumn<String?> senderId = GeneratedColumn<String?>(
       'sender_id', aliasedName, false,
       typeName: 'TEXT', requiredDuringInsert: true);
   final VerificationMeta _timeMeta = const VerificationMeta('time');
+  @override
   late final GeneratedColumn<DateTime?> time = GeneratedColumn<DateTime?>(
       'time', aliasedName, true,
       typeName: 'INTEGER', requiredDuringInsert: false);
   final VerificationMeta _contentMeta = const VerificationMeta('content');
+  @override
   late final GeneratedColumn<String?> content = GeneratedColumn<String?>(
       'content', aliasedName, true,
       typeName: 'TEXT', requiredDuringInsert: false);
   final VerificationMeta _previousContentMeta =
       const VerificationMeta('previousContent');
+  @override
   late final GeneratedColumn<String?> previousContent =
       GeneratedColumn<String?>('previous_content', aliasedName, true,
           typeName: 'TEXT', requiredDuringInsert: false);
   final VerificationMeta _sentStateMeta = const VerificationMeta('sentState');
+  @override
   late final GeneratedColumn<String?> sentState = GeneratedColumn<String?>(
       'sent_state', aliasedName, true,
       typeName: 'TEXT', requiredDuringInsert: false);
   final VerificationMeta _transactionIdMeta =
       const VerificationMeta('transactionId');
+  @override
   late final GeneratedColumn<String?> transactionId = GeneratedColumn<String?>(
       'transaction_id', aliasedName, true,
       typeName: 'TEXT', requiredDuringInsert: false);
   final VerificationMeta _stateKeyMeta = const VerificationMeta('stateKey');
+  @override
   late final GeneratedColumn<String?> stateKey = GeneratedColumn<String?>(
       'state_key', aliasedName, true,
       typeName: 'TEXT', requiredDuringInsert: false);
   final VerificationMeta _redactsMeta = const VerificationMeta('redacts');
+  @override
   late final GeneratedColumn<String?> redacts = GeneratedColumn<String?>(
       'redacts', aliasedName, true,
       typeName: 'TEXT', requiredDuringInsert: false);
   final VerificationMeta _inTimelineMeta = const VerificationMeta('inTimeline');
+  @override
   late final GeneratedColumn<bool?> inTimeline = GeneratedColumn<bool?>(
       'in_timeline', aliasedName, false,
       typeName: 'INTEGER',
@@ -2032,20 +2058,24 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
   $RoomsTable(this._db, [this._alias]);
   final VerificationMeta _myMembershipMeta =
       const VerificationMeta('myMembership');
+  @override
   late final GeneratedColumn<String?> myMembership = GeneratedColumn<String?>(
       'my_membership', aliasedName, true,
       typeName: 'TEXT', requiredDuringInsert: false);
   final VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
   late final GeneratedColumn<String?> id = GeneratedColumn<String?>(
       'id', aliasedName, false,
       typeName: 'TEXT', requiredDuringInsert: true);
   final VerificationMeta _timelinePreviousBatchMeta =
       const VerificationMeta('timelinePreviousBatch');
+  @override
   late final GeneratedColumn<String?> timelinePreviousBatch =
       GeneratedColumn<String?>('timeline_previous_batch', aliasedName, true,
           typeName: 'TEXT', requiredDuringInsert: false);
   final VerificationMeta _timelinePreviousBatchSetBySyncMeta =
       const VerificationMeta('timelinePreviousBatchSetBySync');
+  @override
   late final GeneratedColumn<bool?> timelinePreviousBatchSetBySync =
       GeneratedColumn<bool?>(
           'timeline_previous_batch_set_by_sync', aliasedName, true,
@@ -2055,16 +2085,19 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
               'CHECK (timeline_previous_batch_set_by_sync IN (0, 1))');
   final VerificationMeta _summaryJoinedMembersCountMeta =
       const VerificationMeta('summaryJoinedMembersCount');
+  @override
   late final GeneratedColumn<int?> summaryJoinedMembersCount =
       GeneratedColumn<int?>('summary_joined_members_count', aliasedName, true,
           typeName: 'INTEGER', requiredDuringInsert: false);
   final VerificationMeta _summaryInvitedMembersCountMeta =
       const VerificationMeta('summaryInvitedMembersCount');
+  @override
   late final GeneratedColumn<int?> summaryInvitedMembersCount =
       GeneratedColumn<int?>('summary_invited_members_count', aliasedName, true,
           typeName: 'INTEGER', requiredDuringInsert: false);
   final VerificationMeta _nameChangeEventIdMeta =
       const VerificationMeta('nameChangeEventId');
+  @override
   late final GeneratedColumn<String?> nameChangeEventId =
       GeneratedColumn<String?>('name_change_event_id', aliasedName, true,
           typeName: 'TEXT',
@@ -2072,6 +2105,7 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
           $customConstraints: 'REFERENCES room_events(id)');
   final VerificationMeta _avatarChangeEventIdMeta =
       const VerificationMeta('avatarChangeEventId');
+  @override
   late final GeneratedColumn<String?> avatarChangeEventId =
       GeneratedColumn<String?>('avatar_change_event_id', aliasedName, true,
           typeName: 'TEXT',
@@ -2079,6 +2113,7 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
           $customConstraints: 'REFERENCES room_events(id)');
   final VerificationMeta _topicChangeEventIdMeta =
       const VerificationMeta('topicChangeEventId');
+  @override
   late final GeneratedColumn<String?> topicChangeEventId =
       GeneratedColumn<String?>('topic_change_event_id', aliasedName, true,
           typeName: 'TEXT',
@@ -2086,6 +2121,7 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
           $customConstraints: 'REFERENCES room_events(id)');
   final VerificationMeta _powerLevelsChangeEventIdMeta =
       const VerificationMeta('powerLevelsChangeEventId');
+  @override
   late final GeneratedColumn<String?> powerLevelsChangeEventId =
       GeneratedColumn<String?>(
           'power_levels_change_event_id', aliasedName, true,
@@ -2094,6 +2130,7 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
           $customConstraints: 'REFERENCES room_events(id)');
   final VerificationMeta _joinRulesChangeEventIdMeta =
       const VerificationMeta('joinRulesChangeEventId');
+  @override
   late final GeneratedColumn<String?> joinRulesChangeEventId =
       GeneratedColumn<String?>('join_rules_change_event_id', aliasedName, true,
           typeName: 'TEXT',
@@ -2101,6 +2138,7 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
           $customConstraints: 'REFERENCES room_events(id)');
   final VerificationMeta _canonicalAliasChangeEventIdMeta =
       const VerificationMeta('canonicalAliasChangeEventId');
+  @override
   late final GeneratedColumn<String?> canonicalAliasChangeEventId =
       GeneratedColumn<String?>(
           'canonical_alias_change_event_id', aliasedName, true,
@@ -2109,6 +2147,7 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
           $customConstraints: 'REFERENCES room_events(id)');
   final VerificationMeta _creationEventIdMeta =
       const VerificationMeta('creationEventId');
+  @override
   late final GeneratedColumn<String?> creationEventId =
       GeneratedColumn<String?>('creation_event_id', aliasedName, true,
           typeName: 'TEXT',
@@ -2116,6 +2155,7 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
           $customConstraints: 'REFERENCES room_events(id)');
   final VerificationMeta _upgradeEventIdMeta =
       const VerificationMeta('upgradeEventId');
+  @override
   late final GeneratedColumn<String?> upgradeEventId = GeneratedColumn<String?>(
       'upgrade_event_id', aliasedName, true,
       typeName: 'TEXT',
@@ -2123,18 +2163,21 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
       $customConstraints: 'REFERENCES room_events(id)');
   final VerificationMeta _highlightedUnreadNotificationCountMeta =
       const VerificationMeta('highlightedUnreadNotificationCount');
+  @override
   late final GeneratedColumn<int?> highlightedUnreadNotificationCount =
       GeneratedColumn<int?>(
           'highlighted_unread_notification_count', aliasedName, true,
           typeName: 'INTEGER', requiredDuringInsert: false);
   final VerificationMeta _totalUnreadNotificationCountMeta =
       const VerificationMeta('totalUnreadNotificationCount');
+  @override
   late final GeneratedColumn<int?> totalUnreadNotificationCount =
       GeneratedColumn<int?>(
           'total_unread_notification_count', aliasedName, true,
           typeName: 'INTEGER', requiredDuringInsert: false);
   final VerificationMeta _lastMessageTimeIntervalMeta =
       const VerificationMeta('lastMessageTimeInterval');
+  @override
   late final GeneratedColumn<int?> lastMessageTimeInterval =
       GeneratedColumn<int?>('last_message_time_interval', aliasedName, false,
           typeName: 'INTEGER',
@@ -2142,6 +2185,7 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
           defaultValue: const Constant(0));
   final VerificationMeta _directUserIdMeta =
       const VerificationMeta('directUserId');
+  @override
   late final GeneratedColumn<String?> directUserId = GeneratedColumn<String?>(
       'direct_user_id', aliasedName, true,
       typeName: 'TEXT', requiredDuringInsert: false);
@@ -2465,16 +2509,19 @@ class $EphemeralEventsTable extends EphemeralEvents
   final String? _alias;
   $EphemeralEventsTable(this._db, [this._alias]);
   final VerificationMeta _typeMeta = const VerificationMeta('type');
+  @override
   late final GeneratedColumn<String?> type = GeneratedColumn<String?>(
       'type', aliasedName, false,
       typeName: 'TEXT', requiredDuringInsert: true);
   final VerificationMeta _roomIdMeta = const VerificationMeta('roomId');
+  @override
   late final GeneratedColumn<String?> roomId = GeneratedColumn<String?>(
       'room_id', aliasedName, false,
       typeName: 'TEXT',
       requiredDuringInsert: true,
       $customConstraints: 'REFERENCES room_events(id)');
   final VerificationMeta _contentMeta = const VerificationMeta('content');
+  @override
   late final GeneratedColumn<String?> content = GeneratedColumn<String?>(
       'content', aliasedName, true,
       typeName: 'TEXT', requiredDuringInsert: false);
