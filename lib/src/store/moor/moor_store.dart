@@ -12,12 +12,10 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:drift/backends.dart';
+import 'package:drift/native.dart';
 import 'package:drift/drift.dart';
 import 'package:collection/collection.dart';
 import 'package:matrix_sdk/src/util/logger.dart';
-import 'package:moor/backends.dart';
-import 'package:moor/ffi.dart';
-import 'package:moor/moor.dart';
 import 'package:pedantic/pedantic.dart';
 
 import '../../../matrix_sdk.dart';
