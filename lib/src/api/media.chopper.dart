@@ -6,7 +6,7 @@ part of 'media.dart';
 // ChopperGenerator
 // **************************************************************************
 
-// ignore_for_file: always_put_control_body_on_new_line, always_specify_types, prefer_const_declarations
+// ignore_for_file: always_put_control_body_on_new_line, always_specify_types, prefer_const_declarations, unnecessary_brace_in_string_interps
 class _$MediaService extends MediaService {
   _$MediaService([ChopperClient? client]) {
     if (client == null) return;
@@ -19,7 +19,7 @@ class _$MediaService extends MediaService {
   @override
   Future<Response<Stream<List<int>>>> download(
       String serverName, String mediaId) {
-    final $url = '/_matrix/media/r0/download/$serverName/$mediaId';
+    final $url = '/_matrix/media/r0/download/${serverName}/${mediaId}';
     final $request = Request('GET', $url, client.baseUrl);
     return client.send<Stream<List<int>>, int>($request);
   }
@@ -48,7 +48,7 @@ class _$MediaService extends MediaService {
   @override
   Future<Response<Stream<List<int>>>> thumbnail(
       String serverName, String mediaId, int width, int height, String method) {
-    final $url = '/_matrix/media/r0/thumbnail/$serverName/$mediaId';
+    final $url = '/_matrix/media/r0/thumbnail/${serverName}/${mediaId}';
     final $params = <String, dynamic>{
       'width': width,
       'height': height,

@@ -11,6 +11,8 @@ import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:drift/backends.dart';
+import 'package:drift/drift.dart';
 import 'package:collection/collection.dart';
 import 'package:matrix_sdk/src/util/logger.dart';
 import 'package:moor/backends.dart';
@@ -577,7 +579,7 @@ class MoorStoreFileLocation extends MoorStoreLocation {
   MoorStoreFileLocation(this.file);
 
   @override
-  MoorStore create() => MoorStore(VmDatabase(file));
+  MoorStore create() => MoorStore(NativeDatabase(file));
 }
 
 /// TODO: Move to dart:io only file/library
@@ -585,7 +587,7 @@ class MoorStoreMemoryLocation extends MoorStoreLocation {
   MoorStoreMemoryLocation();
 
   @override
-  MoorStore create() => MoorStore(VmDatabase.memory());
+  MoorStore create() => MoorStore(NativeDatabase.memory());
 }
 
 extension on DeviceRecord {
