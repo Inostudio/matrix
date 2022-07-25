@@ -21,7 +21,9 @@ import '../updater/updater.dart';
 abstract class Store {
   bool get isOpen;
 
-  void open();
+  Future<void> open();
+
+  Future<bool> ensureOpen();
 
   Future<void> close();
 
@@ -44,7 +46,6 @@ abstract class Store {
     String userID, {
     Iterable<RoomId>? roomIds,
     int timelineLimit = 100,
-    bool isolated = false,
   });
 
   ///Get sink to [MyUser] in local database

@@ -13,12 +13,14 @@ class LogRequestInterceptor implements RequestInterceptor {
     final baseUrl = request.baseUrl;
     final method = request.method;
     final body = request.body;
+    final params = request.parameters;
     final header = request.headers;
     Log.writer.log(
       """
     MATRIX REQUEST $method $baseUrl$url
     $_separator
     HEADER $header
+    Params $params
     $_separator
     BODY $body
       """,
@@ -41,7 +43,7 @@ class LogResponseInterceptor implements ResponseInterceptor {
     $_separator
     HEADER $header
     $_separator
-    BODY $body
+    BODY ${body.toString().length > 200 ? body.toString().length : body}
         """,
     );
     return response;

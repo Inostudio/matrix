@@ -48,7 +48,7 @@ class IsolatedUpdater extends Updater {
     );
 
     await updater._initialized;
-
+    await updater.ensureReady();
     return updater;
   }
 

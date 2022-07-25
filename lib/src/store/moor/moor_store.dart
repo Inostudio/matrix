@@ -38,11 +38,20 @@ class MoorStore extends Store {
   Database? _db;
 
   @override
-  void open() {
+  Future<void> open() async {
     if (!isOpen) {
       _db = Database(_executor);
       _isOpen = true;
+      await ensureOpen();
     }
+  }
+
+  @override
+  Future<bool> ensureOpen() async {
+    if (_db == null) {
+      return false;
+    }
+    return _executor.ensureOpen(_db!);
   }
 
   @override
@@ -99,7 +108,6 @@ class MoorStore extends Store {
     String userID, {
     Iterable<RoomId>? roomIds,
     int timelineLimit = 100,
-    bool isolated = false,
   }) async {
     final myUserWithDeviceRecord = await _db?.getMyUserRecord(userID);
 
@@ -111,8 +119,8 @@ class MoorStore extends Store {
       roomIds: roomIds,
       timelineLimit: timelineLimit,
     );
-
-    await close();
+    //TODO ???????
+    // await close();
 
     return user;
   }

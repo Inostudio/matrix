@@ -18,6 +18,9 @@ class SinkStorage implements BaseSinkStorage {
       store.myUserStorageSink(userId);
 
   @override
+  Future<bool> ensureOpen() => store.ensureOpen();
+
+  @override
   Future<void> close() => store.close();
 
   @override

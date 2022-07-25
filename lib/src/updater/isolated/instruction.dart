@@ -15,7 +15,6 @@ import '../../room/rooms.dart';
 import '../../room/member/member_timeline.dart';
 import '../../room/timeline.dart';
 import '../../model/models.dart';
-import '../../model/sync_filter.dart';
 
 class StartSyncInstruction extends Instruction<void> {
   @override
@@ -89,7 +88,10 @@ class LoadRoomsInstruction extends RequestInstruction<Rooms> {
   LoadRoomsInstruction(this.limit, this.offset, this.timelineLimit);
 }
 
-class LogoutInstruction extends RequestInstruction<MyUser> {}
+class LogoutInstruction extends RequestInstruction<MyUser> {
+  @override
+  final bool basedOnUpdate = true;
+}
 
 class MarkReadInstruction extends RequestInstruction<ReadReceipts> {
   final RoomId roomId;

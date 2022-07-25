@@ -82,6 +82,8 @@ class MatrixClient {
     }
 
     if (_updater != null) {
+      await _updater!.ensureReady();
+
       _streamSubscription.add(_updater!.updates.listen(_updatesSubject.add));
       _streamSubscription
           .add(_updater!.outApiCallStatistics.listen(_apiCallStatsSubject.add));
@@ -96,9 +98,8 @@ class MatrixClient {
   ///
   /// Returns the [Update] where [MyUser] has logged out, if successful.
   Future<RequestUpdate<MyUser>?> logout(MyUser user) async {
-    final result = user.context?.updater?.logout();
     await stopSync(user);
-    return result ?? Future.value(null);
+    return user.context?.updater?.logout();
   }
 
   /// Send all unsent messages still in the [Store].
@@ -122,12 +123,11 @@ class MatrixClient {
     MyUser user, {
     Duration maxRetryAfter = const Duration(seconds: 30),
     int timelineLimit = 30,
-  }) {
-    user.context?.updater?.startSync(
-        maxRetryAfter: maxRetryAfter,
-        timelineLimit: timelineLimit,
-        syncToken: user.syncToken);
-  }
+  }) => user.context?.updater?.startSync(
+      maxRetryAfter: maxRetryAfter,
+      timelineLimit: timelineLimit,
+      syncToken: user.syncToken,
+    );
 
   Future<void> stopSync(MyUser user) {
     _streamSubscription.forEach((e) {
@@ -161,6 +161,7 @@ class MatrixClient {
     return update?.deltaData?.toList() ?? [];
   }
 
+  @Deprecated("Use [uotUpdates instead]")
   Future<List<Room?>> getRoomsByIDs({
     required Iterable<RoomId> roomIDs,
     int limit = 40,
