@@ -99,7 +99,9 @@ class MatrixClient {
   /// Returns the [Update] where [MyUser] has logged out, if successful.
   Future<RequestUpdate<MyUser>?> logout(MyUser user) async {
     await stopSync(user);
-    return user.context?.updater?.logout();
+    final userToReturn =  await user.context?.updater?.logout();
+    await user.context?.updater?.sinkStorage.wipeAllData();
+    return userToReturn;
   }
 
   /// Send all unsent messages still in the [Store].

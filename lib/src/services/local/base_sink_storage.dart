@@ -53,4 +53,6 @@ abstract class BaseSinkStorage {
   Future<bool> ensureOpen();
 
   Future<void> close();
+
+  Future<void> wipeAllData();
 }

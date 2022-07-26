@@ -570,6 +570,9 @@ class MoorStore extends Store {
               (e) => Member.fromEvent(e.toRoomEvent() as MemberChangeEvent)),
         );
   }
+
+  @override
+  Future<void> wipeAllData() => _db!.wipeAllData();
 }
 
 abstract class MoorStoreLocation extends StoreLocation<MoorStore> {

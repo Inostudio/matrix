@@ -480,6 +480,14 @@ class Database extends _$Database {
       }
     });
   }
+
+  Future<void> wipeAllData(){
+    return transaction(() async {
+      for (final table in allTables) {
+        await delete(table).go();
+      }
+    });
+  }
 }
 
 class MyUserRecordWithDeviceRecord {

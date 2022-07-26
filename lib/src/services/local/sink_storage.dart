@@ -106,4 +106,7 @@ class SinkStorage implements BaseSinkStorage {
 
   @override
   Future<void> setUserDelta(MyUser user) => store.setMyUserDelta(user);
+
+  @override
+  Future<void> wipeAllData() => store.wipeAllData();
 }

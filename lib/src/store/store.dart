@@ -27,6 +27,8 @@ abstract class Store {
 
   Future<void> close();
 
+  Future<void> wipeAllData();
+
   /// Gets the currently stored [MyUser].
   ///
   /// If [Homeserver] was not provided on, it will create a new instance and
