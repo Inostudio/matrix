@@ -219,6 +219,7 @@ class MatrixClient {
 
   //sync data is send to updater's 'updates' stream
   //sync token is send to updater's 'outSyncToken' stream
+  @Deprecated("Remove later")
   Future<void> runSyncOnce({required SyncFilter filter}) async {
     if (_updater == null) {
       return Future.value(null);
@@ -230,6 +231,7 @@ class MatrixClient {
 
   Stream<Update>? get outOneRoomUpdates => _oneRoomSyncer?.outUpdates;
 
+  @Deprecated("Remove later")
   void startOneRoomSyncer(String roomID, Room? room, {String? syncToken}) {
     if (_updater == null) {
       return;
@@ -244,12 +246,14 @@ class MatrixClient {
     _oneRoomSyncer?.start();
   }
 
+  @Deprecated("Remove later")
   void stopOneRoomSyncer() {
     _oneRoomSyncer?.stop();
     _oneRoomSyncer?.clear();
     _oneRoomSyncer = null;
   }
 
+  @Deprecated("Remove later")
   Future<List<String?>> getRoomIDs() async {
     final result = await _updater?.getRoomIDs();
     return result ?? [];
