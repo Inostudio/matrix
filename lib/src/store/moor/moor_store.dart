@@ -15,7 +15,6 @@ import 'package:drift/backends.dart';
 import 'package:drift/native.dart';
 import 'package:drift/drift.dart';
 import 'package:collection/collection.dart';
-import 'package:matrix_sdk/src/util/logger.dart';
 import 'package:pedantic/pedantic.dart';
 
 import '../../../matrix_sdk.dart';
@@ -23,6 +22,7 @@ import '../../event/ephemeral/ephemeral.dart';
 import '../../event/ephemeral/ephemeral_event.dart';
 import '../../event/ephemeral/typing_event.dart';
 import '../../model/context.dart';
+import '../../util/logger.dart';
 import 'database.dart' hide Rooms;
 
 class MoorStore extends Store {
@@ -101,6 +101,9 @@ class MoorStore extends Store {
     );
   }
 
+  @override
+  Future<String?> getToken(String userId) async => _db!.getUserSyncToken(userId);
+
   /// If [isolated] is true, will create an [IsolatedUpdater] to manage
   /// the user's updates.
   @override
@@ -119,9 +122,6 @@ class MoorStore extends Store {
       roomIds: roomIds,
       timelineLimit: timelineLimit,
     );
-    //TODO ???????
-    // await close();
-
     return user;
   }
 
@@ -167,8 +167,8 @@ class MoorStore extends Store {
 
       final previouslyInvitedIds = myUser.rooms
           ?.where((room) =>
-      room.me?.membership == Membership.joined &&
-          _invites.contains(room.id))
+              room.me?.membership == Membership.joined &&
+              _invites.contains(room.id))
           .map((room) => room.id.toString())
           .toList();
 

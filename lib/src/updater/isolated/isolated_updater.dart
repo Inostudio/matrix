@@ -29,6 +29,7 @@ import '../../store/store.dart';
 import '../../util/logger.dart';
 import '../updater.dart';
 import 'instruction.dart';
+import 'iso_merge.dart';
 import 'isolate_runner.dart';
 import 'isolated_syncer.dart';
 
@@ -63,7 +64,7 @@ class IsolatedUpdater extends Updater {
     _messageStream.listen((message) async {
       if (message is MinimizedUpdate) {
         final minimizedUpdate = message;
-        _user = _user.merge(minimizedUpdate.delta);
+        _user = await runComputeMerge(_user, minimizedUpdate.delta);
 
         final update = minimizedUpdate.deminimize(_user);
 

@@ -99,9 +99,7 @@ class MatrixClient {
   /// Returns the [Update] where [MyUser] has logged out, if successful.
   Future<RequestUpdate<MyUser>?> logout(MyUser user) async {
     await stopSync(user);
-    final userToReturn =  await user.context?.updater?.logout();
-    await user.context?.updater?.sinkStorage.wipeAllData();
-    return userToReturn;
+    return user.context?.updater?.logout();
   }
 
   /// Send all unsent messages still in the [Store].
@@ -177,6 +175,7 @@ class MatrixClient {
     return update?.data?.toList() ?? [];
   }
 
+  @Deprecated("Use [uotUpdates instead]")
   Future<Room?> loadRoomEvents({
     required String roomID,
     int limit = 20,

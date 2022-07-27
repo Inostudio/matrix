@@ -60,12 +60,13 @@ class Updater {
   final Homeserver homeServer;
 
   late BaseNetwork _networkService;
-  late BaseSinkStorage sinkStorage;
+  late BaseSinkStorage _sinkStorage;
 
   /// Most up to date instance of our user.
   MyUser get user => _user;
 
   MyUser _user;
+  String? _currentSyncToken;
 
   late final Syncer _syncer = Syncer(this);
 
@@ -90,7 +91,7 @@ class Updater {
   Stream<ApiCallStatistics> get outApiCallStatistics =>
       homeServer.outApiCallStats;
 
-  bool get isReady => sinkStorage.isReady() && !_updatesSubject.isClosed;
+  bool get isReady => _sinkStorage.isReady() && !_updatesSubject.isClosed;
 
   /// Initializes the [myUser] with a valid [Context], and will also
   /// initialize it's properties that need the context, such as [Rooms].
@@ -107,7 +108,7 @@ class Updater {
     _initSinkStorage(storeLocation);
 
     if (saveMyUserToStore) {
-      unawaited(sinkStorage.setUserDelta(_user));
+      unawaited(_sinkStorage.setUserDelta(_user));
     }
   }
 
@@ -116,8 +117,8 @@ class Updater {
   }
 
   void _initSinkStorage(StoreLocation storeLocation) {
-    sinkStorage = SinkStorage(storeLocation: storeLocation);
-    sinkStorage.myUserStorageSink(user.id.value).listen(
+    _sinkStorage = SinkStorage(storeLocation: storeLocation);
+    _sinkStorage.myUserStorageSink(user.id.value).listen(
           (storeUpdate) => _notifyWithUpdate(
             storeUpdate,
             (user, delta) => SyncUpdate(user, delta),
@@ -125,20 +126,20 @@ class Updater {
         );
   }
 
-  Future<bool> ensureReady() => sinkStorage.ensureOpen();
+  Future<bool> ensureReady() => _sinkStorage.ensureOpen();
 
-  Future<void> saveRoomToDB(Room room) => sinkStorage.setRoom(room);
+  Future<void> saveRoomToDB(Room room) => _sinkStorage.setRoom(room);
 
-  Future<List<String?>?> getRoomIDs() => sinkStorage.getRoomIds();
+  Future<List<String?>?> getRoomIDs() => _sinkStorage.getRoomIds();
 
   Future<void> startSync({
     Duration maxRetryAfter = const Duration(seconds: 30),
     int timelineLimit = 30,
     String? syncToken,
   }) async {
-    String? token = syncToken;
+    String? token = syncToken ?? _currentSyncToken;
     if (token == null || token.isEmpty) {
-      token = await sinkStorage.getToken(_user.id.value);
+      token = await _sinkStorage.getToken(_user.id.value);
     }
 
     _syncer.start(
@@ -170,7 +171,7 @@ class Updater {
       _user = _user.merge(delta);
       if (withSaveInStore) {
         //TODO add comparing user with delta to avoid save duplicate
-        await sinkStorage.setUserDelta(delta.copyWith(id: _user.id));
+        unawaited(_sinkStorage.setUserDelta(delta.copyWith(id: _user.id)));
       }
       return createUpdate(_user, delta);
     });
@@ -550,7 +551,8 @@ class Updater {
       ),
     );
 
-    await sinkStorage.close();
+    await _sinkStorage.close();
+    await _sinkStorage.wipeAllData();
     return update;
   }
 
@@ -558,7 +560,7 @@ class Updater {
     Iterable<RoomId> roomIds,
     int timelineLimit,
   ) async {
-    final rooms = await sinkStorage.getRoomsByIds(
+    final rooms = await _sinkStorage.getRoomsByIds(
       roomIds,
       timelineLimit: timelineLimit,
       context: _user.context!,
@@ -582,7 +584,7 @@ class Updater {
     int offset,
     int timelineLimit,
   ) async {
-    final rooms = await sinkStorage.getRooms(
+    final rooms = await _sinkStorage.getRooms(
       timelineLimit: timelineLimit,
       context: _user.context!,
       memberIds: [_user.id],
@@ -615,7 +617,7 @@ class Updater {
       return Future.value(null);
     }
 
-    final messages = await sinkStorage.getMessages(
+    final messages = await _sinkStorage.getMessages(
       roomId,
       count: count,
       fromTime: currentRoom?.timeline?.last.time,
@@ -694,7 +696,7 @@ class Updater {
       return Future.value(null);
     }
 
-    final members = await sinkStorage.getMembers(
+    final members = await _sinkStorage.getMembers(
       roomId,
       fromTime: currentRoom.memberTimeline?.last.since,
       count: count,
@@ -831,9 +833,15 @@ class Updater {
   Future<void> processSync(Map<String, dynamic> body) async {
     final roomDeltas = await _processRooms(body);
 
-    if (roomDeltas.isNotEmpty ||
-        (body['next_batch'] != null &&
-            body['next_batch'].toString().isNotEmpty)) {
+    String? syncToken;
+    if (body["next_batch"] != null &&
+        body["next_batch"].toString().isNotEmpty) {
+      syncToken = body["next_batch"];
+    }
+
+    if (roomDeltas.isNotEmpty || (syncToken != null && syncToken.isNotEmpty)) {
+      _currentSyncToken = syncToken;
+
       await _createUpdate(
         _user.delta(
           syncToken: body['next_batch'],
@@ -871,7 +879,7 @@ class Updater {
           var isNewRoom = false;
           if (currentRoom == null) {
             isNewRoom = true;
-            currentRoom = await sinkStorage.getRoom(
+            currentRoom = await _sinkStorage.getRoom(
                   roomId,
                   context: _user.context!,
                   memberIds: [_user.id],

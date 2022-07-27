@@ -93,10 +93,7 @@ class SinkStorage implements BaseSinkStorage {
       );
 
   @override
-  Future<String?> getToken(String id) async {
-    final user = await store.getMyUser(id);
-    return user?.syncToken;
-  }
+  Future<String?> getToken(String id) async => store.getToken(id);
 
   @override
   bool isReady() => store.isOpen;

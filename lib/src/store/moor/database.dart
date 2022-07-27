@@ -5,8 +5,10 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import 'package:collection/collection.dart';
 import 'package:drift/backends.dart';
 import 'package:drift/drift.dart';
+
 import '../../event/room/state/member_change_event.dart';
 
 part 'database.g.dart';
@@ -165,6 +167,14 @@ class Database extends _$Database {
   @override
   MigrationStrategy get migration {
     return destructiveFallback;
+  }
+
+  Future<String?> getUserSyncToken(String userId) async {
+    final query = select(myUsers)
+      ..where((u) => u.id.like('$userId'))
+      ..limit(1);
+    final user = await query.get();
+    return user.firstOrNull?.syncToken;
   }
 
   Selectable<MyUserRecordWithDeviceRecord?> _selectUserWithDevice(
@@ -481,7 +491,7 @@ class Database extends _$Database {
     });
   }
 
-  Future<void> wipeAllData(){
+  Future<void> wipeAllData() {
     return transaction(() async {
       for (final table in allTables) {
         await delete(table).go();

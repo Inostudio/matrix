@@ -6,6 +6,8 @@ import '../util/logger.dart';
 
 String get _separator => "${"=" * 20}";
 
+const int _maxBodyLen = 2000;
+
 class LogRequestInterceptor implements RequestInterceptor {
   @override
   FutureOr<Request> onRequest(Request request) {
@@ -43,7 +45,7 @@ class LogResponseInterceptor implements ResponseInterceptor {
     $_separator
     HEADER $header
     $_separator
-    BODY ${body.toString().length > 200 ? body.toString().length : body}
+    BODY ${body.toString().length > _maxBodyLen ? "LEN ${body.toString().length}" : body}
         """,
     );
     return response;

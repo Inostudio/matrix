@@ -50,6 +50,9 @@ abstract class Store {
     int timelineLimit = 100,
   });
 
+  ///Get current user sync token to get minimized updates from matrix server
+  Future<String?> getToken(String userId);
+
   ///Get sink to [MyUser] in local database
   Stream<MyUser> myUserStorageSink(
     String userID, {

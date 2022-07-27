@@ -10,6 +10,7 @@ class Syncer {
   final Updater _updater;
 
   Homeserver get _homeserver => _updater.homeServer;
+
   MyUser get _user => _updater.user;
 
   bool _isSyncing = false;
