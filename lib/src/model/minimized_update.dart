@@ -9,4 +9,9 @@ abstract class MinimizedUpdate<T extends Update> {
   MinimizedUpdate(this.delta);
 
   T deminimize(MyUser user);
+
+  @override
+  String toString() {
+    return 'MinimizedUpdate{delta: $delta}';
+  }
 }
