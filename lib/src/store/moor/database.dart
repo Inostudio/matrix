@@ -5,8 +5,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import 'package:moor/backends.dart';
-import 'package:moor/moor.dart';
+import 'package:drift/backends.dart';
+import 'package:drift/drift.dart';
 import '../../event/room/state/member_change_event.dart';
 
 part 'database.g.dart';
@@ -116,9 +116,7 @@ class Devices extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-@UseMoor(include: {
-  "indices.moor",
-}, tables: [
+@DriftDatabase(include: {'indices.drift'}, tables: [
   MyUsers,
   Rooms,
   RoomEvents,
@@ -127,7 +125,7 @@ class Devices extends Table {
 ])
 class Database extends _$Database {
   Database(DelegatedDatabase delegate) : super(delegate) {
-    moorRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+    driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   }
 
   @override

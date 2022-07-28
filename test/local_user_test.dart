@@ -213,37 +213,9 @@ void testLocalUser() {
         user = await hs.login(
           Username('pat'),
           'password',
-          store: createMemoryStore(),
         );
       });
 
-      test('stops sync process', () async {
-        StreamSubscription? sub;
-        sub = user?.outUpdates?.listen((_) async {
-          expect(user?.isSyncing, isTrue);
-          await user?.stopSync();
-          expect(user?.isSyncing, isFalse);
-
-          await sub?.cancel();
-        });
-
-        user?.startSync();
-      });
-
-      test('.updates delta has correct rooms', () async {
-        StreamSubscription? sub;
-        sub = user?.outUpdates?.listen((update) {
-          final room = update.delta.rooms?.first;
-
-          expect(room?.id, RoomId('!726s6s6q:example.com'));
-          expect(room?.summary?.joinedMembersCount, 2);
-
-          user?.stopSync();
-          sub?.cancel();
-        });
-
-        user?.startSync();
-      });
     });
 
     test('.pushers.set does not raise an error if sucessful', () async {
@@ -278,7 +250,6 @@ void testLocalUser() {
       final user = await hs.login(
         Username('pat'),
         'password',
-        store: createMemoryStore(),
       );
 
       await user.pushers?.add(

@@ -11,9 +11,9 @@ import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:moor/backends.dart';
-import 'package:moor/ffi.dart';
-import 'package:moor/moor.dart';
+import 'package:drift/backends.dart';
+import 'package:drift/native.dart';
+import 'package:drift/drift.dart';
 import 'package:pedantic/pedantic.dart';
 
 import '../../../matrix_sdk.dart';
@@ -548,7 +548,7 @@ class MoorStoreFileLocation extends MoorStoreLocation {
   MoorStoreFileLocation(this.file);
 
   @override
-  MoorStore create() => MoorStore(VmDatabase(file));
+  MoorStore create() => MoorStore(NativeDatabase(file));
 }
 
 /// TODO: Move to dart:io only file/library
@@ -556,7 +556,7 @@ class MoorStoreMemoryLocation extends MoorStoreLocation {
   MoorStoreMemoryLocation();
 
   @override
-  MoorStore create() => MoorStore(VmDatabase.memory());
+  MoorStore create() => MoorStore(NativeDatabase.memory());
 }
 
 extension on DeviceRecord {

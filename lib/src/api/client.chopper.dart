@@ -6,7 +6,7 @@ part of 'client.dart';
 // ChopperGenerator
 // **************************************************************************
 
-// ignore_for_file: always_put_control_body_on_new_line, always_specify_types, prefer_const_declarations
+// ignore_for_file: always_put_control_body_on_new_line, always_specify_types, prefer_const_declarations, unnecessary_brace_in_string_interps
 class _$ClientService extends ClientService {
   _$ClientService([ChopperClient? client]) {
     if (client == null) return;
@@ -27,7 +27,7 @@ class _$ClientService extends ClientService {
   @override
   Future<Response<dynamic>> profile(
       {required String authorization, required String userId}) {
-    final $url = '/_matrix/client/r0/profile/$userId';
+    final $url = '/_matrix/client/r0/profile/${userId}';
     final $headers = {
       'Authorization': authorization,
     };
@@ -41,7 +41,7 @@ class _$ClientService extends ClientService {
       {required String authorization,
       required String userId,
       required String body}) {
-    final $url = '/_matrix/client/r0/profile/$userId/displayname';
+    final $url = '/_matrix/client/r0/profile/${userId}/displayname';
     final $headers = {
       'Authorization': authorization,
     };
@@ -108,7 +108,7 @@ class _$ClientService extends ClientService {
       required int limit,
       String dir = 'b',
       required String filter}) {
-    final $url = '/_matrix/client/r0/rooms/$roomId/messages';
+    final $url = '/_matrix/client/r0/rooms/${roomId}/messages';
     final $params = <String, dynamic>{
       'from': from,
       'limit': limit,
@@ -130,7 +130,7 @@ class _$ClientService extends ClientService {
       required String roomId,
       required String at,
       required String membership}) {
-    final $url = '/_matrix/client/r0/rooms/$roomId/members';
+    final $url = '/_matrix/client/r0/rooms/${roomId}/members';
     final $params = <String, dynamic>{'at': at, 'membership': membership};
     final $headers = {
       'Authorization': authorization,
@@ -148,7 +148,8 @@ class _$ClientService extends ClientService {
       required String eventType,
       required String txnId,
       required String content}) {
-    final $url = '/_matrix/client/r0/rooms/$roomId/send/$eventType/$txnId';
+    final $url =
+        '/_matrix/client/r0/rooms/${roomId}/send/${eventType}/${txnId}';
     final $headers = {
       'Authorization': authorization,
     };
@@ -165,7 +166,8 @@ class _$ClientService extends ClientService {
       required String roomId,
       required String txnId,
       required String content}) {
-    final $url = '/_matrix/client/r0/rooms/$roomId/send/m.room.message/$txnId';
+    final $url =
+        '/_matrix/client/r0/rooms/${roomId}/send/m.room.message/${txnId}';
     final $headers = {
       'Authorization': authorization,
     };
@@ -183,7 +185,8 @@ class _$ClientService extends ClientService {
       required String eventId,
       required String txnId,
       required String content}) {
-    final $url = '/_matrix/client/r0/rooms/$roomId/redact/$eventId/$txnId';
+    final $url =
+        '/_matrix/client/r0/rooms/${roomId}/redact/${eventId}/${txnId}';
     final $headers = {
       'Authorization': authorization,
     };
@@ -201,7 +204,8 @@ class _$ClientService extends ClientService {
       required String eventType,
       required String stateKey,
       required String content}) {
-    final $url = '/_matrix/client/r0/rooms/$roomId/state/$eventType/$stateKey';
+    final $url =
+        '/_matrix/client/r0/rooms/${roomId}/state/${eventType}/${stateKey}';
     final $headers = {
       'Authorization': authorization,
     };
@@ -218,7 +222,7 @@ class _$ClientService extends ClientService {
       required String roomId,
       required String userId,
       required String body}) {
-    final $url = '/_matrix/client/r0/rooms/$roomId/typing/$userId';
+    final $url = '/_matrix/client/r0/rooms/${roomId}/typing/${userId}';
     final $headers = {
       'Authorization': authorization,
     };
@@ -234,7 +238,7 @@ class _$ClientService extends ClientService {
       {required String authorization,
       required String roomId,
       required String body}) {
-    final $url = '/_matrix/client/r0/rooms/$roomId/read_markers';
+    final $url = '/_matrix/client/r0/rooms/${roomId}/read_markers';
     final $headers = {
       'Authorization': authorization,
     };
@@ -250,7 +254,7 @@ class _$ClientService extends ClientService {
       {required String authorization,
       required String roomId,
       required String body}) {
-    final $url = '/_matrix/client/r0/rooms/$roomId/kick';
+    final $url = '/_matrix/client/r0/rooms/${roomId}/kick';
     final $headers = {
       'Authorization': authorization,
     };
@@ -264,7 +268,7 @@ class _$ClientService extends ClientService {
   @override
   Future<Response<dynamic>> leave(
       {required String authorization, required String roomId}) {
-    final $url = '/_matrix/client/r0/rooms/$roomId/leave';
+    final $url = '/_matrix/client/r0/rooms/${roomId}/leave';
     final $headers = {
       'Authorization': authorization,
     };
@@ -292,7 +296,7 @@ class _$ClientService extends ClientService {
       {required String authorization,
       required String roomIdOrAlias,
       required String serverName}) {
-    final $url = '/_matrix/client/r0/join/$roomIdOrAlias';
+    final $url = '/_matrix/client/r0/join/${roomIdOrAlias}';
     final $params = <String, dynamic>{'server_name': serverName};
     final $headers = {
       'Authorization': authorization,
