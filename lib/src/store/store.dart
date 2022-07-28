@@ -21,9 +21,13 @@ import '../updater/updater.dart';
 abstract class Store {
   bool get isOpen;
 
-  void open();
+  Future<void> open();
+
+  Future<bool> ensureOpen();
 
   Future<void> close();
+
+  Future<void> wipeAllData();
 
   /// Gets the currently stored [MyUser].
   ///
@@ -44,8 +48,10 @@ abstract class Store {
     String userID, {
     Iterable<RoomId>? roomIds,
     int timelineLimit = 100,
-    bool isolated = false,
   });
+
+  ///Get current user sync token to get minimized updates from matrix server
+  Future<String?> getToken(String userId);
 
   ///Get sink to [MyUser] in local database
   Stream<MyUser> myUserStorageSink(

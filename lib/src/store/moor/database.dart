@@ -5,8 +5,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import 'package:moor/backends.dart';
-import 'package:moor/moor.dart';
+import 'package:collection/collection.dart';
+import 'package:drift/backends.dart';
+import 'package:drift/drift.dart';
 
 import '../../event/room/state/member_change_event.dart';
 
@@ -148,9 +149,7 @@ class Devices extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-@UseMoor(include: {
-  "indices.moor",
-}, tables: [
+@DriftDatabase(include: {'indices.drift'}, tables: [
   MyUsers,
   Rooms,
   RoomEvents,
@@ -159,7 +158,7 @@ class Devices extends Table {
 ])
 class Database extends _$Database {
   Database(DelegatedDatabase delegate) : super(delegate) {
-    moorRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+    driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   }
 
   @override
@@ -168,6 +167,14 @@ class Database extends _$Database {
   @override
   MigrationStrategy get migration {
     return destructiveFallback;
+  }
+
+  Future<String?> getUserSyncToken(String userId) async {
+    final query = select(myUsers)
+      ..where((u) => u.id.like('$userId'))
+      ..limit(1);
+    final user = await query.get();
+    return user.firstOrNull?.syncToken;
   }
 
   Selectable<MyUserRecordWithDeviceRecord?> _selectUserWithDevice(
@@ -480,6 +487,14 @@ class Database extends _$Database {
           roomEvents,
           (tbl) => tbl.id.isIn(['$roomId:%']),
         );
+      }
+    });
+  }
+
+  Future<void> wipeAllData() {
+    return transaction(() async {
+      for (final table in allTables) {
+        await delete(table).go();
       }
     });
   }

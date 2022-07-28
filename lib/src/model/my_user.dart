@@ -99,17 +99,15 @@ class MyUser extends MatrixUser implements Contextual<MyUser> {
     String userID, {
     Iterable<RoomId>? roomIds,
     int timelineLimit = 15,
-    bool isolated = false,
   }) async {
     final store = storeLocation.create();
 
-    store.open();
+    await store.open();
 
     final result = await store.getMyUser(
       userID,
       roomIds: roomIds,
       timelineLimit: timelineLimit,
-      isolated: isolated,
     );
 
     await store.close();

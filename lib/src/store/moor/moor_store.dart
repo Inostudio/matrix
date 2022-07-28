@@ -11,11 +11,10 @@ import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:drift/backends.dart';
+import 'package:drift/native.dart';
+import 'package:drift/drift.dart';
 import 'package:collection/collection.dart';
-import 'package:matrix_sdk/src/util/logger.dart';
-import 'package:moor/backends.dart';
-import 'package:moor/ffi.dart';
-import 'package:moor/moor.dart';
 import 'package:pedantic/pedantic.dart';
 
 import '../../../matrix_sdk.dart';
@@ -23,6 +22,7 @@ import '../../event/ephemeral/ephemeral.dart';
 import '../../event/ephemeral/ephemeral_event.dart';
 import '../../event/ephemeral/typing_event.dart';
 import '../../model/context.dart';
+import '../../util/logger.dart';
 import 'database.dart' hide Rooms;
 
 class MoorStore extends Store {
@@ -38,11 +38,20 @@ class MoorStore extends Store {
   Database? _db;
 
   @override
-  void open() {
+  Future<void> open() async {
     if (!isOpen) {
       _db = Database(_executor);
       _isOpen = true;
+      await ensureOpen();
     }
+  }
+
+  @override
+  Future<bool> ensureOpen() async {
+    if (_db == null) {
+      return false;
+    }
+    return _executor.ensureOpen(_db!);
   }
 
   @override
@@ -92,6 +101,9 @@ class MoorStore extends Store {
     );
   }
 
+  @override
+  Future<String?> getToken(String userId) async => _db!.getUserSyncToken(userId);
+
   /// If [isolated] is true, will create an [IsolatedUpdater] to manage
   /// the user's updates.
   @override
@@ -99,7 +111,6 @@ class MoorStore extends Store {
     String userID, {
     Iterable<RoomId>? roomIds,
     int timelineLimit = 100,
-    bool isolated = false,
   }) async {
     final myUserWithDeviceRecord = await _db?.getMyUserRecord(userID);
 
@@ -111,9 +122,6 @@ class MoorStore extends Store {
       roomIds: roomIds,
       timelineLimit: timelineLimit,
     );
-
-    await close();
-
     return user;
   }
 
@@ -159,8 +167,8 @@ class MoorStore extends Store {
 
       final previouslyInvitedIds = myUser.rooms
           ?.where((room) =>
-      room.me?.membership == Membership.joined &&
-          _invites.contains(room.id))
+              room.me?.membership == Membership.joined &&
+              _invites.contains(room.id))
           .map((room) => room.id.toString())
           .toList();
 
@@ -562,6 +570,9 @@ class MoorStore extends Store {
               (e) => Member.fromEvent(e.toRoomEvent() as MemberChangeEvent)),
         );
   }
+
+  @override
+  Future<void> wipeAllData() => _db!.wipeAllData();
 }
 
 abstract class MoorStoreLocation extends StoreLocation<MoorStore> {
@@ -577,7 +588,7 @@ class MoorStoreFileLocation extends MoorStoreLocation {
   MoorStoreFileLocation(this.file);
 
   @override
-  MoorStore create() => MoorStore(VmDatabase(file));
+  MoorStore create() => MoorStore(NativeDatabase(file));
 }
 
 /// TODO: Move to dart:io only file/library
@@ -585,7 +596,7 @@ class MoorStoreMemoryLocation extends MoorStoreLocation {
   MoorStoreMemoryLocation();
 
   @override
-  MoorStore create() => MoorStore(VmDatabase.memory());
+  MoorStore create() => MoorStore(NativeDatabase.memory());
 }
 
 extension on DeviceRecord {

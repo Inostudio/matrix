@@ -17,6 +17,7 @@ import 'package:matrix_sdk/src/model/update.dart';
 import 'package:matrix_sdk/src/services/local/sink_storage.dart';
 import 'package:matrix_sdk/src/services/network/base_network.dart';
 import 'package:matrix_sdk/src/updater/syncer.dart';
+import 'package:matrix_sdk/src/util/logger.dart';
 import 'package:mime/mime.dart';
 import 'package:pedantic/pedantic.dart';
 import 'package:synchronized/synchronized.dart';
@@ -65,6 +66,7 @@ class Updater {
   MyUser get user => _user;
 
   MyUser _user;
+  String? _currentSyncToken;
 
   late final Syncer _syncer = Syncer(this);
 
@@ -124,6 +126,8 @@ class Updater {
         );
   }
 
+  Future<bool> ensureReady() => _sinkStorage.ensureOpen();
+
   Future<void> saveRoomToDB(Room room) => _sinkStorage.setRoom(room);
 
   Future<List<String?>?> getRoomIDs() => _sinkStorage.getRoomIds();
@@ -132,12 +136,18 @@ class Updater {
     Duration maxRetryAfter = const Duration(seconds: 30),
     int timelineLimit = 30,
     String? syncToken,
-  }) async =>
-      _syncer.start(
-        maxRetryAfter: maxRetryAfter,
-        timelineLimit: timelineLimit,
-        syncToken: syncToken ?? await _sinkStorage.getToken(_user.id.value),
-      );
+  }) async {
+    String? token = syncToken ?? _currentSyncToken;
+    if (token == null || token.isEmpty) {
+      token = await _sinkStorage.getToken(_user.id.value);
+    }
+
+    _syncer.start(
+      maxRetryAfter: maxRetryAfter,
+      timelineLimit: timelineLimit,
+      syncToken: token,
+    );
+  }
 
   ///Notify out sink with new update with data
   void _notifyWithUpdate<U extends Update>(
@@ -157,10 +167,11 @@ class Updater {
     bool withSaveInStore = false,
   }) async {
     return _lock.synchronized(() async {
+      Log.setLogger(LoggerVariant.dev);
       _user = _user.merge(delta);
       if (withSaveInStore) {
         //TODO add comparing user with delta to avoid save duplicate
-        await _sinkStorage.setUserDelta(delta.copyWith(id: _user.id));
+        unawaited(_sinkStorage.setUserDelta(delta.copyWith(id: _user.id)));
       }
       return createUpdate(_user, delta);
     });
@@ -536,11 +547,12 @@ class Updater {
         data: user,
         deltaData: delta,
         type: RequestType.logout,
+        basedOnUpdate: true,
       ),
     );
 
     await _sinkStorage.close();
-
+    await _sinkStorage.wipeAllData();
     return update;
   }
 
@@ -821,7 +833,15 @@ class Updater {
   Future<void> processSync(Map<String, dynamic> body) async {
     final roomDeltas = await _processRooms(body);
 
-    if (roomDeltas.isNotEmpty) {
+    String? syncToken;
+    if (body["next_batch"] != null &&
+        body["next_batch"].toString().isNotEmpty) {
+      syncToken = body["next_batch"];
+    }
+
+    if (roomDeltas.isNotEmpty || (syncToken != null && syncToken.isNotEmpty)) {
+      _currentSyncToken = syncToken;
+
       await _createUpdate(
         _user.delta(
           syncToken: body['next_batch'],

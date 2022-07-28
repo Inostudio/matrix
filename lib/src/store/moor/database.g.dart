@@ -6,7 +6,7 @@ part of 'database.dart';
 // MoorGenerator
 // **************************************************************************
 
-// ignore_for_file: unnecessary_brace_in_string_interps, unnecessary_this
+// ignore_for_file: type=lint
 class DeviceRecord extends DataClass implements Insertable<DeviceRecord> {
   final String id;
   final String userId;
@@ -19,8 +19,7 @@ class DeviceRecord extends DataClass implements Insertable<DeviceRecord> {
       this.name,
       this.lastSeen,
       this.lastIpAddress});
-  factory DeviceRecord.fromData(Map<String, dynamic> data, GeneratedDatabase db,
-      {String? prefix}) {
+  factory DeviceRecord.fromData(Map<String, dynamic> data, {String? prefix}) {
     final effectivePrefix = prefix ?? '';
     return DeviceRecord(
       id: const StringType()
@@ -68,7 +67,7 @@ class DeviceRecord extends DataClass implements Insertable<DeviceRecord> {
 
   factory DeviceRecord.fromJson(Map<String, dynamic> json,
       {ValueSerializer? serializer}) {
-    serializer ??= moorRuntimeOptions.defaultSerializer;
+    serializer ??= driftRuntimeOptions.defaultSerializer;
     return DeviceRecord(
       id: serializer.fromJson<String>(json['id']),
       userId: serializer.fromJson<String>(json['userId']),
@@ -79,7 +78,7 @@ class DeviceRecord extends DataClass implements Insertable<DeviceRecord> {
   }
   @override
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= moorRuntimeOptions.defaultSerializer;
+    serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'userId': serializer.toJson<String>(userId),
@@ -115,12 +114,7 @@ class DeviceRecord extends DataClass implements Insertable<DeviceRecord> {
   }
 
   @override
-  int get hashCode => $mrjf($mrjc(
-      id.hashCode,
-      $mrjc(
-          userId.hashCode,
-          $mrjc(name.hashCode,
-              $mrjc(lastSeen.hashCode, lastIpAddress.hashCode)))));
+  int get hashCode => Object.hash(id, userId, name, lastSeen, lastIpAddress);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -220,35 +214,36 @@ class DevicesCompanion extends UpdateCompanion<DeviceRecord> {
 
 class $DevicesTable extends Devices
     with TableInfo<$DevicesTable, DeviceRecord> {
-  final GeneratedDatabase _db;
+  @override
+  final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $DevicesTable(this._db, [this._alias]);
+  $DevicesTable(this.attachedDatabase, [this._alias]);
   final VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<String?> id = GeneratedColumn<String?>(
       'id', aliasedName, false,
-      typeName: 'TEXT', requiredDuringInsert: true);
+      type: const StringType(), requiredDuringInsert: true);
   final VerificationMeta _userIdMeta = const VerificationMeta('userId');
   @override
   late final GeneratedColumn<String?> userId = GeneratedColumn<String?>(
       'user_id', aliasedName, false,
-      typeName: 'TEXT', requiredDuringInsert: true);
+      type: const StringType(), requiredDuringInsert: true);
   final VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String?> name = GeneratedColumn<String?>(
       'name', aliasedName, true,
-      typeName: 'TEXT', requiredDuringInsert: false);
+      type: const StringType(), requiredDuringInsert: false);
   final VerificationMeta _lastSeenMeta = const VerificationMeta('lastSeen');
   @override
   late final GeneratedColumn<DateTime?> lastSeen = GeneratedColumn<DateTime?>(
       'last_seen', aliasedName, true,
-      typeName: 'INTEGER', requiredDuringInsert: false);
+      type: const IntType(), requiredDuringInsert: false);
   final VerificationMeta _lastIpAddressMeta =
       const VerificationMeta('lastIpAddress');
   @override
   late final GeneratedColumn<String?> lastIpAddress = GeneratedColumn<String?>(
       'last_ip_address', aliasedName, true,
-      typeName: 'TEXT', requiredDuringInsert: false);
+      type: const StringType(), requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns =>
       [id, userId, name, lastSeen, lastIpAddress];
@@ -293,13 +288,13 @@ class $DevicesTable extends Devices
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
   DeviceRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
-    return DeviceRecord.fromData(data, _db,
+    return DeviceRecord.fromData(data,
         prefix: tablePrefix != null ? '$tablePrefix.' : null);
   }
 
   @override
   $DevicesTable createAlias(String alias) {
-    return $DevicesTable(_db, alias);
+    return $DevicesTable(attachedDatabase, alias);
   }
 }
 
@@ -323,8 +318,7 @@ class MyUserRecord extends DataClass implements Insertable<MyUserRecord> {
       this.currentDeviceId,
       this.hasSynced,
       this.isLoggedOut});
-  factory MyUserRecord.fromData(Map<String, dynamic> data, GeneratedDatabase db,
-      {String? prefix}) {
+  factory MyUserRecord.fromData(Map<String, dynamic> data, {String? prefix}) {
     final effectivePrefix = prefix ?? '';
     return MyUserRecord(
       homeserver: const StringType()
@@ -410,7 +404,7 @@ class MyUserRecord extends DataClass implements Insertable<MyUserRecord> {
 
   factory MyUserRecord.fromJson(Map<String, dynamic> json,
       {ValueSerializer? serializer}) {
-    serializer ??= moorRuntimeOptions.defaultSerializer;
+    serializer ??= driftRuntimeOptions.defaultSerializer;
     return MyUserRecord(
       homeserver: serializer.fromJson<String?>(json['homeserver']),
       id: serializer.fromJson<String?>(json['id']),
@@ -425,7 +419,7 @@ class MyUserRecord extends DataClass implements Insertable<MyUserRecord> {
   }
   @override
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= moorRuntimeOptions.defaultSerializer;
+    serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'homeserver': serializer.toJson<String?>(homeserver),
       'id': serializer.toJson<String?>(id),
@@ -477,22 +471,8 @@ class MyUserRecord extends DataClass implements Insertable<MyUserRecord> {
   }
 
   @override
-  int get hashCode => $mrjf($mrjc(
-      homeserver.hashCode,
-      $mrjc(
-          id.hashCode,
-          $mrjc(
-              name.hashCode,
-              $mrjc(
-                  avatarUrl.hashCode,
-                  $mrjc(
-                      accessToken.hashCode,
-                      $mrjc(
-                          syncToken.hashCode,
-                          $mrjc(
-                              currentDeviceId.hashCode,
-                              $mrjc(hasSynced.hashCode,
-                                  isLoggedOut.hashCode)))))))));
+  int get hashCode => Object.hash(homeserver, id, name, avatarUrl, accessToken,
+      syncToken, currentDeviceId, hasSynced, isLoggedOut);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -639,53 +619,54 @@ class MyUsersCompanion extends UpdateCompanion<MyUserRecord> {
 
 class $MyUsersTable extends MyUsers
     with TableInfo<$MyUsersTable, MyUserRecord> {
-  final GeneratedDatabase _db;
+  @override
+  final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $MyUsersTable(this._db, [this._alias]);
+  $MyUsersTable(this.attachedDatabase, [this._alias]);
   final VerificationMeta _homeserverMeta = const VerificationMeta('homeserver');
   @override
   late final GeneratedColumn<String?> homeserver = GeneratedColumn<String?>(
       'homeserver', aliasedName, true,
-      typeName: 'TEXT', requiredDuringInsert: false);
+      type: const StringType(), requiredDuringInsert: false);
   final VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<String?> id = GeneratedColumn<String?>(
       'id', aliasedName, true,
-      typeName: 'TEXT', requiredDuringInsert: false);
+      type: const StringType(), requiredDuringInsert: false);
   final VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String?> name = GeneratedColumn<String?>(
       'name', aliasedName, true,
-      typeName: 'TEXT', requiredDuringInsert: false);
+      type: const StringType(), requiredDuringInsert: false);
   final VerificationMeta _avatarUrlMeta = const VerificationMeta('avatarUrl');
   @override
   late final GeneratedColumn<String?> avatarUrl = GeneratedColumn<String?>(
       'avatar_url', aliasedName, true,
-      typeName: 'TEXT', requiredDuringInsert: false);
+      type: const StringType(), requiredDuringInsert: false);
   final VerificationMeta _accessTokenMeta =
       const VerificationMeta('accessToken');
   @override
   late final GeneratedColumn<String?> accessToken = GeneratedColumn<String?>(
       'access_token', aliasedName, true,
-      typeName: 'TEXT', requiredDuringInsert: false);
+      type: const StringType(), requiredDuringInsert: false);
   final VerificationMeta _syncTokenMeta = const VerificationMeta('syncToken');
   @override
   late final GeneratedColumn<String?> syncToken = GeneratedColumn<String?>(
       'sync_token', aliasedName, true,
-      typeName: 'TEXT', requiredDuringInsert: false);
+      type: const StringType(), requiredDuringInsert: false);
   final VerificationMeta _currentDeviceIdMeta =
       const VerificationMeta('currentDeviceId');
   @override
   late final GeneratedColumn<String?> currentDeviceId =
       GeneratedColumn<String?>('current_device_id', aliasedName, true,
-          typeName: 'TEXT',
+          type: const StringType(),
           requiredDuringInsert: false,
           $customConstraints: 'REFERENCES devices(id)');
   final VerificationMeta _hasSyncedMeta = const VerificationMeta('hasSynced');
   @override
   late final GeneratedColumn<bool?> hasSynced = GeneratedColumn<bool?>(
       'has_synced', aliasedName, true,
-      typeName: 'INTEGER',
+      type: const BoolType(),
       requiredDuringInsert: false,
       defaultConstraints: 'CHECK (has_synced IN (0, 1))');
   final VerificationMeta _isLoggedOutMeta =
@@ -693,7 +674,7 @@ class $MyUsersTable extends MyUsers
   @override
   late final GeneratedColumn<bool?> isLoggedOut = GeneratedColumn<bool?>(
       'is_logged_out', aliasedName, true,
-      typeName: 'INTEGER',
+      type: const BoolType(),
       requiredDuringInsert: false,
       defaultConstraints: 'CHECK (is_logged_out IN (0, 1))');
   @override
@@ -767,13 +748,13 @@ class $MyUsersTable extends MyUsers
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
   MyUserRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
-    return MyUserRecord.fromData(data, _db,
+    return MyUserRecord.fromData(data,
         prefix: tablePrefix != null ? '$tablePrefix.' : null);
   }
 
   @override
   $MyUsersTable createAlias(String alias) {
-    return $MyUsersTable(_db, alias);
+    return $MyUsersTable(attachedDatabase, alias);
   }
 }
 
@@ -803,8 +784,7 @@ class RoomEventRecord extends DataClass implements Insertable<RoomEventRecord> {
       this.stateKey,
       this.redacts,
       required this.inTimeline});
-  factory RoomEventRecord.fromData(
-      Map<String, dynamic> data, GeneratedDatabase db,
+  factory RoomEventRecord.fromData(Map<String, dynamic> data,
       {String? prefix}) {
     final effectivePrefix = prefix ?? '';
     return RoomEventRecord(
@@ -897,7 +877,7 @@ class RoomEventRecord extends DataClass implements Insertable<RoomEventRecord> {
 
   factory RoomEventRecord.fromJson(Map<String, dynamic> json,
       {ValueSerializer? serializer}) {
-    serializer ??= moorRuntimeOptions.defaultSerializer;
+    serializer ??= driftRuntimeOptions.defaultSerializer;
     return RoomEventRecord(
       id: serializer.fromJson<String>(json['id']),
       type: serializer.fromJson<String>(json['type']),
@@ -915,7 +895,7 @@ class RoomEventRecord extends DataClass implements Insertable<RoomEventRecord> {
   }
   @override
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= moorRuntimeOptions.defaultSerializer;
+    serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'type': serializer.toJson<String>(type),
@@ -979,28 +959,8 @@ class RoomEventRecord extends DataClass implements Insertable<RoomEventRecord> {
   }
 
   @override
-  int get hashCode => $mrjf($mrjc(
-      id.hashCode,
-      $mrjc(
-          type.hashCode,
-          $mrjc(
-              roomId.hashCode,
-              $mrjc(
-                  senderId.hashCode,
-                  $mrjc(
-                      time.hashCode,
-                      $mrjc(
-                          content.hashCode,
-                          $mrjc(
-                              previousContent.hashCode,
-                              $mrjc(
-                                  sentState.hashCode,
-                                  $mrjc(
-                                      transactionId.hashCode,
-                                      $mrjc(
-                                          stateKey.hashCode,
-                                          $mrjc(redacts.hashCode,
-                                              inTimeline.hashCode))))))))))));
+  int get hashCode => Object.hash(id, type, roomId, senderId, time, content,
+      previousContent, sentState, transactionId, stateKey, redacts, inTimeline);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1187,73 +1147,74 @@ class RoomEventsCompanion extends UpdateCompanion<RoomEventRecord> {
 
 class $RoomEventsTable extends RoomEvents
     with TableInfo<$RoomEventsTable, RoomEventRecord> {
-  final GeneratedDatabase _db;
+  @override
+  final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $RoomEventsTable(this._db, [this._alias]);
+  $RoomEventsTable(this.attachedDatabase, [this._alias]);
   final VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<String?> id = GeneratedColumn<String?>(
       'id', aliasedName, false,
-      typeName: 'TEXT', requiredDuringInsert: true);
+      type: const StringType(), requiredDuringInsert: true);
   final VerificationMeta _typeMeta = const VerificationMeta('type');
   @override
   late final GeneratedColumn<String?> type = GeneratedColumn<String?>(
       'type', aliasedName, false,
-      typeName: 'TEXT', requiredDuringInsert: true);
+      type: const StringType(), requiredDuringInsert: true);
   final VerificationMeta _roomIdMeta = const VerificationMeta('roomId');
   @override
   late final GeneratedColumn<String?> roomId = GeneratedColumn<String?>(
       'room_id', aliasedName, false,
-      typeName: 'TEXT',
+      type: const StringType(),
       requiredDuringInsert: true,
       $customConstraints: 'REFERENCES room_events(id)');
   final VerificationMeta _senderIdMeta = const VerificationMeta('senderId');
   @override
   late final GeneratedColumn<String?> senderId = GeneratedColumn<String?>(
       'sender_id', aliasedName, false,
-      typeName: 'TEXT', requiredDuringInsert: true);
+      type: const StringType(), requiredDuringInsert: true);
   final VerificationMeta _timeMeta = const VerificationMeta('time');
   @override
   late final GeneratedColumn<DateTime?> time = GeneratedColumn<DateTime?>(
       'time', aliasedName, true,
-      typeName: 'INTEGER', requiredDuringInsert: false);
+      type: const IntType(), requiredDuringInsert: false);
   final VerificationMeta _contentMeta = const VerificationMeta('content');
   @override
   late final GeneratedColumn<String?> content = GeneratedColumn<String?>(
       'content', aliasedName, true,
-      typeName: 'TEXT', requiredDuringInsert: false);
+      type: const StringType(), requiredDuringInsert: false);
   final VerificationMeta _previousContentMeta =
       const VerificationMeta('previousContent');
   @override
   late final GeneratedColumn<String?> previousContent =
       GeneratedColumn<String?>('previous_content', aliasedName, true,
-          typeName: 'TEXT', requiredDuringInsert: false);
+          type: const StringType(), requiredDuringInsert: false);
   final VerificationMeta _sentStateMeta = const VerificationMeta('sentState');
   @override
   late final GeneratedColumn<String?> sentState = GeneratedColumn<String?>(
       'sent_state', aliasedName, true,
-      typeName: 'TEXT', requiredDuringInsert: false);
+      type: const StringType(), requiredDuringInsert: false);
   final VerificationMeta _transactionIdMeta =
       const VerificationMeta('transactionId');
   @override
   late final GeneratedColumn<String?> transactionId = GeneratedColumn<String?>(
       'transaction_id', aliasedName, true,
-      typeName: 'TEXT', requiredDuringInsert: false);
+      type: const StringType(), requiredDuringInsert: false);
   final VerificationMeta _stateKeyMeta = const VerificationMeta('stateKey');
   @override
   late final GeneratedColumn<String?> stateKey = GeneratedColumn<String?>(
       'state_key', aliasedName, true,
-      typeName: 'TEXT', requiredDuringInsert: false);
+      type: const StringType(), requiredDuringInsert: false);
   final VerificationMeta _redactsMeta = const VerificationMeta('redacts');
   @override
   late final GeneratedColumn<String?> redacts = GeneratedColumn<String?>(
       'redacts', aliasedName, true,
-      typeName: 'TEXT', requiredDuringInsert: false);
+      type: const StringType(), requiredDuringInsert: false);
   final VerificationMeta _inTimelineMeta = const VerificationMeta('inTimeline');
   @override
   late final GeneratedColumn<bool?> inTimeline = GeneratedColumn<bool?>(
       'in_timeline', aliasedName, false,
-      typeName: 'INTEGER',
+      type: const BoolType(),
       requiredDuringInsert: true,
       defaultConstraints: 'CHECK (in_timeline IN (0, 1))');
   @override
@@ -1350,13 +1311,13 @@ class $RoomEventsTable extends RoomEvents
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
   RoomEventRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
-    return RoomEventRecord.fromData(data, _db,
+    return RoomEventRecord.fromData(data,
         prefix: tablePrefix != null ? '$tablePrefix.' : null);
   }
 
   @override
   $RoomEventsTable createAlias(String alias) {
-    return $RoomEventsTable(_db, alias);
+    return $RoomEventsTable(attachedDatabase, alias);
   }
 }
 
@@ -1398,8 +1359,7 @@ class RoomRecord extends DataClass implements Insertable<RoomRecord> {
       this.totalUnreadNotificationCount,
       required this.lastMessageTimeInterval,
       this.directUserId});
-  factory RoomRecord.fromData(Map<String, dynamic> data, GeneratedDatabase db,
-      {String? prefix}) {
+  factory RoomRecord.fromData(Map<String, dynamic> data, {String? prefix}) {
     final effectivePrefix = prefix ?? '';
     return RoomRecord(
       myMembership: const StringType()
@@ -1568,7 +1528,7 @@ class RoomRecord extends DataClass implements Insertable<RoomRecord> {
 
   factory RoomRecord.fromJson(Map<String, dynamic> json,
       {ValueSerializer? serializer}) {
-    serializer ??= moorRuntimeOptions.defaultSerializer;
+    serializer ??= driftRuntimeOptions.defaultSerializer;
     return RoomRecord(
       myMembership: serializer.fromJson<String?>(json['myMembership']),
       id: serializer.fromJson<String>(json['id']),
@@ -1605,7 +1565,7 @@ class RoomRecord extends DataClass implements Insertable<RoomRecord> {
   }
   @override
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= moorRuntimeOptions.defaultSerializer;
+    serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'myMembership': serializer.toJson<String?>(myMembership),
       'id': serializer.toJson<String>(id),
@@ -1717,47 +1677,25 @@ class RoomRecord extends DataClass implements Insertable<RoomRecord> {
   }
 
   @override
-  int get hashCode => $mrjf($mrjc(
-      myMembership.hashCode,
-      $mrjc(
-          id.hashCode,
-          $mrjc(
-              timelinePreviousBatch.hashCode,
-              $mrjc(
-                  timelinePreviousBatchSetBySync.hashCode,
-                  $mrjc(
-                      summaryJoinedMembersCount.hashCode,
-                      $mrjc(
-                          summaryInvitedMembersCount.hashCode,
-                          $mrjc(
-                              nameChangeEventId.hashCode,
-                              $mrjc(
-                                  avatarChangeEventId.hashCode,
-                                  $mrjc(
-                                      topicChangeEventId.hashCode,
-                                      $mrjc(
-                                          powerLevelsChangeEventId.hashCode,
-                                          $mrjc(
-                                              joinRulesChangeEventId.hashCode,
-                                              $mrjc(
-                                                  canonicalAliasChangeEventId
-                                                      .hashCode,
-                                                  $mrjc(
-                                                      creationEventId.hashCode,
-                                                      $mrjc(
-                                                          upgradeEventId
-                                                              .hashCode,
-                                                          $mrjc(
-                                                              highlightedUnreadNotificationCount
-                                                                  .hashCode,
-                                                              $mrjc(
-                                                                  totalUnreadNotificationCount
-                                                                      .hashCode,
-                                                                  $mrjc(
-                                                                      lastMessageTimeInterval
-                                                                          .hashCode,
-                                                                      directUserId
-                                                                          .hashCode))))))))))))))))));
+  int get hashCode => Object.hash(
+      myMembership,
+      id,
+      timelinePreviousBatch,
+      timelinePreviousBatchSetBySync,
+      summaryJoinedMembersCount,
+      summaryInvitedMembersCount,
+      nameChangeEventId,
+      avatarChangeEventId,
+      topicChangeEventId,
+      powerLevelsChangeEventId,
+      joinRulesChangeEventId,
+      canonicalAliasChangeEventId,
+      creationEventId,
+      upgradeEventId,
+      highlightedUnreadNotificationCount,
+      totalUnreadNotificationCount,
+      lastMessageTimeInterval,
+      directUserId);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2053,33 +1991,34 @@ class RoomsCompanion extends UpdateCompanion<RoomRecord> {
 }
 
 class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
-  final GeneratedDatabase _db;
+  @override
+  final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $RoomsTable(this._db, [this._alias]);
+  $RoomsTable(this.attachedDatabase, [this._alias]);
   final VerificationMeta _myMembershipMeta =
       const VerificationMeta('myMembership');
   @override
   late final GeneratedColumn<String?> myMembership = GeneratedColumn<String?>(
       'my_membership', aliasedName, true,
-      typeName: 'TEXT', requiredDuringInsert: false);
+      type: const StringType(), requiredDuringInsert: false);
   final VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<String?> id = GeneratedColumn<String?>(
       'id', aliasedName, false,
-      typeName: 'TEXT', requiredDuringInsert: true);
+      type: const StringType(), requiredDuringInsert: true);
   final VerificationMeta _timelinePreviousBatchMeta =
       const VerificationMeta('timelinePreviousBatch');
   @override
   late final GeneratedColumn<String?> timelinePreviousBatch =
       GeneratedColumn<String?>('timeline_previous_batch', aliasedName, true,
-          typeName: 'TEXT', requiredDuringInsert: false);
+          type: const StringType(), requiredDuringInsert: false);
   final VerificationMeta _timelinePreviousBatchSetBySyncMeta =
       const VerificationMeta('timelinePreviousBatchSetBySync');
   @override
   late final GeneratedColumn<bool?> timelinePreviousBatchSetBySync =
       GeneratedColumn<bool?>(
           'timeline_previous_batch_set_by_sync', aliasedName, true,
-          typeName: 'INTEGER',
+          type: const BoolType(),
           requiredDuringInsert: false,
           defaultConstraints:
               'CHECK (timeline_previous_batch_set_by_sync IN (0, 1))');
@@ -2088,19 +2027,19 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
   @override
   late final GeneratedColumn<int?> summaryJoinedMembersCount =
       GeneratedColumn<int?>('summary_joined_members_count', aliasedName, true,
-          typeName: 'INTEGER', requiredDuringInsert: false);
+          type: const IntType(), requiredDuringInsert: false);
   final VerificationMeta _summaryInvitedMembersCountMeta =
       const VerificationMeta('summaryInvitedMembersCount');
   @override
   late final GeneratedColumn<int?> summaryInvitedMembersCount =
       GeneratedColumn<int?>('summary_invited_members_count', aliasedName, true,
-          typeName: 'INTEGER', requiredDuringInsert: false);
+          type: const IntType(), requiredDuringInsert: false);
   final VerificationMeta _nameChangeEventIdMeta =
       const VerificationMeta('nameChangeEventId');
   @override
   late final GeneratedColumn<String?> nameChangeEventId =
       GeneratedColumn<String?>('name_change_event_id', aliasedName, true,
-          typeName: 'TEXT',
+          type: const StringType(),
           requiredDuringInsert: false,
           $customConstraints: 'REFERENCES room_events(id)');
   final VerificationMeta _avatarChangeEventIdMeta =
@@ -2108,7 +2047,7 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
   @override
   late final GeneratedColumn<String?> avatarChangeEventId =
       GeneratedColumn<String?>('avatar_change_event_id', aliasedName, true,
-          typeName: 'TEXT',
+          type: const StringType(),
           requiredDuringInsert: false,
           $customConstraints: 'REFERENCES room_events(id)');
   final VerificationMeta _topicChangeEventIdMeta =
@@ -2116,7 +2055,7 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
   @override
   late final GeneratedColumn<String?> topicChangeEventId =
       GeneratedColumn<String?>('topic_change_event_id', aliasedName, true,
-          typeName: 'TEXT',
+          type: const StringType(),
           requiredDuringInsert: false,
           $customConstraints: 'REFERENCES room_events(id)');
   final VerificationMeta _powerLevelsChangeEventIdMeta =
@@ -2125,7 +2064,7 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
   late final GeneratedColumn<String?> powerLevelsChangeEventId =
       GeneratedColumn<String?>(
           'power_levels_change_event_id', aliasedName, true,
-          typeName: 'TEXT',
+          type: const StringType(),
           requiredDuringInsert: false,
           $customConstraints: 'REFERENCES room_events(id)');
   final VerificationMeta _joinRulesChangeEventIdMeta =
@@ -2133,7 +2072,7 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
   @override
   late final GeneratedColumn<String?> joinRulesChangeEventId =
       GeneratedColumn<String?>('join_rules_change_event_id', aliasedName, true,
-          typeName: 'TEXT',
+          type: const StringType(),
           requiredDuringInsert: false,
           $customConstraints: 'REFERENCES room_events(id)');
   final VerificationMeta _canonicalAliasChangeEventIdMeta =
@@ -2142,7 +2081,7 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
   late final GeneratedColumn<String?> canonicalAliasChangeEventId =
       GeneratedColumn<String?>(
           'canonical_alias_change_event_id', aliasedName, true,
-          typeName: 'TEXT',
+          type: const StringType(),
           requiredDuringInsert: false,
           $customConstraints: 'REFERENCES room_events(id)');
   final VerificationMeta _creationEventIdMeta =
@@ -2150,7 +2089,7 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
   @override
   late final GeneratedColumn<String?> creationEventId =
       GeneratedColumn<String?>('creation_event_id', aliasedName, true,
-          typeName: 'TEXT',
+          type: const StringType(),
           requiredDuringInsert: false,
           $customConstraints: 'REFERENCES room_events(id)');
   final VerificationMeta _upgradeEventIdMeta =
@@ -2158,7 +2097,7 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
   @override
   late final GeneratedColumn<String?> upgradeEventId = GeneratedColumn<String?>(
       'upgrade_event_id', aliasedName, true,
-      typeName: 'TEXT',
+      type: const StringType(),
       requiredDuringInsert: false,
       $customConstraints: 'REFERENCES room_events(id)');
   final VerificationMeta _highlightedUnreadNotificationCountMeta =
@@ -2167,20 +2106,20 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
   late final GeneratedColumn<int?> highlightedUnreadNotificationCount =
       GeneratedColumn<int?>(
           'highlighted_unread_notification_count', aliasedName, true,
-          typeName: 'INTEGER', requiredDuringInsert: false);
+          type: const IntType(), requiredDuringInsert: false);
   final VerificationMeta _totalUnreadNotificationCountMeta =
       const VerificationMeta('totalUnreadNotificationCount');
   @override
   late final GeneratedColumn<int?> totalUnreadNotificationCount =
       GeneratedColumn<int?>(
           'total_unread_notification_count', aliasedName, true,
-          typeName: 'INTEGER', requiredDuringInsert: false);
+          type: const IntType(), requiredDuringInsert: false);
   final VerificationMeta _lastMessageTimeIntervalMeta =
       const VerificationMeta('lastMessageTimeInterval');
   @override
   late final GeneratedColumn<int?> lastMessageTimeInterval =
       GeneratedColumn<int?>('last_message_time_interval', aliasedName, false,
-          typeName: 'INTEGER',
+          type: const IntType(),
           requiredDuringInsert: false,
           defaultValue: const Constant(0));
   final VerificationMeta _directUserIdMeta =
@@ -2188,7 +2127,7 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
   @override
   late final GeneratedColumn<String?> directUserId = GeneratedColumn<String?>(
       'direct_user_id', aliasedName, true,
-      typeName: 'TEXT', requiredDuringInsert: false);
+      type: const StringType(), requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         myMembership,
@@ -2342,13 +2281,13 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
   RoomRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
-    return RoomRecord.fromData(data, _db,
+    return RoomRecord.fromData(data,
         prefix: tablePrefix != null ? '$tablePrefix.' : null);
   }
 
   @override
   $RoomsTable createAlias(String alias) {
-    return $RoomsTable(_db, alias);
+    return $RoomsTable(attachedDatabase, alias);
   }
 }
 
@@ -2359,8 +2298,7 @@ class EphemeralEventRecord extends DataClass
   final String? content;
   EphemeralEventRecord(
       {required this.type, required this.roomId, this.content});
-  factory EphemeralEventRecord.fromData(
-      Map<String, dynamic> data, GeneratedDatabase db,
+  factory EphemeralEventRecord.fromData(Map<String, dynamic> data,
       {String? prefix}) {
     final effectivePrefix = prefix ?? '';
     return EphemeralEventRecord(
@@ -2395,7 +2333,7 @@ class EphemeralEventRecord extends DataClass
 
   factory EphemeralEventRecord.fromJson(Map<String, dynamic> json,
       {ValueSerializer? serializer}) {
-    serializer ??= moorRuntimeOptions.defaultSerializer;
+    serializer ??= driftRuntimeOptions.defaultSerializer;
     return EphemeralEventRecord(
       type: serializer.fromJson<String>(json['type']),
       roomId: serializer.fromJson<String>(json['roomId']),
@@ -2404,7 +2342,7 @@ class EphemeralEventRecord extends DataClass
   }
   @override
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= moorRuntimeOptions.defaultSerializer;
+    serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'type': serializer.toJson<String>(type),
       'roomId': serializer.toJson<String>(roomId),
@@ -2430,8 +2368,7 @@ class EphemeralEventRecord extends DataClass
   }
 
   @override
-  int get hashCode =>
-      $mrjf($mrjc(type.hashCode, $mrjc(roomId.hashCode, content.hashCode)));
+  int get hashCode => Object.hash(type, roomId, content);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2505,26 +2442,27 @@ class EphemeralEventsCompanion extends UpdateCompanion<EphemeralEventRecord> {
 
 class $EphemeralEventsTable extends EphemeralEvents
     with TableInfo<$EphemeralEventsTable, EphemeralEventRecord> {
-  final GeneratedDatabase _db;
+  @override
+  final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $EphemeralEventsTable(this._db, [this._alias]);
+  $EphemeralEventsTable(this.attachedDatabase, [this._alias]);
   final VerificationMeta _typeMeta = const VerificationMeta('type');
   @override
   late final GeneratedColumn<String?> type = GeneratedColumn<String?>(
       'type', aliasedName, false,
-      typeName: 'TEXT', requiredDuringInsert: true);
+      type: const StringType(), requiredDuringInsert: true);
   final VerificationMeta _roomIdMeta = const VerificationMeta('roomId');
   @override
   late final GeneratedColumn<String?> roomId = GeneratedColumn<String?>(
       'room_id', aliasedName, false,
-      typeName: 'TEXT',
+      type: const StringType(),
       requiredDuringInsert: true,
       $customConstraints: 'REFERENCES room_events(id)');
   final VerificationMeta _contentMeta = const VerificationMeta('content');
   @override
   late final GeneratedColumn<String?> content = GeneratedColumn<String?>(
       'content', aliasedName, true,
-      typeName: 'TEXT', requiredDuringInsert: false);
+      type: const StringType(), requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [type, roomId, content];
   @override
@@ -2560,13 +2498,13 @@ class $EphemeralEventsTable extends EphemeralEvents
   Set<GeneratedColumn> get $primaryKey => {type, roomId};
   @override
   EphemeralEventRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
-    return EphemeralEventRecord.fromData(data, _db,
+    return EphemeralEventRecord.fromData(data,
         prefix: tablePrefix != null ? '$tablePrefix.' : null);
   }
 
   @override
   $EphemeralEventsTable createAlias(String alias) {
-    return $EphemeralEventsTable(_db, alias);
+    return $EphemeralEventsTable(attachedDatabase, alias);
   }
 }
 

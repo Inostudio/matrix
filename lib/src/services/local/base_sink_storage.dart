@@ -50,5 +50,9 @@ abstract class BaseSinkStorage {
 
   Future<String?> getToken(String id);
 
+  Future<bool> ensureOpen();
+
   Future<void> close();
+
+  Future<void> wipeAllData();
 }

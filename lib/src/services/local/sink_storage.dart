@@ -18,6 +18,9 @@ class SinkStorage implements BaseSinkStorage {
       store.myUserStorageSink(userId);
 
   @override
+  Future<bool> ensureOpen() => store.ensureOpen();
+
+  @override
   Future<void> close() => store.close();
 
   @override
@@ -90,10 +93,7 @@ class SinkStorage implements BaseSinkStorage {
       );
 
   @override
-  Future<String?> getToken(String id) async {
-    final user = await store.getMyUser(id);
-    return user?.syncToken;
-  }
+  Future<String?> getToken(String id) async => store.getToken(id);
 
   @override
   bool isReady() => store.isOpen;
@@ -103,4 +103,7 @@ class SinkStorage implements BaseSinkStorage {
 
   @override
   Future<void> setUserDelta(MyUser user) => store.setMyUserDelta(user);
+
+  @override
+  Future<void> wipeAllData() => store.wipeAllData();
 }
