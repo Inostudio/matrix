@@ -48,6 +48,11 @@ class RequestUpdate<T extends Contextual<T>> extends Update {
     type: type,
     basedOnUpdate: basedOnUpdate,
   );
+
+  @override
+  String toString() {
+    return 'RequestUpdate{data: $data, deltaData: $deltaData, type: $type, basedOnUpdate: $basedOnUpdate}';
+  }
 }
 
 enum RequestType {
