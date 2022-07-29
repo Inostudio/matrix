@@ -6,8 +6,9 @@
 
 import 'package:collection/collection.dart';
 import 'package:matrix_sdk/src/model/request_update.dart';
-import '../model/context.dart';
+
 import '../homeserver.dart';
+import '../model/context.dart';
 import '../model/identifier.dart';
 import '../model/my_user.dart';
 import 'room.dart';
@@ -75,33 +76,52 @@ class Rooms extends DelegatingIterable<Room> implements Contextual<Rooms> {
       return this;
     }
 
-    return copyWith(
-      rooms: List.of([
-        // Merge all rooms that are present in this as well as in other
-        ...map((room) {
-          Room? otherRoom;
+    final currList = toList();
+    final otherList = other.toList();
 
-          final otherRooms = other.where(
-            (otherRoom) => otherRoom.equals(room),
-          );
+    //Make curr and other map <RoomId, index in list>
+    final Map<RoomId, int> currMap = {
+      for (var e in currList.mapIndexed(
+        (i, e) => MapEntry<RoomId, int>(e.id, i),
+      ))
+        e.key: e.value
+    };
+    final Map<RoomId, int> otherMap = {
+      for (var e in otherList.mapIndexed(
+        (i, e) => MapEntry<RoomId, int>(e.id, i),
+      ))
+        e.key: e.value
+    };
 
-          if (otherRooms.isEmpty) {
-            return room;
-          } else if (otherRooms.length == 1) {
-            otherRoom = otherRooms.first;
-          } else {
-            for (final anotherRoom in otherRooms) {
-              otherRoom = otherRoom?.merge(anotherRoom) ?? anotherRoom;
-            }
-          }
+    final currSet = currList.toSet();
+    final otherSet = otherList.toSet();
 
-          return room.merge(otherRoom!);
-        }),
-        // All other rooms that were not merged, they're new
-        ...other.where(
-          (otherRoom) => !any((room) => otherRoom.equals(room)),
-        ),
-      ], growable: false),
+    //Calculate both difference and intersection, both differences go to result list
+    final differenceLeft = otherSet.difference(currSet);
+    final differenceRight = toSet().difference(otherSet);
+    final intersection = otherSet.intersection(currSet);
+
+    final result = List<Room>.from(
+      differenceLeft..addAll(differenceRight),
+      growable: true,
+    );
+
+    //for every intersected by id room item merge them, then add into result list
+    for (final Room i in intersection) {
+      final id = i.id;
+      final otherIndex = otherMap[id];
+      final currIndex = currMap[id];
+
+      if (currIndex != null && otherIndex != null) {
+        final otherToMerge = otherList[otherIndex];
+        final currToMerge = currList[currIndex];
+        final merged = currToMerge.merge(otherToMerge);
+        result.add(merged);
+      }
+    }
+
+    return  copyWith(
+      rooms: result,
       context: other.context,
     );
   }

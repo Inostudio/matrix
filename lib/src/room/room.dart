@@ -265,7 +265,6 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
     );
   }
 
-
   @override
   String toString() {
     return 'Room{context: $context, me: $me, id: $id, lastMessageTimeInterval: $lastMessageTimeInterval, timeline: $timeline, memberTimeline: $memberTimeline, members: $members, summary: $summary, stateEvents: $stateEvents, powerLevels: $powerLevels, ephemeral: $ephemeral, highlightedUnreadNotificationCount: $highlightedUnreadNotificationCount, totalUnreadNotificationCount: $totalUnreadNotificationCount, directUserId: $directUserId}';
@@ -355,9 +354,7 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is Room &&
-          runtimeType == other.runtimeType &&
-          id.value == other.id.value;
+      other is Room && runtimeType == other.runtimeType && other.equals(this);
 
   @override
   int get hashCode => id.value.hashCode;
