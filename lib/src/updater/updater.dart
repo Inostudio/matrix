@@ -551,8 +551,10 @@ class Updater {
       ),
     );
 
-    await _sinkStorage.close();
     await _sinkStorage.wipeAllData();
+
+    await _sinkStorage.close();
+
     return update;
   }
 
@@ -833,13 +835,18 @@ class Updater {
   Future<void> processSync(Map<String, dynamic> body) async {
     final roomDeltas = await _processRooms(body);
 
+    // Log.writer.log(roomDeltas.length);
     String? syncToken;
-    if (body["next_batch"] != null &&
-        body["next_batch"].toString().isNotEmpty) {
-      syncToken = body["next_batch"];
+
+    final String? nextToken = body["next_batch"];
+    if (nextToken != null && nextToken.isNotEmpty) {
+      syncToken = nextToken;
     }
 
-    if (roomDeltas.isNotEmpty || (syncToken != null && syncToken.isNotEmpty)) {
+    if (roomDeltas.isNotEmpty ||
+        (syncToken != null &&
+            syncToken.isNotEmpty &&
+            syncToken != _currentSyncToken)) {
       _currentSyncToken = syncToken;
 
       await _createUpdate(
