@@ -24,6 +24,11 @@ class Timeline extends DelegatingIterable<RoomEvent>
 
   final bool? previousBatchSetBySync;
 
+  @override
+  String toString() {
+    return 'Timeline{context: $context, previousBatch: $previousBatch, previousBatchSetBySync: $previousBatchSetBySync}';
+  }
+
   Timeline(
     Iterable<RoomEvent> iterable, {
     required this.context,

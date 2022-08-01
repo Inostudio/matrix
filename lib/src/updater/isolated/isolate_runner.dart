@@ -160,16 +160,16 @@ abstract class IsolateRunner {
     } else if (instruction is SendInstruction) {
       await updater
           .send(
-        instruction.roomId,
-        instruction.content,
-        transactionId: instruction.transactionId,
-        stateKey: instruction.stateKey,
-        type: instruction.type,
-        room: instruction.room,
-      )
-          .forEach((update) {
-        sendPort.send(update);
-      });
+            instruction.roomId,
+            instruction.content,
+            transactionId: instruction.transactionId,
+            stateKey: instruction.stateKey,
+            type: instruction.type,
+            room: instruction.room,
+          )
+          .forEach(
+            (update) => sendPort.send(update?.minimize()),
+          );
 
       return;
     } else if (instruction is SetIsTypingInstruction) {

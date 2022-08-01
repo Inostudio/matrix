@@ -17,4 +17,11 @@ abstract class Update {
   Update(this.user, this.delta);
 
   MinimizedUpdate minimize();
+
+  @override
+  String toString() {
+    return 'Update{user: $user, delta: $delta}';
+  }
+
+
 }
