@@ -9,7 +9,7 @@ import 'dart:isolate';
 
 import 'package:matrix_sdk/src/event/room/message_event.dart';
 import 'package:matrix_sdk/src/model/sync_token.dart';
-import 'package:matrix_sdk/src/updater/isolated/sorage_sink_iso.dart';
+import 'package:matrix_sdk/src/updater/isolated/iso_storage_sink.dart';
 
 import '../../event/ephemeral/ephemeral.dart';
 import '../../event/event.dart';
