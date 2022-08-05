@@ -22,7 +22,6 @@ import '../../event/ephemeral/ephemeral.dart';
 import '../../event/ephemeral/ephemeral_event.dart';
 import '../../event/ephemeral/typing_event.dart';
 import '../../model/context.dart';
-import '../../util/logger.dart';
 import 'database.dart' hide Rooms;
 
 class MoorStore extends Store {
@@ -363,7 +362,7 @@ class MoorStore extends Store {
           roomIds?.map((id) => id.toString()),
         )) ??
         [];
-    return _processRoomRecordsOptimized(
+    return _processRoomRecordsRequestsOptimized(
       roomRecords,
       timelineLimit,
       memberIds,
@@ -417,8 +416,7 @@ class MoorStore extends Store {
     return _processRoomRecords(roomRecords, timelineLimit, memberIds, context);
   }
 
-  //TODO rename
-  Future<Iterable<Room>> _processRoomRecordsOptimized(
+  Future<Iterable<Room>> _processRoomRecordsRequestsOptimized(
     List<RoomRecordWithStateRecords> roomRecords,
     int timelineLimit,
     Iterable<UserId>? memberIds,
@@ -549,7 +547,7 @@ class MoorStore extends Store {
           invitedMembersCount: roomRecord.summaryInvitedMembersCount,
         ),
         directUserId: roomRecord.directUserId != null
-            ? UserId(roomRecord.directUserId ?? '')
+            ? UserId(roomRecord.directUserId!)
             : null,
         highlightedUnreadNotificationCount:
             roomRecord.highlightedUnreadNotificationCount,
