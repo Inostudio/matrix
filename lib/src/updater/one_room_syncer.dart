@@ -3,11 +3,10 @@ import 'dart:async';
 import 'package:async/async.dart';
 import 'package:matrix_sdk/matrix_sdk.dart';
 import 'package:matrix_sdk/src/model/models.dart';
-import 'package:matrix_sdk/src/model/sync_filter.dart';
+import 'package:matrix_sdk/src/updater/isolated/iso_merge.dart';
 import 'package:synchronized/synchronized.dart';
 
-import '../homeserver.dart';
-
+@Deprecated("remove later")
 class OneRoomSyncer {
   final Homeserver _homeserver;
   final String _roomID;
@@ -15,6 +14,7 @@ class OneRoomSyncer {
   final Room? _room;
 
   bool _isSyncing = false;
+
   bool get isSyncing => _isSyncing;
 
   String? _syncToken;
@@ -28,9 +28,11 @@ class OneRoomSyncer {
   CancelableOperation<Map<String, dynamic>>? _cancelableSyncOnceResponse;
 
   final _updatesSubject = StreamController<Update>.broadcast();
+
   Stream<Update> get outUpdates => _updatesSubject.stream;
 
   final _errorSubject = StreamController<ErrorWithStackTraceString>.broadcast();
+
   Stream<ErrorWithStackTraceString> get outError => _errorSubject.stream;
 
   /// Syncs data with the user's [_homeserver].
@@ -181,7 +183,7 @@ class OneRoomSyncer {
     U Function(MyUser user, MyUser delta) createUpdate,
   ) async {
     return _lock.synchronized(() async {
-      _user = _user.merge(delta);
+      _user = await runComputeMerge(_user, delta);
 
       final update = createUpdate(_user, delta);
       _updatesSubject.add(update);

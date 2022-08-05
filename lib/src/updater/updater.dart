@@ -9,17 +9,11 @@ import 'dart:io';
 
 import 'package:collection/collection.dart';
 import 'package:image/image.dart';
-import 'package:matrix_sdk/src/model/api_call_statistics.dart';
-import 'package:matrix_sdk/src/model/request_update.dart';
 import 'package:matrix_sdk/src/model/sync_token.dart';
-import 'package:matrix_sdk/src/model/sync_update.dart';
-import 'package:matrix_sdk/src/model/update.dart';
 import 'package:matrix_sdk/src/services/local/sink_storage.dart';
 import 'package:matrix_sdk/src/services/network/base_network.dart';
 import 'package:matrix_sdk/src/updater/syncer.dart';
-import 'package:matrix_sdk/src/util/logger.dart';
 import 'package:mime/mime.dart';
-import 'package:pedantic/pedantic.dart';
 import 'package:synchronized/synchronized.dart';
 
 import '../event/ephemeral/ephemeral.dart';
@@ -31,10 +25,7 @@ import '../event/room/room_event.dart';
 import '../event/room/state/room_creation_event.dart';
 import '../event/room/state/state_event.dart';
 import '../homeserver.dart';
-import '../model/context.dart';
-import '../model/error_with_stacktrace.dart';
-import '../model/identifier.dart';
-import '../model/my_user.dart';
+import '../model/models.dart';
 import '../room/member/member_timeline.dart';
 import '../room/member/membership.dart';
 import '../room/room.dart';
@@ -44,6 +35,7 @@ import '../services/local/base_sink_storage.dart';
 import '../services/network/home_server_network.dart';
 import '../store/store.dart';
 import '../util/random.dart';
+import 'isolated/iso_merge.dart';
 
 /// Manages updates to [MyUser].
 class Updater {
@@ -101,14 +93,14 @@ class Updater {
     this._user,
     this.homeServer,
     StoreLocation storeLocation, {
-    bool saveMyUserToStore = false,
+    bool initSinkStorage = false,
   }) {
     Updater.register(_user.id, this);
     _initHomeServer();
-    _initSinkStorage(storeLocation);
+    _sinkStorage = SinkStorage(storeLocation: storeLocation);
 
-    if (saveMyUserToStore) {
-      unawaited(_sinkStorage.setUserDelta(_user));
+    if (initSinkStorage) {
+      _initSinkStorage(storeLocation);
     }
   }
 
@@ -149,12 +141,18 @@ class Updater {
     );
   }
 
+  Future<void> stopSync() async => _syncer.stop();
+
+  Future<void> runSyncOnce(SyncFilter filter) async => _syncer.runSyncOnce(
+        filter: filter,
+      );
+
   ///Notify out sink with new update with data
-  void _notifyWithUpdate<U extends Update>(
+  Future<void> _notifyWithUpdate<U extends Update>(
     MyUser delta,
     U Function(MyUser user, MyUser delta) createUpdate,
-  ) {
-    _user = _user.merge(delta);
+  ) async {
+    _user = await runComputeMerge(_user, delta);
     final update = createUpdate(_user, delta);
     _updatesSubject.add(update);
   }
@@ -167,11 +165,10 @@ class Updater {
     bool withSaveInStore = false,
   }) async {
     return _lock.synchronized(() async {
-      Log.setLogger(LoggerVariant.dev);
-      _user = _user.merge(delta);
+      _user = await runComputeMerge(_user, delta);
       if (withSaveInStore) {
         //TODO add comparing user with delta to avoid save duplicate
-        unawaited(_sinkStorage.setUserDelta(delta.copyWith(id: _user.id)));
+        await _sinkStorage.setUserDelta(delta.copyWith(id: _user.id));
       }
       return createUpdate(_user, delta);
     });
@@ -835,7 +832,6 @@ class Updater {
   Future<void> processSync(Map<String, dynamic> body) async {
     final roomDeltas = await _processRooms(body);
 
-    // Log.writer.log(roomDeltas.length);
     String? syncToken;
 
     final String? nextToken = body["next_batch"];
@@ -886,7 +882,8 @@ class Updater {
           var isNewRoom = false;
           if (currentRoom == null) {
             isNewRoom = true;
-            currentRoom = await _sinkStorage.getRoom(
+            currentRoom = user.rooms?[roomId] ??
+                await _sinkStorage.getRoom(
                   roomId,
                   context: _user.context!,
                   memberIds: [_user.id],

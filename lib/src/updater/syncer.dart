@@ -1,10 +1,8 @@
 import 'package:async/async.dart';
 import 'package:matrix_sdk/matrix_sdk.dart';
-import 'package:matrix_sdk/src/model/models.dart';
-import 'package:matrix_sdk/src/model/sync_filter.dart';
 import 'package:matrix_sdk/src/model/sync_token.dart';
 
-import '../homeserver.dart';
+import '../util/logger.dart';
 
 class Syncer {
   final Updater _updater;
@@ -37,7 +35,6 @@ class Syncer {
     if (_syncFuture != null) {
       return;
     }
-
     _syncToken = syncToken;
 
     _syncFuture = _startSync(
@@ -52,46 +49,55 @@ class Syncer {
     Duration maxRetryAfter = const Duration(seconds: 30),
     int timelineLimit = 30,
   }) async {
-    _shouldStopSync = false;
-    _isSyncing = true;
+    try {
+      _shouldStopSync = false;
+      _isSyncing = true;
 
-    // This var is used to implements exponential backoff
-    // until it reaches maxRetryAfter
-    var retryAfter = 1000;
+      // This var is used to implements exponential backoff
+      // until it reaches maxRetryAfter
+      var retryAfter = 1000;
 
-    while (!_shouldStopSync) {
-      final body = await _sync(
-        timeout: Duration(seconds: 10),
-        timelineLimit: timelineLimit,
-        syncToken: _syncToken,
-      );
+      while (!_shouldStopSync) {
+        final body = await _sync(
+          timeout: Duration(seconds: 10),
+          timelineLimit: timelineLimit,
+          syncToken: _syncToken,
+        );
 
-      if (_shouldStopSync) {
-        return;
-      }
-
-      if (body == null) {
-        await Future.delayed(Duration(milliseconds: retryAfter));
-
-        // ignore: invariant_booleans
         if (_shouldStopSync) {
           return;
         }
 
-        retryAfter = (retryAfter * 1.5).floor();
-        if (retryAfter > maxRetryAfter.inMilliseconds) {
-          retryAfter = maxRetryAfter.inMilliseconds;
+        if (body == null) {
+          await Future.delayed(Duration(milliseconds: retryAfter));
+
+          // ignore: invariant_booleans
+          if (_shouldStopSync) {
+            return;
+          }
+
+          retryAfter = (retryAfter * 1.5).floor();
+          if (retryAfter > maxRetryAfter.inMilliseconds) {
+            retryAfter = maxRetryAfter.inMilliseconds;
+          }
+        } else {
+          _syncToken = body['next_batch'];
+          await _updater.processSync(body);
+
+          // Reset exponential backoff.
+          retryAfter = 1000;
+
+          await Future.delayed(Duration(milliseconds: retryAfter));
         }
-      } else {
-        _syncToken = body['next_batch'];
-
-        await _updater.processSync(body);
-
-        // Reset exponential backoff.
-        retryAfter = 1000;
-
-        await Future.delayed(Duration(milliseconds: retryAfter));
       }
+    } catch (e) {
+      Log.writer.log(e);
+      await Future.delayed(Duration(seconds: 5));
+      start(
+        maxRetryAfter: maxRetryAfter,
+        timelineLimit: timelineLimit,
+        syncToken: _syncToken,
+      );
     }
   }
 
@@ -144,6 +150,7 @@ class Syncer {
 
       return body;
     } on Exception catch (e) {
+      Log.writer.log(e);
       _updater.inError.add(ErrorWithStackTraceString(
         e.toString(),
         StackTrace.current.toString(),
@@ -208,6 +215,7 @@ class Syncer {
         ));
       }
     }
+    return null;
   }
 
   Future<void> stop() async {

@@ -149,7 +149,9 @@ class Devices extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-@DriftDatabase(include: {'indices.drift'}, tables: [
+@DriftDatabase(include: {
+  'indices.drift'
+}, tables: [
   MyUsers,
   Rooms,
   RoomEvents,
@@ -380,6 +382,72 @@ class Database extends _$Database {
             where: (t) => t.id.like(key));
       });
     });
+  }
+
+  Future<Iterable<RoomEventRecord>> getRoomEventRecordsWithIDs(
+    List<String> roomIds, {
+    DateTime? fromTime,
+    int? count,
+    bool onlyMemberChanges = false,
+    bool? inTimeline,
+  }) async {
+    final roomsList = roomIds.map((e) => "\'$e\'").join(", ");
+    String whereClause = "room_id = rv1.room_id";
+    if (roomIds.isNotEmpty) {
+      whereClause += " AND room_id IN ($roomsList)";
+    }
+    if (onlyMemberChanges) {
+      whereClause += " AND type = ${MemberChangeEvent.matrixType}";
+    }
+    if (inTimeline != null) {
+      whereClause += " AND in_timeline = ${inTimeline.toString()}";
+    }
+    if (fromTime != null) {
+      whereClause +=
+          " AND time < ${fromTime.millisecondsSinceEpoch.toString()}";
+    }
+
+    final query = customSelect(
+      """select  *
+        from room_events rv1
+        where id in
+        (
+        select id
+        from room_events rv2
+        where $whereClause
+        order by
+            time desc
+        ${count == null ? '' : 'limit $count'}
+        )""",
+      readsFrom: {roomEvents},
+    );
+
+    return query.map((row) => RoomEventRecord.fromData(row.data)).get();
+  }
+
+  Future<Iterable<RoomEventRecord>> getMemberEventRecordsOfSendersWithIds(
+    List<String> roomIds,
+    Iterable<String> userIds,
+  ) async {
+    return (select(roomEvents)
+          ..where(
+            (tbl) =>
+                tbl.roomId.isIn(roomIds) &
+                tbl.type.equals(MemberChangeEvent.matrixType) &
+                (tbl.senderId.isIn(userIds) | tbl.stateKey.isIn(userIds)),
+          ))
+        .get();
+  }
+
+  Future<Iterable<EphemeralEventRecord>> getEphemeralEventRecordsWithIds(
+    List<String> roomIds,
+  ) async {
+    final query = select(ephemeralEvents)
+      ..where(
+        (tbl) => tbl.roomId.isIn(roomIds),
+      );
+
+    return query.get();
   }
 
   Future<Iterable<RoomEventRecord>> getRoomEventRecords(
