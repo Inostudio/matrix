@@ -42,12 +42,11 @@ abstract class IsolateRunner {
         StreamSubscription? subscription;
         subscription = messageStream.listen((message) {
           if (message is UpdaterArgs) {
-            //HttpOverrides.global = ProxyHttpOverrides("192.168.1.6", 8080);
             updater = Updater(
               message.myUser,
               Homeserver(message.homeserverUrl),
               message.storeLocation,
-              saveMyUserToStore: message.saveMyUserToStore,
+              initSinkStorage: false, //Not create updater updater sink
             );
             updaterAvailable.complete();
             subscription?.cancel();
@@ -57,6 +56,7 @@ abstract class IsolateRunner {
         sendPort.send(receivePort.sendPort);
 
         await updaterAvailable.future;
+        await updater?.ensureReady();
 
         // Send updates back to main isolate
         updater?.updates.listen((u) => sendPort.send(u.minimize()));
@@ -244,3 +244,6 @@ class UpdaterArgs {
 
 @immutable
 class IsolateInitialized {}
+
+@immutable
+class SyncerInitialized {}

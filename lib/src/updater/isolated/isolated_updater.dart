@@ -8,19 +8,13 @@ import 'dart:async';
 import 'dart:isolate';
 
 import 'package:matrix_sdk/src/event/room/message_event.dart';
-import 'package:matrix_sdk/src/model/api_call_statistics.dart';
-import 'package:matrix_sdk/src/model/instruction.dart';
-import 'package:matrix_sdk/src/model/minimized_update.dart';
-import 'package:matrix_sdk/src/model/request_update.dart';
 import 'package:matrix_sdk/src/model/sync_token.dart';
-import 'package:matrix_sdk/src/model/update.dart';
+import 'package:matrix_sdk/src/updater/isolated/iso_storage_sink.dart';
 
 import '../../event/ephemeral/ephemeral.dart';
 import '../../event/event.dart';
 import '../../homeserver.dart';
-import '../../model/error_with_stacktrace.dart';
-import '../../model/identifier.dart';
-import '../../model/my_user.dart';
+import '../../model/models.dart';
 import '../../room/member/member_timeline.dart';
 import '../../room/room.dart';
 import '../../room/rooms.dart';
@@ -49,6 +43,8 @@ class IsolatedUpdater extends Updater {
     );
 
     await updater._initialized;
+    await updater._syncInitialized;
+
     await updater.ensureReady();
     return updater;
   }
@@ -61,10 +57,41 @@ class IsolatedUpdater extends Updater {
   }) : super(_user, _homeServer, storeLocation) {
     Updater.register(_user.id, this);
 
-    _messageStream.listen((message) async {
+    _syncMessageStream.listen((message) async {
       if (message is MinimizedUpdate) {
         final minimizedUpdate = message;
         _user = await runComputeMerge(_user, minimizedUpdate.delta);
+        final update = minimizedUpdate.deminimize(_user);
+
+        if (update is RequestUpdate && update.basedOnUpdate) {
+          _requestUpdatesBasedOnOthers.add(update);
+        } else {
+          _controller.add(update);
+        }
+        return;
+      }
+
+      if (message is SendPort) {
+        _syncSendPort = message;
+
+        _syncSendPort?.send(
+          UpdaterArgs(
+            myUser: _user,
+            homeserverUrl: _homeServer.url,
+            storeLocation: storeLocation,
+            saveMyUserToStore: true,
+          ),
+        );
+      }
+      if (message is SyncerInitialized) {
+        _syncerCompleter.complete();
+      }
+    });
+
+    _messageStream.listen((message) async {
+      if (message is MinimizedUpdate) {
+        final minimizedUpdate = message;
+        _user = _user.merge(minimizedUpdate.delta);
 
         final update = minimizedUpdate.deminimize(_user);
 
@@ -108,6 +135,14 @@ class IsolatedUpdater extends Updater {
     });
 
     Isolate.spawn<IsolateRunnerTransferModel>(
+      IsolateStorageSinkRunner.run,
+      IsolateRunnerTransferModel(
+        message: _syncReceivePort.sendPort,
+        loggerVariant: Log.variant,
+      ),
+    );
+
+    Isolate.spawn<IsolateRunnerTransferModel>(
       IsolateRunner.run,
       IsolateRunnerTransferModel(
         message: _receivePort.sendPort,
@@ -116,16 +151,22 @@ class IsolatedUpdater extends Updater {
     );
   }
 
+  SendPort? _syncSendPort;
   SendPort? _sendPort;
 
   @override
   bool get isReady => _sendPort != null;
 
   final _receivePort = ReceivePort();
+  final _syncReceivePort = ReceivePort();
 
+  late final Stream<dynamic> __syncMessageStream =
+      _syncReceivePort.asBroadcastStream();
   late final Stream<dynamic> __messageStream = _receivePort.asBroadcastStream();
 
   Stream<dynamic> get _messageStream => __messageStream;
+
+  Stream<dynamic> get _syncMessageStream => __syncMessageStream;
 
   final _errorSubject = StreamController<ErrorWithStackTraceString>.broadcast();
 
@@ -148,8 +189,11 @@ class IsolatedUpdater extends Updater {
       StreamController<RequestUpdate>.broadcast();
 
   final _initializedCompleter = Completer<void>();
+  final _syncerCompleter = Completer<void>();
 
   Future<void> get _initialized => _initializedCompleter.future;
+
+  Future<void> get _syncInitialized => _syncerCompleter.future;
 
   MyUser _user;
 
@@ -224,8 +268,17 @@ class IsolatedUpdater extends Updater {
     Duration maxRetryAfter = const Duration(seconds: 30),
     int timelineLimit = 30,
     String? syncToken,
-  }) =>
-      execute(StartSyncInstruction(maxRetryAfter, timelineLimit, syncToken));
+  }) async =>
+      _syncSendPort?.send(
+        StartSyncInstruction(maxRetryAfter, timelineLimit, syncToken),
+      );
+
+  @override
+  Future<void> stopSync() async => _syncSendPort?.send(StopSyncInstruction());
+
+  @override
+  Future<void> runSyncOnce(SyncFilter filter) async =>
+      _syncSendPort?.send(RunSyncOnceInstruction(filter));
 
   @override
   Future<RequestUpdate<MemberTimeline>?> kick(
@@ -266,7 +319,11 @@ class IsolatedUpdater extends Updater {
       execute(LoadRoomsInstruction(limit, offset, timelineLimit));
 
   @override
-  Future<RequestUpdate<MyUser>?> logout() => execute(LogoutInstruction());
+  Future<RequestUpdate<MyUser>?> logout() async {
+    final result = await execute(LogoutInstruction());
+    _syncSendPort?.send(LogoutInstruction());
+    return result;
+  }
 
   @override
   Future<RequestUpdate<ReadReceipts>?> markRead({
