@@ -6,13 +6,14 @@
 
 import 'package:meta/meta.dart';
 import 'package:quiver/core.dart';
-import 'context.dart';
+
+import '../notifications/pushers.dart';
 import '../room/room.dart';
 import '../room/rooms.dart';
+import '../store/store.dart';
+import 'context.dart';
 import 'device.dart';
 import 'identifier.dart';
-import '../notifications/pushers.dart';
-import '../store/store.dart';
 import 'matrix_user.dart';
 
 /// A user which is authenticated and can send messages, join rooms etc.
@@ -58,6 +59,11 @@ class MyUser extends MatrixUser implements Contextual<MyUser> {
   })  : context = Context(myId: id),
         pushers = Pushers(Context(myId: id));
 
+  @override
+  String toString() {
+    return 'MyUser{context: $context, id: $id, name: $name, avatarUrl: $avatarUrl, accessToken: $accessToken, syncToken: $syncToken, currentDevice: $currentDevice, rooms: $rooms, pushers: $pushers, hasSynced: $hasSynced, isLoggedOut: $isLoggedOut}';
+  }
+
   MyUser.base({
     required UserId id,
     String name = "",
@@ -93,17 +99,15 @@ class MyUser extends MatrixUser implements Contextual<MyUser> {
     String userID, {
     Iterable<RoomId>? roomIds,
     int timelineLimit = 15,
-    bool isolated = false,
   }) async {
     final store = storeLocation.create();
 
-    store.open();
+    await store.open();
 
     final result = await store.getMyUser(
       userID,
       roomIds: roomIds,
       timelineLimit: timelineLimit,
-      isolated: isolated,
     );
 
     await store.close();

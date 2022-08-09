@@ -1,45 +1,47 @@
 import 'dart:async';
 
+import 'package:collection/collection.dart';
 import 'package:matrix_sdk/matrix_sdk.dart';
 import 'package:matrix_sdk/src/updater/isolated/isolated_updater.dart';
-import 'package:matrix_sdk/src/model/sync_filter.dart';
-import 'package:matrix_sdk/src/updater/one_room_syncer.dart';
-import 'package:matrix_sdk/src/room/room.dart';
-import 'model/api_call_statistics.dart';
-import 'model/request_update.dart';
+import 'package:matrix_sdk/src/util/logger.dart';
+
 import 'model/sync_token.dart';
-import 'model/update.dart';
-import 'package:collection/collection.dart';
 
 class MatrixClient {
   final bool isIsolated;
+  final bool withDebugLog;
   final Uri serverUri;
   final Homeserver _homeServer;
   final StoreLocation _storeLocation;
   final List<StreamSubscription> _streamSubscription = [];
-  OneRoomSyncer? _oneRoomSyncer;
 
   // ignore: close_sinks
   final _apiCallStatsSubject = StreamController<ApiCallStatistics>.broadcast();
+
   Stream<ApiCallStatistics> get outApiCallStatistics =>
       _apiCallStatsSubject.stream;
 
   // ignore: close_sinks
   final _errorSubject = StreamController<ErrorWithStackTraceString>.broadcast();
+
   Stream<ErrorWithStackTraceString> get outError => _errorSubject.stream;
 
   // ignore: close_sinks
   final _updatesSubject = StreamController<Update>.broadcast();
+
   Stream<Update> get outUpdates => _updatesSubject.stream;
 
   Updater? _updater;
 
   MatrixClient({
     this.isIsolated = true,
+    this.withDebugLog = false,
     required this.serverUri,
     required StoreLocation storeLocation,
   })  : _homeServer = Homeserver(serverUri),
-        _storeLocation = storeLocation;
+        _storeLocation = storeLocation {
+    Log.setLogger(withDebugLog ? LoggerVariant.dev : LoggerVariant.none);
+  }
 
   Homeserver get homeServer => _homeServer;
 
@@ -68,16 +70,20 @@ class MatrixClient {
         result,
         _homeServer,
         _storeLocation,
+        saveMyUserToStore: isIsolated,
       );
     } else {
       _updater = Updater(
         result,
         _homeServer,
         _storeLocation,
+        initSinkStorage: !isIsolated,
       );
     }
 
     if (_updater != null) {
+      await _updater!.ensureReady();
+
       _streamSubscription.add(_updater!.updates.listen(_updatesSubject.add));
       _streamSubscription
           .add(_updater!.outApiCallStatistics.listen(_apiCallStatsSubject.add));
@@ -91,10 +97,9 @@ class MatrixClient {
   /// [MyUser] calls unusable.
   ///
   /// Returns the [Update] where [MyUser] has logged out, if successful.
-  Future<RequestUpdate<MyUser>?> logout(MyUser user) async {
-    final result = user.context?.updater?.logout();
-    await stopSync(user);
-    return result ?? Future.value(null);
+  Future<RequestUpdate<MyUser>?> logout() async {
+    await stopSync();
+    return _updater?.logout();
   }
 
   /// Send all unsent messages still in the [Store].
@@ -118,21 +123,19 @@ class MatrixClient {
     MyUser user, {
     Duration maxRetryAfter = const Duration(seconds: 30),
     int timelineLimit = 30,
-  }) {
-    user.context?.updater?.startSync(
-      maxRetryAfter: maxRetryAfter,
-      timelineLimit: timelineLimit,
-      syncToken: user.syncToken
-    );
-  }
+  }) =>
+      user.context?.updater?.startSync(
+        maxRetryAfter: maxRetryAfter,
+        timelineLimit: timelineLimit,
+        syncToken: user.syncToken,
+      );
 
-  Future<void> stopSync(MyUser user) {
+  Future<void> stopSync() async {
     _streamSubscription.forEach((e) {
       e.cancel();
     });
     _streamSubscription.clear();
-    final result = user.context?.updater?.syncer.stop();
-    return result ?? Future.value();
+    await _updater?.stopSync();
   }
 
   Future<Room?> getRoom({
@@ -144,6 +147,20 @@ class MatrixClient {
     }
     final update = await _updater!.loadRoomsByIDs([RoomId(roomID)], limit);
     return update?.data?.firstWhereOrNull((e) => e.id.value == roomID);
+  }
+
+  Stream<Room> getRoomSink(String roomId) {
+    if (_updater == null) {
+      Log.writer.log("Updater not created");
+      return Stream.empty();
+    }
+    stopOneRoomSink();
+    _updater!.startRoomSink(roomId);
+    return _updater!.roomUpdates;
+  }
+
+  Future<void> stopOneRoomSink() {
+    return _updater!.closeRoomSink();
   }
 
   Future<List<Room>> getRooms({
@@ -158,6 +175,7 @@ class MatrixClient {
     return update?.deltaData?.toList() ?? [];
   }
 
+  @Deprecated("Use [uotUpdates instead]")
   Future<List<Room?>> getRoomsByIDs({
     required Iterable<RoomId> roomIDs,
     int limit = 40,
@@ -171,6 +189,7 @@ class MatrixClient {
     return update?.data?.toList() ?? [];
   }
 
+  @Deprecated("Use [uotUpdates instead]")
   Future<Room?> loadRoomEvents({
     required String roomID,
     int limit = 20,
@@ -215,36 +234,17 @@ class MatrixClient {
 
   //sync data is send to updater's 'updates' stream
   //sync token is send to updater's 'outSyncToken' stream
+  @Deprecated("Remove later")
   Future<void> runSyncOnce({required SyncFilter filter}) async {
     if (_updater == null) {
       return Future.value(null);
     }
-    await _updater!.syncer.runSyncOnce(filter: filter);
+    await _updater!.runSyncOnce(filter);
   }
+
   Stream<SyncToken>? get outSyncToken => _updater?.outSyncToken;
 
-  Stream<Update>? get outOneRoomUpdates => _oneRoomSyncer?.outUpdates;
-
-  void startOneRoomSyncer(String roomID, Room? room, {String? syncToken}) {
-    if (_updater == null) {
-      return;
-    }
-
-    if (_oneRoomSyncer != null) {
-      stopOneRoomSyncer();
-    }
-
-    _oneRoomSyncer = OneRoomSyncer(
-        _homeServer, _updater!.user.copyWith(), roomID, room, syncToken);
-    _oneRoomSyncer?.start();
-  }
-
-  void stopOneRoomSyncer() {
-    _oneRoomSyncer?.stop();
-    _oneRoomSyncer?.clear();
-    _oneRoomSyncer = null;
-  }
-
+  @Deprecated("Remove later")
   Future<List<String?>> getRoomIDs() async {
     final result = await _updater?.getRoomIDs();
     return result ?? [];

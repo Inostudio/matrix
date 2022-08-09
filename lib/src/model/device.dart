@@ -33,6 +33,11 @@ class Device with Identifiable<DeviceId> {
     this.lastIpAddress,
   });
 
+  @override
+  String toString() {
+    return 'Device{id: $id, userId: $userId, name: $name, lastSeen: $lastSeen, lastIpAddress: $lastIpAddress}';
+  }
+
   Device copyWith({
     DeviceId? id,
     UserId? userId,

@@ -5,8 +5,10 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import 'package:moor/backends.dart';
-import 'package:moor/moor.dart';
+import 'package:collection/collection.dart';
+import 'package:drift/backends.dart';
+import 'package:drift/drift.dart';
+
 import '../../event/room/state/member_change_event.dart';
 
 part 'database.g.dart';
@@ -16,9 +18,13 @@ class MyUsers extends Table {
   TextColumn get homeserver => text().nullable()();
 
   TextColumn get id => text().nullable()();
+
   TextColumn get name => text().nullable()();
+
   TextColumn get avatarUrl => text().nullable()();
+
   TextColumn get accessToken => text().nullable()();
+
   TextColumn get syncToken => text().nullable()();
 
   TextColumn get currentDeviceId =>
@@ -39,29 +45,39 @@ class Rooms extends Table {
   TextColumn get id => text()();
 
   TextColumn get timelinePreviousBatch => text().nullable()();
+
   BoolColumn get timelinePreviousBatchSetBySync => boolean().nullable()();
 
   IntColumn get summaryJoinedMembersCount => integer().nullable()();
+
   IntColumn get summaryInvitedMembersCount => integer().nullable()();
 
   TextColumn get nameChangeEventId =>
       text().customConstraint('REFERENCES room_events(id)').nullable()();
+
   TextColumn get avatarChangeEventId =>
       text().customConstraint('REFERENCES room_events(id)').nullable()();
+
   TextColumn get topicChangeEventId =>
       text().customConstraint('REFERENCES room_events(id)').nullable()();
+
   TextColumn get powerLevelsChangeEventId =>
       text().customConstraint('REFERENCES room_events(id)').nullable()();
+
   TextColumn get joinRulesChangeEventId =>
       text().customConstraint('REFERENCES room_events(id)').nullable()();
+
   TextColumn get canonicalAliasChangeEventId =>
       text().customConstraint('REFERENCES room_events(id)').nullable()();
+
   TextColumn get creationEventId =>
       text().customConstraint('REFERENCES room_events(id)').nullable()();
+
   TextColumn get upgradeEventId =>
       text().customConstraint('REFERENCES room_events(id)').nullable()();
 
   IntColumn get highlightedUnreadNotificationCount => integer().nullable()();
+
   IntColumn get totalUnreadNotificationCount => integer().nullable()();
 
   IntColumn get lastMessageTimeInterval =>
@@ -76,17 +92,28 @@ class Rooms extends Table {
 @DataClassName('RoomEventRecord')
 class RoomEvents extends Table {
   TextColumn get id => text()();
+
   TextColumn get type => text()();
+
   TextColumn get roomId =>
       text().customConstraint('REFERENCES room_events(id)')();
+
   TextColumn get senderId => text()();
+
   DateTimeColumn get time => dateTime().nullable()();
+
   TextColumn get content => text().nullable()();
+
   TextColumn get previousContent => text().nullable()();
+
   TextColumn get sentState => text().nullable()();
+
   TextColumn get transactionId => text().nullable()();
+
   TextColumn get stateKey => text().nullable()();
+
   TextColumn get redacts => text().nullable()();
+
   BoolColumn get inTimeline => boolean()();
 
   @override
@@ -96,8 +123,10 @@ class RoomEvents extends Table {
 @DataClassName('EphemeralEventRecord')
 class EphemeralEvents extends Table {
   TextColumn get type => text()();
+
   TextColumn get roomId =>
       text().customConstraint('REFERENCES room_events(id)')();
+
   TextColumn get content => text().nullable()();
 
   @override
@@ -107,17 +136,21 @@ class EphemeralEvents extends Table {
 @DataClassName('DeviceRecord')
 class Devices extends Table {
   TextColumn get id => text()();
+
   TextColumn get userId => text()();
+
   TextColumn get name => text().nullable()();
+
   DateTimeColumn get lastSeen => dateTime().nullable()();
+
   TextColumn get lastIpAddress => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
 }
 
-@UseMoor(include: {
-  "indices.moor",
+@DriftDatabase(include: {
+  'indices.drift'
 }, tables: [
   MyUsers,
   Rooms,
@@ -127,7 +160,7 @@ class Devices extends Table {
 ])
 class Database extends _$Database {
   Database(DelegatedDatabase delegate) : super(delegate) {
-    moorRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+    driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   }
 
   @override
@@ -138,28 +171,39 @@ class Database extends _$Database {
     return destructiveFallback;
   }
 
-  Future<MyUserRecordWithDeviceRecord?> getMyUserRecord(
+  Future<String?> getUserSyncToken(String userId) async {
+    final query = select(myUsers)
+      ..where((u) => u.id.like('$userId'))
+      ..limit(1);
+    final user = await query.get();
+    return user.firstOrNull?.syncToken;
+  }
+
+  Selectable<MyUserRecordWithDeviceRecord?> _selectUserWithDevice(
     String userID,
   ) {
     final query = select(myUsers);
     query.where((u) => u.id.like('$userID'));
     query.limit(1);
 
-    return query
-        .join([
-          leftOuterJoin(
-            devices,
-            devices.id.equalsExp(myUsers.currentDeviceId),
-          )
-        ])
-        .map(
-          (r) => MyUserRecordWithDeviceRecord(
-            myUserRecord: r.readTable(myUsers),
-            deviceRecord: r.readTableOrNull(devices),
-          ),
-        )
-        .getSingleOrNull();
+    return query.join([
+      leftOuterJoin(
+        devices,
+        devices.id.equalsExp(myUsers.currentDeviceId),
+      )
+    ]).map(
+      (r) => MyUserRecordWithDeviceRecord(
+        myUserRecord: r.readTable(myUsers),
+        deviceRecord: r.readTableOrNull(devices),
+      ),
+    );
   }
+
+  Stream<MyUserRecordWithDeviceRecord?> getUserSink(String userID) =>
+      _selectUserWithDevice(userID).watchSingleOrNull();
+
+  Future<MyUserRecordWithDeviceRecord?> getMyUserRecord(String userID) =>
+      _selectUserWithDevice(userID).getSingleOrNull();
 
   Future<void> setMyUser(MyUsersCompanion companion) async {
     await batch((batch) {
@@ -167,7 +211,7 @@ class Database extends _$Database {
     });
   }
 
-  Future<List<RoomRecordWithStateRecords>> getRoomRecordsByIDs(
+  Selectable<RoomRecordWithStateRecords> selectRoomRecordsByIDs(
     Iterable<String>? roomIds,
   ) {
     final nameChangeAlias = alias(roomEvents, 'name_change');
@@ -181,7 +225,6 @@ class Database extends _$Database {
     );
     final creationAlias = alias(roomEvents, 'creation');
     final upgradeAlias = alias(roomEvents, 'upgrade');
-
     final query = select(rooms).join([
       leftOuterJoin(
         nameChangeAlias,
@@ -223,23 +266,26 @@ class Database extends _$Database {
       query.where(rooms.id.isIn(roomIds));
     }
 
-    return query
-        .map(
-          (r) => RoomRecordWithStateRecords(
-            roomRecord: r.readTable(rooms),
-            nameChangeRecord: r.readTableOrNull(nameChangeAlias),
-            avatarChangeRecord: r.readTableOrNull(avatarChangeAlias),
-            topicChangeRecord: r.readTableOrNull(topicChangeAlias),
-            powerLevelsChangeRecord: r.readTableOrNull(powerLevelsChangeAlias),
-            joinRulesChangeRecord: r.readTableOrNull(joinRulesChangeAlias),
-            canonicalAliasChangeRecord:
-                r.readTableOrNull(canonicalAliasChangeAlias),
-            creationRecord: r.readTableOrNull(creationAlias),
-            upgradeRecord: r.readTableOrNull(upgradeAlias),
-          ),
-        )
-        .get();
+    return query.map(
+      (r) => RoomRecordWithStateRecords(
+        roomRecord: r.readTable(rooms),
+        nameChangeRecord: r.readTableOrNull(nameChangeAlias),
+        avatarChangeRecord: r.readTableOrNull(avatarChangeAlias),
+        topicChangeRecord: r.readTableOrNull(topicChangeAlias),
+        powerLevelsChangeRecord: r.readTableOrNull(powerLevelsChangeAlias),
+        joinRulesChangeRecord: r.readTableOrNull(joinRulesChangeAlias),
+        canonicalAliasChangeRecord:
+            r.readTableOrNull(canonicalAliasChangeAlias),
+        creationRecord: r.readTableOrNull(creationAlias),
+        upgradeRecord: r.readTableOrNull(upgradeAlias),
+      ),
+    );
   }
+
+  Future<List<RoomRecordWithStateRecords>> getRoomRecordsByIDs(
+    Iterable<String>? roomIds,
+  ) =>
+      selectRoomRecordsByIDs(roomIds).get();
 
   Future<List<String?>> getRoomIDs() {
     final roomIDs = rooms.id;
@@ -340,6 +386,72 @@ class Database extends _$Database {
     });
   }
 
+  Future<Iterable<RoomEventRecord>> getRoomEventRecordsWithIDs(
+    List<String> roomIds, {
+    DateTime? fromTime,
+    int? count,
+    bool onlyMemberChanges = false,
+    bool? inTimeline,
+  }) async {
+    final roomsList = roomIds.map((e) => "\'$e\'").join(", ");
+    String whereClause = "room_id = rv1.room_id";
+    if (roomIds.isNotEmpty) {
+      whereClause += " AND room_id IN ($roomsList)";
+    }
+    if (onlyMemberChanges) {
+      whereClause += " AND type = ${MemberChangeEvent.matrixType}";
+    }
+    if (inTimeline != null) {
+      whereClause += " AND in_timeline = ${inTimeline.toString()}";
+    }
+    if (fromTime != null) {
+      whereClause +=
+          " AND time < ${fromTime.millisecondsSinceEpoch.toString()}";
+    }
+
+    final query = customSelect(
+      """select  *
+        from room_events rv1
+        where id in
+        (
+        select id
+        from room_events rv2
+        where $whereClause
+        order by
+            time desc
+        ${count == null ? '' : 'limit $count'}
+        )""",
+      readsFrom: {roomEvents},
+    );
+
+    return query.map((row) => RoomEventRecord.fromData(row.data)).get();
+  }
+
+  Future<Iterable<RoomEventRecord>> getMemberEventRecordsOfSendersWithIds(
+    List<String> roomIds,
+    Iterable<String> userIds,
+  ) async {
+    return (select(roomEvents)
+          ..where(
+            (tbl) =>
+                tbl.roomId.isIn(roomIds) &
+                tbl.type.equals(MemberChangeEvent.matrixType) &
+                (tbl.senderId.isIn(userIds) | tbl.stateKey.isIn(userIds)),
+          ))
+        .get();
+  }
+
+  Future<Iterable<EphemeralEventRecord>> getEphemeralEventRecordsWithIds(
+    List<String> roomIds,
+  ) async {
+    final query = select(ephemeralEvents)
+      ..where(
+        (tbl) => tbl.roomId.isIn(roomIds),
+      );
+
+    return query.get();
+  }
+
   Future<Iterable<RoomEventRecord>> getRoomEventRecords(
     String roomId, {
     int? count,
@@ -369,9 +481,9 @@ class Database extends _$Database {
       (e) => OrderingTerm(expression: e.time, mode: OrderingMode.desc),
     ]);
 
-    if (count != null) {
-      query.limit(count);
-    }
+    // if (count != null) {
+    //   query.limit(count);
+    // }
 
     return query.get();
   }
@@ -445,6 +557,14 @@ class Database extends _$Database {
           roomEvents,
           (tbl) => tbl.id.isIn(['$roomId:%']),
         );
+      }
+    });
+  }
+
+  Future<void> wipeAllData() {
+    return transaction(() async {
+      for (final table in allTables) {
+        await delete(table).go();
       }
     });
   }

@@ -5,24 +5,29 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 
-import '../model/context.dart';
 import '../event/room/room_event.dart';
+import '../homeserver.dart';
+import '../model/context.dart';
 import '../model/identifier.dart';
+import '../model/my_user.dart';
 import '../room/member/member.dart';
 import '../room/room.dart';
-import '../homeserver.dart';
 import '../updater/updater.dart';
-import '../model/my_user.dart';
-import 'package:collection/collection.dart';
 
 /// Stores all data (rooms, users, events) somewhere.
 abstract class Store {
   bool get isOpen;
 
-  void open();
+  Future<void> open();
+
+  Future<bool> ensureOpen();
+
   Future<void> close();
+
+  Future<void> wipeAllData();
 
   /// Gets the currently stored [MyUser].
   ///
@@ -43,7 +48,22 @@ abstract class Store {
     String userID, {
     Iterable<RoomId>? roomIds,
     int timelineLimit = 100,
-    bool isolated = false,
+  });
+
+  ///Get current user sync token to get minimized updates from matrix server
+  Future<String?> getToken(String userId);
+
+  ///Get sink to [MyUser] in local database
+  Stream<MyUser> myUserStorageSink(
+    String userID, {
+    Iterable<RoomId>? roomIds,
+    int timelineLimit = 100,
+  });
+
+  Stream<Room> roomStorageSink({
+    required String selectedRoomId,
+    required UserId userId,
+    Context? context,
   });
 
   /// Save [MyUser] and all it's data completely.

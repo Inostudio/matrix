@@ -6,15 +6,30 @@
 
 import 'dart:async';
 import 'dart:isolate';
+
 import 'package:matrix_sdk/src/model/models.dart';
+import 'package:matrix_sdk/src/util/logger.dart';
 import 'package:meta/meta.dart';
+
 import '../../homeserver.dart';
-import '../updater.dart';
 import '../../store/store.dart';
+import '../updater.dart';
 import 'instruction.dart';
 
+class IsolateRunnerTransferModel {
+  final dynamic message;
+  final LoggerVariant loggerVariant;
+
+  const IsolateRunnerTransferModel({
+    required this.message,
+    required this.loggerVariant,
+  });
+}
+
 abstract class IsolateRunner {
-  static Future<void> run(dynamic message) async {
+  static Future<void> run(IsolateRunnerTransferModel transferModel) async {
+    final message = transferModel.message;
+    Log.setLogger(transferModel.loggerVariant);
     final receivePort = ReceivePort();
     final messageStream = receivePort.asBroadcastStream();
     final sendPort = message as SendPort;
@@ -27,12 +42,11 @@ abstract class IsolateRunner {
         StreamSubscription? subscription;
         subscription = messageStream.listen((message) {
           if (message is UpdaterArgs) {
-            //HttpOverrides.global = ProxyHttpOverrides("192.168.1.6", 8080);
             updater = Updater(
               message.myUser,
               Homeserver(message.homeserverUrl),
               message.storeLocation,
-              saveMyUserToStore: message.saveMyUserToStore,
+              initSinkStorage: false, //Not create updater updater sink
             );
             updaterAvailable.complete();
             subscription?.cancel();
@@ -42,6 +56,7 @@ abstract class IsolateRunner {
         sendPort.send(receivePort.sendPort);
 
         await updaterAvailable.future;
+        await updater?.ensureReady();
 
         // Send updates back to main isolate
         updater?.updates.listen((u) => sendPort.send(u.minimize()));
@@ -145,16 +160,16 @@ abstract class IsolateRunner {
     } else if (instruction is SendInstruction) {
       await updater
           .send(
-        instruction.roomId,
-        instruction.content,
-        transactionId: instruction.transactionId,
-        stateKey: instruction.stateKey,
-        type: instruction.type,
-        room: instruction.room,
-      )
-          .forEach((update) {
-        sendPort.send(update);
-      });
+            instruction.roomId,
+            instruction.content,
+            transactionId: instruction.transactionId,
+            stateKey: instruction.stateKey,
+            type: instruction.type,
+            room: instruction.room,
+          )
+          .forEach(
+            (update) => sendPort.send(update?.minimize()),
+          );
 
       return;
     } else if (instruction is SetIsTypingInstruction) {
@@ -206,9 +221,7 @@ abstract class IsolateRunner {
       return;
     }
 
-    if (result != null &&
-        (result is! Update ||
-            (instruction is RequestInstruction && instruction.basedOnUpdate))) {
+    if (result != null && (result is! Update || instruction.basedOnUpdate)) {
       sendPort.send(result is RequestUpdate ? result.minimize() : result);
     }
   }
@@ -231,3 +244,6 @@ class UpdaterArgs {
 
 @immutable
 class IsolateInitialized {}
+
+@immutable
+class SyncerInitialized {}

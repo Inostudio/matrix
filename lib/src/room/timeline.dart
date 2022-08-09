@@ -24,6 +24,11 @@ class Timeline extends DelegatingIterable<RoomEvent>
 
   final bool? previousBatchSetBySync;
 
+  @override
+  String toString() {
+    return 'Timeline{context: $context, previousBatch: $previousBatch, previousBatchSetBySync: $previousBatchSetBySync}';
+  }
+
   Timeline(
     Iterable<RoomEvent> iterable, {
     required this.context,
@@ -38,6 +43,21 @@ class Timeline extends DelegatingIterable<RoomEvent>
                   : -a.time!.compareTo(b.time!),
             ),
         );
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Timeline &&
+          runtimeType == other.runtimeType &&
+          context == other.context &&
+          previousBatch == other.previousBatch &&
+          previousBatchSetBySync == other.previousBatchSetBySync;
+
+  @override
+  int get hashCode =>
+      context.hashCode ^
+      previousBatch.hashCode ^
+      previousBatchSetBySync.hashCode;
 
   Timeline.empty({
     required this.context,

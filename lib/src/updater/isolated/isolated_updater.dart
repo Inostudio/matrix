@@ -8,27 +8,22 @@ import 'dart:async';
 import 'dart:isolate';
 
 import 'package:matrix_sdk/src/event/room/message_event.dart';
-import 'package:matrix_sdk/src/model/api_call_statistics.dart';
-import 'package:matrix_sdk/src/model/instruction.dart';
-import 'package:matrix_sdk/src/model/minimized_update.dart';
-import 'package:matrix_sdk/src/model/request_update.dart';
 import 'package:matrix_sdk/src/model/sync_token.dart';
-import 'package:matrix_sdk/src/model/update.dart';
+import 'package:matrix_sdk/src/updater/isolated/iso_storage_sink.dart';
 
 import '../../event/ephemeral/ephemeral.dart';
 import '../../event/event.dart';
 import '../../homeserver.dart';
-import '../../model/identifier.dart';
+import '../../model/models.dart';
 import '../../room/member/member_timeline.dart';
-import '../../model/my_user.dart';
 import '../../room/room.dart';
 import '../../room/rooms.dart';
-import '../../store/store.dart';
 import '../../room/timeline.dart';
-import '../../model/error_with_stacktrace.dart';
-
+import '../../store/store.dart';
+import '../../util/logger.dart';
 import '../updater.dart';
 import 'instruction.dart';
+import 'iso_merge.dart';
 import 'isolate_runner.dart';
 import 'isolated_syncer.dart';
 
@@ -48,7 +43,9 @@ class IsolatedUpdater extends Updater {
     );
 
     await updater._initialized;
+    await updater._syncInitialized;
 
+    await updater.ensureReady();
     return updater;
   }
 
@@ -59,6 +56,41 @@ class IsolatedUpdater extends Updater {
     bool saveMyUserToStore = false,
   }) : super(_user, _homeServer, storeLocation) {
     Updater.register(_user.id, this);
+
+    _syncMessageStream.listen((message) async {
+      if (message is Room) {
+        _roomUpdatesController.add(message);
+        return;
+      }
+      if (message is MinimizedUpdate) {
+        final minimizedUpdate = message;
+        _user = await runComputeMerge(_user, minimizedUpdate.delta);
+        final update = minimizedUpdate.deminimize(_user);
+
+        if (update is RequestUpdate && update.basedOnUpdate) {
+          _requestUpdatesBasedOnOthers.add(update);
+        } else {
+          _controller.add(update);
+        }
+        return;
+      }
+
+      if (message is SendPort) {
+        _syncSendPort = message;
+
+        _syncSendPort?.send(
+          UpdaterArgs(
+            myUser: _user,
+            homeserverUrl: _homeServer.url,
+            storeLocation: storeLocation,
+            saveMyUserToStore: true,
+          ),
+        );
+      }
+      if (message is SyncerInitialized) {
+        _syncerCompleter.complete();
+      }
+    });
 
     _messageStream.listen((message) async {
       if (message is MinimizedUpdate) {
@@ -106,29 +138,53 @@ class IsolatedUpdater extends Updater {
       }
     });
 
-    Isolate.spawn(IsolateRunner.run, _receivePort.sendPort);
+    Isolate.spawn<IsolateRunnerTransferModel>(
+      IsolateStorageSinkRunner.run,
+      IsolateRunnerTransferModel(
+        message: _syncReceivePort.sendPort,
+        loggerVariant: Log.variant,
+      ),
+    );
+
+    Isolate.spawn<IsolateRunnerTransferModel>(
+      IsolateRunner.run,
+      IsolateRunnerTransferModel(
+        message: _receivePort.sendPort,
+        loggerVariant: Log.variant,
+      ),
+    );
   }
 
+  SendPort? _syncSendPort;
   SendPort? _sendPort;
 
   @override
   bool get isReady => _sendPort != null;
 
   final _receivePort = ReceivePort();
+  final _syncReceivePort = ReceivePort();
 
+  late final Stream<dynamic> __syncMessageStream =
+      _syncReceivePort.asBroadcastStream();
   late final Stream<dynamic> __messageStream = _receivePort.asBroadcastStream();
+
   Stream<dynamic> get _messageStream => __messageStream;
 
+  Stream<dynamic> get _syncMessageStream => __syncMessageStream;
+
   final _errorSubject = StreamController<ErrorWithStackTraceString>.broadcast();
+
   @override
   Stream<ErrorWithStackTraceString> get outError => _errorSubject.stream;
 
   final _tokenSubject = StreamController<SyncToken>.broadcast();
+
   @override
   Stream<SyncToken> get outSyncToken => _tokenSubject.stream;
 
   // ignore: close_sinks
   final _apiCallStatsSubject = StreamController<ApiCallStatistics>.broadcast();
+
   @override
   Stream<ApiCallStatistics> get outApiCallStatistics =>
       _apiCallStatsSubject.stream;
@@ -137,7 +193,11 @@ class IsolatedUpdater extends Updater {
       StreamController<RequestUpdate>.broadcast();
 
   final _initializedCompleter = Completer<void>();
+  final _syncerCompleter = Completer<void>();
+
   Future<void> get _initialized => _initializedCompleter.future;
+
+  Future<void> get _syncInitialized => _syncerCompleter.future;
 
   MyUser _user;
 
@@ -157,21 +217,44 @@ class IsolatedUpdater extends Updater {
   // ignore: close_sinks
   late final StreamController<Update> __controller =
       StreamController<Update>.broadcast();
+
+  // ignore: close_sinks
+  late final StreamController<Room> __roomUpdatesController =
+      StreamController<Room>.broadcast();
+
   StreamController<Update> get _controller => __controller;
+
+  StreamController<Room> get _roomUpdatesController => __roomUpdatesController;
 
   @override
   Stream<Update> get updates => _controller.stream;
 
+  Stream<Room> get roomUpdates => _roomUpdatesController.stream;
+
   /// Sends an instruction to the isolate, possibly with a return value.
-  Future<T?> execute<T>(Instruction<T> instruction) async {
-    _sendPort?.send(instruction);
+  Future<T?> execute<T>(
+    Instruction<T> instruction, {
+    SendPort? port,
+  }) async {
+    final portToSent = port ?? _sendPort;
+    portToSent?.send(instruction);
 
     if (instruction.expectsReturnValue) {
-      final stream = instruction is RequestInstruction
-          ? (instruction as RequestInstruction).basedOnUpdate
-              ? _requestUpdatesBasedOnOthers.stream
-              : updates
-          : _messageStream;
+      late Stream stream;
+
+      if (instruction is RequestInstruction) {
+        if ((instruction as RequestInstruction).basedOnUpdate) {
+          stream = _requestUpdatesBasedOnOthers.stream;
+        } else {
+          stream = updates;
+        }
+      } else {
+        if (instruction is OneRoomSinkInstruction) {
+          stream = roomUpdates;
+        } else {
+          stream = _messageStream;
+        }
+      }
 
       return await stream.firstWhere(
         (event) => event is T?,
@@ -183,35 +266,61 @@ class IsolatedUpdater extends Updater {
 
   Stream<T> _executeStream<T>(
     Instruction<T> instruction, {
-    required updateCount,
+    int? updateCount,
+    SendPort? port,
   }) {
-    _sendPort?.send(instruction);
+    final portToSent = port ?? _sendPort;
+    portToSent?.send(instruction);
 
-    final stream = instruction is RequestInstruction
-        ? (instruction as RequestInstruction).basedOnUpdate
-            ? _requestUpdatesBasedOnOthers.stream
-            : updates
-        : _messageStream;
+    late Stream stream;
 
-    return stream
-        .where((msg) => msg is T)
-        .map((msg) => msg as T)
-        .take(updateCount);
+    if (instruction is RequestInstruction) {
+      if ((instruction as RequestInstruction).basedOnUpdate) {
+        stream = _requestUpdatesBasedOnOthers.stream;
+      } else {
+        stream = updates;
+      }
+    } else {
+      if (instruction is OneRoomSinkInstruction) {
+        stream = roomUpdates;
+      } else {
+        stream = _messageStream;
+      }
+    }
+
+    final streamToReturn =
+        stream.where((msg) => msg is T).map((msg) => msg as T);
+
+    if (updateCount == null) {
+      return streamToReturn;
+    } else {
+      return streamToReturn.take(updateCount);
+    }
   }
 
   @override
   Future<List<String?>?> getRoomIDs() => execute(GetRoomIDsInstruction());
 
   @override
-  Future<void> saveRoomToDB(Room room) => execute(SaveRoomToDBInstruction(room));
+  Future<void> saveRoomToDB(Room room) =>
+      execute(SaveRoomToDBInstruction(room));
 
   @override
   Future<void> startSync({
     Duration maxRetryAfter = const Duration(seconds: 30),
     int timelineLimit = 30,
     String? syncToken,
-  }) =>
-      execute(StartSyncInstruction(maxRetryAfter, timelineLimit, syncToken));
+  }) async =>
+      _syncSendPort?.send(
+        StartSyncInstruction(maxRetryAfter, timelineLimit, syncToken),
+      );
+
+  @override
+  Future<void> stopSync() async => _syncSendPort?.send(StopSyncInstruction());
+
+  @override
+  Future<void> runSyncOnce(SyncFilter filter) async =>
+      _syncSendPort?.send(RunSyncOnceInstruction(filter));
 
   @override
   Future<RequestUpdate<MemberTimeline>?> kick(
@@ -252,7 +361,11 @@ class IsolatedUpdater extends Updater {
       execute(LoadRoomsInstruction(limit, offset, timelineLimit));
 
   @override
-  Future<RequestUpdate<MyUser>?> logout() => execute(LogoutInstruction());
+  Future<RequestUpdate<MyUser>?> logout() async {
+    final result = await execute(LogoutInstruction());
+    _syncSendPort?.send(LogoutInstruction());
+    return result;
+  }
 
   @override
   Future<RequestUpdate<ReadReceipts>?> markRead({
@@ -283,6 +396,22 @@ class IsolatedUpdater extends Updater {
         ),
         // 2 updates are sent, one for local echo and one for being sent.
         updateCount: 2,
+      );
+
+  @override
+  Stream<Room> startRoomSink(String roomId) => _executeStream(
+        OneRoomSinkInstruction(
+          roomId: roomId,
+          context: user.context,
+          userId: user.id,
+        ),
+        port: _syncSendPort,
+      );
+
+  @override
+  Future<void> closeRoomSink() => execute(
+        CloseRoomSink(),
+        port: _syncSendPort,
       );
 
   @override
