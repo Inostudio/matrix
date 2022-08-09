@@ -9,7 +9,9 @@ import '../../model/instruction.dart';
 import '../../util/logger.dart';
 import 'isolate_runner.dart';
 
-abstract class IsolateStorageSinkRunner {
+abstract class IsolateOneRoomSinkRunner {
+  static StreamSubscription<Room>? roomSinkSubscription;
+
   static Future<void> run(IsolateRunnerTransferModel transferModel) async {
     final message = transferModel.message;
     Log.setLogger(transferModel.loggerVariant);
@@ -29,7 +31,7 @@ abstract class IsolateStorageSinkRunner {
               message.myUser,
               Homeserver(message.homeserverUrl),
               message.storeLocation,
-              initSinkStorage: true, //Create sink with store
+              initSinkStorage: false, //Create sink with store
             );
             updaterAvailable.complete();
             subscription?.cancel();
@@ -47,26 +49,19 @@ abstract class IsolateStorageSinkRunner {
 
         updater?.outApiCallStatistics.listen(sendPort.send);
 
-        sendPort.send(SyncerInitialized());
+        sendPort.send(OneRoomSyncerInitialized());
 
         StreamSubscription instructionSubscription;
 
         instructionSubscription = messageStream.listen((message) async {
           final instruction = message as Instruction;
-
-          if (instruction is StartSyncInstruction) {
-            await updater?.startSync(
-              maxRetryAfter: instruction.maxRetryAfter,
-              timelineLimit: instruction.timelineLimit,
-              syncToken: instruction.syncToken,
-            );
-          }
-          if (instruction is StopSyncInstruction) {
-            await updater?.stopSync();
-          } else if (instruction is RunSyncOnceInstruction) {
-            await updater?.runSyncOnce(instruction.filter);
-          } else if (instruction is LogoutInstruction) {
-            await updater?.logout();
+          if (instruction is OneRoomSinkInstruction) {
+            roomSinkSubscription = updater
+                ?.startRoomSink(instruction.roomId)
+                .listen(sendPort.send);
+          } else if (instruction is CloseRoomSink) {
+            await roomSinkSubscription?.cancel();
+            await updater?.closeRoomSink();
           }
         });
 
@@ -86,4 +81,4 @@ abstract class IsolateStorageSinkRunner {
 }
 
 @immutable
-class SyncerInitialized {}
+class OneRoomSyncerInitialized {}
