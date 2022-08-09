@@ -5,8 +5,6 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import 'package:matrix_sdk/src/event/room/message_event.dart';
-import 'package:matrix_sdk/src/model/instruction.dart';
-import 'package:matrix_sdk/src/model/request_update.dart';
 
 import '../../event/ephemeral/ephemeral.dart';
 import '../../event/event.dart';
@@ -123,6 +121,20 @@ class SendInstruction extends RequestInstruction<Timeline> {
     this.room,
   );
 }
+
+class OneRoomSinkInstruction extends Instruction<Room> {
+  final String roomId;
+  final Context? context;
+  final UserId? userId;
+
+  OneRoomSinkInstruction({
+    required this.roomId,
+    this.context,
+    this.userId,
+  });
+}
+
+class CloseRoomSink extends Instruction<Room> {}
 
 class EditTextEventInstruction extends RequestInstruction<Timeline> {
   final RoomId roomId;

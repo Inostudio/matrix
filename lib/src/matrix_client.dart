@@ -149,6 +149,20 @@ class MatrixClient {
     return update?.data?.firstWhereOrNull((e) => e.id.value == roomID);
   }
 
+  Stream<Room> getRoomSink(String roomId) {
+    if (_updater == null) {
+      Log.writer.log("Updater not created");
+      return Stream.empty();
+    }
+    stopOneRoomSink();
+    _updater!.startRoomSink(roomId);
+    return _updater!.roomUpdates;
+  }
+
+  Future<void> stopOneRoomSink() {
+    return _updater!.closeRoomSink();
+  }
+
   Future<List<Room>> getRooms({
     int limit = 50,
     int offset = 0,

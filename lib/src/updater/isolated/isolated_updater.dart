@@ -58,6 +58,10 @@ class IsolatedUpdater extends Updater {
     Updater.register(_user.id, this);
 
     _syncMessageStream.listen((message) async {
+      if (message is Room) {
+        _roomUpdatesController.add(message);
+        return;
+      }
       if (message is MinimizedUpdate) {
         final minimizedUpdate = message;
         _user = await runComputeMerge(_user, minimizedUpdate.delta);
@@ -214,21 +218,43 @@ class IsolatedUpdater extends Updater {
   late final StreamController<Update> __controller =
       StreamController<Update>.broadcast();
 
+  // ignore: close_sinks
+  late final StreamController<Room> __roomUpdatesController =
+      StreamController<Room>.broadcast();
+
   StreamController<Update> get _controller => __controller;
+
+  StreamController<Room> get _roomUpdatesController => __roomUpdatesController;
 
   @override
   Stream<Update> get updates => _controller.stream;
 
+  Stream<Room> get roomUpdates => _roomUpdatesController.stream;
+
   /// Sends an instruction to the isolate, possibly with a return value.
-  Future<T?> execute<T>(Instruction<T> instruction) async {
-    _sendPort?.send(instruction);
+  Future<T?> execute<T>(
+    Instruction<T> instruction, {
+    SendPort? port,
+  }) async {
+    final portToSent = port ?? _sendPort;
+    portToSent?.send(instruction);
 
     if (instruction.expectsReturnValue) {
-      final stream = instruction is RequestInstruction
-          ? (instruction as RequestInstruction).basedOnUpdate
-              ? _requestUpdatesBasedOnOthers.stream
-              : updates
-          : _messageStream;
+      late Stream stream;
+
+      if (instruction is RequestInstruction) {
+        if ((instruction as RequestInstruction).basedOnUpdate) {
+          stream = _requestUpdatesBasedOnOthers.stream;
+        } else {
+          stream = updates;
+        }
+      } else {
+        if (instruction is OneRoomSinkInstruction) {
+          stream = roomUpdates;
+        } else {
+          stream = _messageStream;
+        }
+      }
 
       return await stream.firstWhere(
         (event) => event is T?,
@@ -240,20 +266,36 @@ class IsolatedUpdater extends Updater {
 
   Stream<T> _executeStream<T>(
     Instruction<T> instruction, {
-    required updateCount,
+    int? updateCount,
+    SendPort? port,
   }) {
-    _sendPort?.send(instruction);
+    final portToSent = port ?? _sendPort;
+    portToSent?.send(instruction);
 
-    final stream = instruction is RequestInstruction
-        ? (instruction as RequestInstruction).basedOnUpdate
-            ? _requestUpdatesBasedOnOthers.stream
-            : updates
-        : _messageStream;
+    late Stream stream;
 
-    return stream
-        .where((msg) => msg is T)
-        .map((msg) => msg as T)
-        .take(updateCount);
+    if (instruction is RequestInstruction) {
+      if ((instruction as RequestInstruction).basedOnUpdate) {
+        stream = _requestUpdatesBasedOnOthers.stream;
+      } else {
+        stream = updates;
+      }
+    } else {
+      if (instruction is OneRoomSinkInstruction) {
+        stream = roomUpdates;
+      } else {
+        stream = _messageStream;
+      }
+    }
+
+    final streamToReturn =
+        stream.where((msg) => msg is T).map((msg) => msg as T);
+
+    if (updateCount == null) {
+      return streamToReturn;
+    } else {
+      return streamToReturn.take(updateCount);
+    }
   }
 
   @override
@@ -354,6 +396,22 @@ class IsolatedUpdater extends Updater {
         ),
         // 2 updates are sent, one for local echo and one for being sent.
         updateCount: 2,
+      );
+
+  @override
+  Stream<Room> startRoomSink(String roomId) => _executeStream(
+        OneRoomSinkInstruction(
+          roomId: roomId,
+          context: user.context,
+          userId: user.id,
+        ),
+        port: _syncSendPort,
+      );
+
+  @override
+  Future<void> closeRoomSink() => execute(
+        CloseRoomSink(),
+        port: _syncSendPort,
       );
 
   @override
