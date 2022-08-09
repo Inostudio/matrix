@@ -66,9 +66,16 @@ class Updater {
 
   final _lock = Lock();
 
+  StreamSubscription? oneRoomSync;
+
   final _updatesSubject = StreamController<Update>.broadcast();
 
+  final StreamController<Room> _roomUpdatesSubject =
+      StreamController<Room>.broadcast();
+
   Stream<Update> get updates => _updatesSubject.stream;
+
+  Stream<Room> get roomUpdates => _roomUpdatesSubject.stream;
 
   final _errorSubject = StreamController<ErrorWithStackTraceString>.broadcast();
 
@@ -109,7 +116,6 @@ class Updater {
   }
 
   void _initSinkStorage(StoreLocation storeLocation) {
-    _sinkStorage = SinkStorage(storeLocation: storeLocation);
     _sinkStorage.myUserStorageSink(user.id.value).listen(
           (storeUpdate) => _notifyWithUpdate(
             storeUpdate,
@@ -119,6 +125,19 @@ class Updater {
   }
 
   Future<bool> ensureReady() => _sinkStorage.ensureOpen();
+
+  Stream<Room> startRoomSink(String roomId) {
+    oneRoomSync = _sinkStorage
+        .roomSinkStorageSink(
+          selectedRoomId: roomId,
+          userId: user.id,
+          context: user.context,
+        )
+        .listen(_roomUpdatesSubject.add);
+    return roomUpdates;
+  }
+
+  Future<void> closeRoomSink() async => oneRoomSync?.cancel();
 
   Future<void> saveRoomToDB(Room room) => _sinkStorage.setRoom(room);
 
@@ -180,7 +199,7 @@ class Updater {
   }) async {
     await _networkService.putProfileDisplayName(
       accessToken: _user.accessToken!,
-      userId: _user.id.toString(),
+      userId: _user.id.value,
       value: name,
     );
 

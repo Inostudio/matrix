@@ -18,6 +18,17 @@ class SinkStorage implements BaseSinkStorage {
       store.myUserStorageSink(userId);
 
   @override
+  Stream<Room> roomSinkStorageSink({
+    required String selectedRoomId,
+    required UserId userId,
+    Context? context,
+  }) =>
+      store.roomStorageSink(
+        selectedRoomId: selectedRoomId,
+        userId: userId,
+      );
+
+  @override
   Future<bool> ensureOpen() => store.ensureOpen();
 
   @override

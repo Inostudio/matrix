@@ -12,16 +12,18 @@ import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:drift/backends.dart';
-import 'package:drift/native.dart';
-import 'package:drift/drift.dart';
 import 'package:collection/collection.dart';
+import 'package:drift/backends.dart';
+import 'package:drift/drift.dart';
+import 'package:drift/native.dart';
+import 'package:rxdart/rxdart.dart';
 
 import '../../../matrix_sdk.dart';
 import '../../event/ephemeral/ephemeral.dart';
 import '../../event/ephemeral/ephemeral_event.dart';
 import '../../event/ephemeral/typing_event.dart';
 import '../../model/context.dart';
+import '../../util/logger.dart';
 import 'database.dart' hide Rooms;
 
 class MoorStore extends Store {
@@ -70,6 +72,91 @@ class MoorStore extends Store {
           .whereNotNull()
           .map((r) => r.id),
     );
+  }
+
+  @override
+  Stream<Room> roomStorageSink({
+    required String selectedRoomId,
+    required UserId userId,
+    Context? context,
+  }) {
+    Log.setLogger(LoggerVariant.dev);
+    return _db!
+        .selectRoomRecordsByIDs([selectedRoomId])
+        .watchSingleOrNull()
+        .debounceTime(Duration(milliseconds: 200))
+        .where((event) => event != null)
+        .cast<RoomRecordWithStateRecords>()
+        .asyncMap(
+          (record) async {
+            Log.setLogger(LoggerVariant.dev);
+
+            final ephemeral = Ephemeral(
+              await _db!.getEphemeralEventRecords(selectedRoomId).then(
+                    (records) => records
+                        .map((record) => record.toEphemeralEvent())
+                        .whereNotNull(),
+                  ),
+            );
+            final roomRecord = record.roomRecord;
+            final roomId = RoomId(roomRecord.id);
+
+            final roomContext = context != null
+                ? RoomContext.inherit(
+                    context,
+                    roomId: RoomId(roomRecord.id),
+                  )
+                : null;
+
+            final messages = await getMessages(
+              roomId,
+              memberIds: [userId],
+            );
+
+            final timeline = Timeline(
+              messages.events,
+              context: roomContext,
+              previousBatch: roomRecord.timelinePreviousBatch,
+              previousBatchSetBySync: roomRecord.timelinePreviousBatchSetBySync,
+            );
+
+            final memberTimeline = MemberTimeline(
+              messages.state,
+              context: roomContext,
+            );
+
+            return Room(
+              context: context,
+              id: RoomId(roomRecord.id),
+              stateEvents: RoomStateEvents(
+                nameChange: record.nameChangeRecord?.toRoomEvent(),
+                avatarChange: record.avatarChangeRecord?.toRoomEvent(),
+                topicChange: record.topicChangeRecord?.toRoomEvent(),
+                powerLevelsChange:
+                    record.powerLevelsChangeRecord?.toRoomEvent(),
+                joinRulesChange: record.joinRulesChangeRecord?.toRoomEvent(),
+                canonicalAliasChange:
+                    record.canonicalAliasChangeRecord?.toRoomEvent(),
+                creation: record.creationRecord?.toRoomEvent(),
+                upgrade: record.upgradeRecord?.toRoomEvent(),
+              ),
+              timeline: timeline,
+              memberTimeline: memberTimeline,
+              summary: RoomSummary(
+                joinedMembersCount: roomRecord.summaryJoinedMembersCount,
+                invitedMembersCount: roomRecord.summaryInvitedMembersCount,
+              ),
+              directUserId: roomRecord.directUserId != null
+                  ? UserId(roomRecord.directUserId!)
+                  : null,
+              highlightedUnreadNotificationCount:
+                  roomRecord.highlightedUnreadNotificationCount,
+              totalUnreadNotificationCount:
+                  roomRecord.totalUnreadNotificationCount,
+              ephemeral: ephemeral,
+            );
+          },
+        );
   }
 
   @override
@@ -167,7 +254,8 @@ class MoorStore extends Store {
       }
 
       await _db?.setRooms(
-          myUser.rooms!.map((r) => r.toCompanion()).whereNotNull().toList());
+        myUser.rooms!.map((r) => r.toCompanion()).whereNotNull().toList(),
+      );
 
       // Set room state
       await _db?.setRoomEventRecords(

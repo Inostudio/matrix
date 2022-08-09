@@ -5,6 +5,12 @@ import '../../model/context.dart';
 abstract class BaseSinkStorage {
   Stream<MyUser> myUserStorageSink(String userId);
 
+  Stream<Room> roomSinkStorageSink({
+    required String selectedRoomId,
+    required UserId userId,
+    Context? context,
+  });
+
   bool isReady();
 
   Future<void> setUserDelta(MyUser user);

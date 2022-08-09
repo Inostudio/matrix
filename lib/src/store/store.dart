@@ -60,6 +60,12 @@ abstract class Store {
     int timelineLimit = 100,
   });
 
+  Stream<Room> roomStorageSink({
+    required String selectedRoomId,
+    required UserId userId,
+    Context? context,
+  });
+
   /// Save [MyUser] and all it's data completely.
   Future<void> setMyUserDelta(MyUser myUser);
 

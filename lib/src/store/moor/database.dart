@@ -211,7 +211,7 @@ class Database extends _$Database {
     });
   }
 
-  Future<List<RoomRecordWithStateRecords>> getRoomRecordsByIDs(
+  Selectable<RoomRecordWithStateRecords> selectRoomRecordsByIDs(
     Iterable<String>? roomIds,
   ) {
     final nameChangeAlias = alias(roomEvents, 'name_change');
@@ -225,7 +225,6 @@ class Database extends _$Database {
     );
     final creationAlias = alias(roomEvents, 'creation');
     final upgradeAlias = alias(roomEvents, 'upgrade');
-
     final query = select(rooms).join([
       leftOuterJoin(
         nameChangeAlias,
@@ -267,23 +266,26 @@ class Database extends _$Database {
       query.where(rooms.id.isIn(roomIds));
     }
 
-    return query
-        .map(
-          (r) => RoomRecordWithStateRecords(
-            roomRecord: r.readTable(rooms),
-            nameChangeRecord: r.readTableOrNull(nameChangeAlias),
-            avatarChangeRecord: r.readTableOrNull(avatarChangeAlias),
-            topicChangeRecord: r.readTableOrNull(topicChangeAlias),
-            powerLevelsChangeRecord: r.readTableOrNull(powerLevelsChangeAlias),
-            joinRulesChangeRecord: r.readTableOrNull(joinRulesChangeAlias),
-            canonicalAliasChangeRecord:
-                r.readTableOrNull(canonicalAliasChangeAlias),
-            creationRecord: r.readTableOrNull(creationAlias),
-            upgradeRecord: r.readTableOrNull(upgradeAlias),
-          ),
-        )
-        .get();
+    return query.map(
+      (r) => RoomRecordWithStateRecords(
+        roomRecord: r.readTable(rooms),
+        nameChangeRecord: r.readTableOrNull(nameChangeAlias),
+        avatarChangeRecord: r.readTableOrNull(avatarChangeAlias),
+        topicChangeRecord: r.readTableOrNull(topicChangeAlias),
+        powerLevelsChangeRecord: r.readTableOrNull(powerLevelsChangeAlias),
+        joinRulesChangeRecord: r.readTableOrNull(joinRulesChangeAlias),
+        canonicalAliasChangeRecord:
+            r.readTableOrNull(canonicalAliasChangeAlias),
+        creationRecord: r.readTableOrNull(creationAlias),
+        upgradeRecord: r.readTableOrNull(upgradeAlias),
+      ),
+    );
   }
+
+  Future<List<RoomRecordWithStateRecords>> getRoomRecordsByIDs(
+    Iterable<String>? roomIds,
+  ) =>
+      selectRoomRecordsByIDs(roomIds).get();
 
   Future<List<String?>> getRoomIDs() {
     final roomIDs = rooms.id;
@@ -479,9 +481,9 @@ class Database extends _$Database {
       (e) => OrderingTerm(expression: e.time, mode: OrderingMode.desc),
     ]);
 
-    if (count != null) {
-      query.limit(count);
-    }
+    // if (count != null) {
+    //   query.limit(count);
+    // }
 
     return query.get();
   }
