@@ -244,6 +244,3 @@ class UpdaterArgs {
 
 @immutable
 class IsolateInitialized {}
-
-@immutable
-class SyncerInitialized {}
