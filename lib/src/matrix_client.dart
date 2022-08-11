@@ -234,7 +234,6 @@ class MatrixClient {
 
   //sync data is send to updater's 'updates' stream
   //sync token is send to updater's 'outSyncToken' stream
-  @Deprecated("Remove later")
   Future<void> runSyncOnce({required SyncFilter filter}) async {
     if (_updater == null) {
       return Future.value(null);

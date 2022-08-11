@@ -16,18 +16,18 @@ import '../../store/store.dart';
 import '../updater.dart';
 import 'instruction.dart';
 
-class IsolateRunnerTransferModel {
+class IsolateTransferModel {
   final dynamic message;
   final LoggerVariant loggerVariant;
 
-  const IsolateRunnerTransferModel({
+  const IsolateTransferModel({
     required this.message,
     required this.loggerVariant,
   });
 }
 
 abstract class IsolateRunner {
-  static Future<void> run(IsolateRunnerTransferModel transferModel) async {
+  static Future<void> run(IsolateTransferModel transferModel) async {
     final message = transferModel.message;
     Log.setLogger(transferModel.loggerVariant);
     final receivePort = ReceivePort();
@@ -63,7 +63,7 @@ abstract class IsolateRunner {
 
         updater?.outApiCallStatistics.listen(sendPort.send);
 
-        sendPort.send(IsolateInitialized());
+        sendPort.send(RunnerInitialized());
 
         StreamSubscription instructionSubscription;
 
@@ -206,8 +206,6 @@ abstract class IsolateRunner {
             reason: instruction.reason,
             room: instruction.room,
           );
-    } else if (instruction is RunSyncOnceInstruction) {
-      operation = () => updater.syncer.runSyncOnce(filter: instruction.filter);
     } else {
       throw UnsupportedError(
         'Unsupported instruction: ${instruction.runtimeType}',
@@ -243,7 +241,4 @@ class UpdaterArgs {
 }
 
 @immutable
-class IsolateInitialized {}
-
-@immutable
-class SyncerInitialized {}
+class RunnerInitialized {}
