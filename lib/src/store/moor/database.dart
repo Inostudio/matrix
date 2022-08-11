@@ -427,6 +427,7 @@ class Database extends _$Database {
     return query.map((row) => RoomEventRecord.fromData(row.data)).get();
   }
 
+  //TODO add limit
   Future<Iterable<RoomEventRecord>> getMemberEventRecordsOfSendersWithIds(
     List<String> roomIds,
     Iterable<String> userIds,
@@ -441,6 +442,7 @@ class Database extends _$Database {
         .get();
   }
 
+  //TODO add limit
   Future<Iterable<EphemeralEventRecord>> getEphemeralEventRecordsWithIds(
     List<String> roomIds,
   ) async {
@@ -481,9 +483,9 @@ class Database extends _$Database {
       (e) => OrderingTerm(expression: e.time, mode: OrderingMode.desc),
     ]);
 
-    // if (count != null) {
-    //   query.limit(count);
-    // }
+    if (count != null) {
+      query.limit(count);
+    }
 
     return query.get();
   }

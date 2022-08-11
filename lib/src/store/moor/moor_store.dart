@@ -732,6 +732,7 @@ class MoorStore extends Store {
     return rooms;
   }
 
+  //TODO add limit
   Future<Iterable<Member>> getMessagesMembersWithIds(
     List<String> roomIds,
     Iterable<String> userIds,

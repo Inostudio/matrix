@@ -15,7 +15,7 @@ class SinkStorage implements BaseSinkStorage {
 
   @override
   Stream<MyUser> myUserStorageSink(String userId) =>
-      store.myUserStorageSink(userId);
+      store.myUserStorageSink(userId, timelineLimit: 1);
 
   @override
   Stream<Room> roomSinkStorageSink({

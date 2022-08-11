@@ -162,7 +162,7 @@ class Updater {
 
   Future<void> stopSync() async => _syncer.stop();
 
-  Future<void> runSyncOnce(SyncFilter filter) async => _syncer.runSyncOnce(
+  Future<SyncToken?> runSyncOnce(SyncFilter filter) async => _syncer.runSyncOnce(
         filter: filter,
       );
 

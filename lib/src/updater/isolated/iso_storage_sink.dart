@@ -10,7 +10,7 @@ import '../../util/logger.dart';
 import 'isolate_runner.dart';
 
 abstract class IsolateStorageSinkRunner {
-  static Future<void> run(IsolateRunnerTransferModel transferModel) async {
+  static Future<void> run(IsolateTransferModel transferModel) async {
     final message = transferModel.message;
     Log.setLogger(transferModel.loggerVariant);
     final receivePort = ReceivePort();
@@ -64,7 +64,8 @@ abstract class IsolateStorageSinkRunner {
           if (instruction is StopSyncInstruction) {
             await updater?.stopSync();
           } else if (instruction is RunSyncOnceInstruction) {
-            await updater?.runSyncOnce(instruction.filter);
+            final syncResult = await updater?.runSyncOnce(instruction.filter);
+            sendPort.send(syncResult);
           } else if (instruction is LogoutInstruction) {
             await updater?.logout();
           }

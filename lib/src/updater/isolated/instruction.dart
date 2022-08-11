@@ -8,13 +8,16 @@ import 'package:matrix_sdk/src/event/room/message_event.dart';
 
 import '../../event/ephemeral/ephemeral.dart';
 import '../../event/event.dart';
+import '../../model/models.dart';
+import '../../model/sync_token.dart';
+import '../../room/member/member_timeline.dart';
 import '../../room/room.dart';
 import '../../room/rooms.dart';
-import '../../room/member/member_timeline.dart';
 import '../../room/timeline.dart';
-import '../../model/models.dart';
 
-class StartSyncInstruction extends Instruction<void> {
+abstract class StorageSinkInstruction<T> extends Instruction<T> {}
+
+class StartSyncInstruction extends StorageSinkInstruction<void> {
   @override
   bool get expectsReturnValue => false;
 
@@ -25,7 +28,13 @@ class StartSyncInstruction extends Instruction<void> {
   StartSyncInstruction(this.maxRetryAfter, this.timelineLimit, this.syncToken);
 }
 
-class StopSyncInstruction extends Instruction<void> {}
+class RunSyncOnceInstruction extends StorageSinkInstruction<SyncToken> {
+  final SyncFilter filter;
+
+  RunSyncOnceInstruction(this.filter);
+}
+
+class StopSyncInstruction extends StorageSinkInstruction<void> {}
 
 class GetRoomIDsInstruction extends Instruction<List<String?>> {}
 
@@ -211,15 +220,6 @@ class SetPusherInstruction extends RequestInstruction<MyUser> {
   final Map<String, dynamic> pusher;
 
   SetPusherInstruction(this.pusher);
-
-  @override
-  final bool basedOnUpdate = true;
-}
-
-class RunSyncOnceInstruction extends RequestInstruction<MyUser> {
-  final SyncFilter filter;
-
-  RunSyncOnceInstruction(this.filter);
 
   @override
   final bool basedOnUpdate = true;

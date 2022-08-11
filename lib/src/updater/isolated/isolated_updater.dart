@@ -42,9 +42,13 @@ class IsolatedUpdater extends Updater {
       saveMyUserToStore: saveMyUserToStore,
     );
 
-    await updater._initialized;
+    await updater._spawnSinkRunner();
+    await updater._spawnOneRoomSinkRunner();
+    await updater._spawnRunner();
+
     await updater._syncInitialized;
     await updater._oneRoomSyncInitialized;
+    await updater._initialized;
 
     await updater.ensureReady();
     return updater;
@@ -59,10 +63,6 @@ class IsolatedUpdater extends Updater {
     Updater.register(_user.id, this);
 
     _syncMessageStream.listen((message) async {
-      if (message is Room) {
-        _roomUpdatesController.add(message);
-        return;
-      }
       if (message is MinimizedUpdate) {
         final minimizedUpdate = message;
         _user = await runComputeMerge(_user, minimizedUpdate.delta);
@@ -117,7 +117,7 @@ class IsolatedUpdater extends Updater {
     _messageStream.listen((message) async {
       if (message is MinimizedUpdate) {
         final minimizedUpdate = message;
-        _user = _user.merge(minimizedUpdate.delta);
+        _user = await runComputeMerge(_user, minimizedUpdate.delta);
 
         final update = minimizedUpdate.deminimize(_user);
 
@@ -143,7 +143,7 @@ class IsolatedUpdater extends Updater {
         );
       }
 
-      if (message is IsolateInitialized) {
+      if (message is RunnerInitialized) {
         _initializedCompleter.complete();
       }
 
@@ -159,25 +159,32 @@ class IsolatedUpdater extends Updater {
         _tokenSubject.add(message);
       }
     });
+  }
 
-    Isolate.spawn<IsolateRunnerTransferModel>(
+  Future<void> _spawnSinkRunner() async {
+    await Isolate.spawn<IsolateTransferModel>(
       IsolateStorageSinkRunner.run,
-      IsolateRunnerTransferModel(
+      IsolateTransferModel(
         message: _syncReceivePort.sendPort,
         loggerVariant: Log.variant,
       ),
     );
-    Isolate.spawn<IsolateRunnerTransferModel>(
+  }
+
+  Future<void> _spawnOneRoomSinkRunner() async {
+    await Isolate.spawn<IsolateTransferModel>(
       IsolateOneRoomSinkRunner.run,
-      IsolateRunnerTransferModel(
+      IsolateTransferModel(
         message: _oneRoomSyncReceivePort.sendPort,
         loggerVariant: Log.variant,
       ),
     );
+  }
 
-    Isolate.spawn<IsolateRunnerTransferModel>(
+  Future<void> _spawnRunner() async {
+    await Isolate.spawn<IsolateTransferModel>(
       IsolateRunner.run,
-      IsolateRunnerTransferModel(
+      IsolateTransferModel(
         message: _receivePort.sendPort,
         loggerVariant: Log.variant,
       ),
@@ -275,17 +282,21 @@ class IsolatedUpdater extends Updater {
     if (instruction.expectsReturnValue) {
       late Stream stream;
 
-      if (instruction is RequestInstruction) {
-        if ((instruction as RequestInstruction).basedOnUpdate) {
-          stream = _requestUpdatesBasedOnOthers.stream;
-        } else {
-          stream = updates;
-        }
+      if (instruction is StorageSinkInstruction) {
+        stream = _syncMessageStream;
       } else {
-        if (instruction is OneRoomSinkInstruction) {
-          stream = roomUpdates;
+        if (instruction is RequestInstruction) {
+          if ((instruction as RequestInstruction).basedOnUpdate) {
+            stream = _requestUpdatesBasedOnOthers.stream;
+          } else {
+            stream = updates;
+          }
         } else {
-          stream = _messageStream;
+          if (instruction is OneRoomSinkInstruction) {
+            stream = roomUpdates;
+          } else {
+            stream = _messageStream;
+          }
         }
       }
 
@@ -352,8 +363,8 @@ class IsolatedUpdater extends Updater {
   Future<void> stopSync() async => _syncSendPort?.send(StopSyncInstruction());
 
   @override
-  Future<void> runSyncOnce(SyncFilter filter) async =>
-      _syncSendPort?.send(RunSyncOnceInstruction(filter));
+  Future<SyncToken?> runSyncOnce(SyncFilter filter) async =>
+      execute(RunSyncOnceInstruction(filter), port: _syncSendPort);
 
   @override
   Future<RequestUpdate<MemberTimeline>?> kick(

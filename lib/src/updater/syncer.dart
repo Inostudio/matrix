@@ -92,6 +92,7 @@ class Syncer {
       }
     } catch (e) {
       Log.writer.log(e);
+      print("Sync Error :$e");
       await Future.delayed(Duration(seconds: 5));
       start(
         maxRetryAfter: maxRetryAfter,

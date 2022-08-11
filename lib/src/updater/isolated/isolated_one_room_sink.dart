@@ -12,7 +12,7 @@ import 'isolate_runner.dart';
 abstract class IsolateOneRoomSinkRunner {
   static StreamSubscription<Room>? roomSinkSubscription;
 
-  static Future<void> run(IsolateRunnerTransferModel transferModel) async {
+  static Future<void> run(IsolateTransferModel transferModel) async {
     final message = transferModel.message;
     Log.setLogger(transferModel.loggerVariant);
     final receivePort = ReceivePort();
