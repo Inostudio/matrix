@@ -162,7 +162,8 @@ class Updater {
 
   Future<void> stopSync() async => _syncer.stop();
 
-  Future<SyncToken?> runSyncOnce(SyncFilter filter) async => _syncer.runSyncOnce(
+  Future<SyncToken?> runSyncOnce(SyncFilter filter) async =>
+      _syncer.runSyncOnce(
         filter: filter,
       );
 
@@ -635,55 +636,31 @@ class Updater {
       return Future.value(null);
     }
 
-    final messages = await _sinkStorage.getMessages(
-      roomId,
-      count: count,
-      fromTime: currentRoom?.timeline?.last.time,
+    final body = await _networkService.getRoomMessages(
+      accessToken: _user.accessToken ?? '',
+      roomId: roomId.toString(),
+      limit: count,
+      from: currentRoom?.timeline?.previousBatch ?? '',
+      filter: {
+        'lazy_load_members': true,
+      },
     );
 
-    var timeline = Timeline(
-      messages.events,
+    final timeline = Timeline.fromJson(
+      (body['chunk'] as List<dynamic>).cast(),
       context: currentRoom?.context,
+      previousBatch: body['end'],
+      startBatch: body['start'],
+      previousBatchSetBySync: false,
     );
 
-    var memberTimeline = MemberTimeline(
-      messages.state,
-      context: currentRoom?.context,
-    );
-
-    if (timeline.length < count) {
-      count -= timeline.length;
-
-      final body = await _networkService.getRoomMessages(
-        accessToken: _user.accessToken ?? '',
-        roomId: roomId.toString(),
-        limit: count,
-        from: currentRoom?.timeline?.previousBatch ?? '',
-        filter: {
-          'lazy_load_members': true,
-        },
-      );
-
-      timeline = timeline.merge(
-        Timeline.fromJson(
-          (body['chunk'] as List<dynamic>).cast(),
-          context: currentRoom?.context,
-          previousBatch: body['end'],
-          previousBatchSetBySync: false,
-        ),
-      )!;
-
-      if (body.containsKey('state')) {
-        memberTimeline = memberTimeline.merge(
-          MemberTimeline.fromEvents([
-            ...timeline,
-            ...(body['state'] as List<dynamic>)
-                .cast<Map<String, dynamic>>()
-                .map((e) => RoomEvent.fromJson(e, roomId: roomId)!),
-          ]),
-        );
-      }
-    }
+    final memberTimeline = MemberTimeline.fromEvents([
+      ...timeline,
+      if (body.containsKey('state'))
+        ...(body['state'] as List<dynamic>)
+            .cast<Map<String, dynamic>>()
+            .map((e) => RoomEvent.fromJson(e, roomId: roomId)!),
+    ]);
 
     final newRoom = Room(
       context: _user.context!,
@@ -694,6 +671,7 @@ class Updater {
 
     return _createUpdate(
       _user.delta(rooms: [newRoom])!,
+      withSaveInStore: true,
       (user, delta) => RequestUpdate(user, delta,
           data: user.rooms?[newRoom.id]?.timeline,
           deltaData: delta.rooms?[newRoom.id]?.timeline,
