@@ -149,6 +149,19 @@ class MatrixClient {
     return update?.data?.firstWhereOrNull((e) => e.id.value == roomID);
   }
 
+  Future<RequestUpdate<Timeline>?> loadRoomEvents({
+    required RoomId roomId,
+    required int count,
+    Room? room,
+  }) async {
+    if (_updater == null) {
+      Log.writer.log("Updater not created");
+      return Future.value(null);
+    }
+
+    return _updater!.loadRoomEvents(roomId: roomId, count: count, room: room);
+  }
+
   Stream<Room> getRoomSink(String roomId) {
     if (_updater == null) {
       Log.writer.log("Updater not created");
@@ -190,7 +203,7 @@ class MatrixClient {
   }
 
   @Deprecated("Use [uotUpdates instead]")
-  Future<Room?> loadRoomEvents({
+  Future<Room?> loadRoom({
     required String roomID,
     int limit = 20,
   }) async {

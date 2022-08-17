@@ -70,14 +70,6 @@ abstract class IsolateRunner {
         instructionSubscription = messageStream.listen((message) async {
           final instruction = message as Instruction;
 
-          if (instruction is StartSyncInstruction) {
-            await updater?.startSync(
-              maxRetryAfter: instruction.maxRetryAfter,
-              timelineLimit: instruction.timelineLimit,
-              syncToken: instruction.syncToken,
-            );
-          }
-
           if (instruction is StopSyncInstruction) {
             await updater?.syncer.stop();
             sendPort.send(null);

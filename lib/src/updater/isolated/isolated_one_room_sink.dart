@@ -43,8 +43,6 @@ abstract class IsolateOneRoomSinkRunner {
         await updaterAvailable.future;
         await updater?.ensureReady();
 
-        await updater?.startSync();
-
         updater?.updates.listen((u) => sendPort.send(u.minimize()));
 
         updater?.outApiCallStatistics.listen(sendPort.send);
