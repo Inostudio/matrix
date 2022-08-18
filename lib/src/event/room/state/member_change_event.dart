@@ -282,7 +282,7 @@ class KnockEvent extends MemberChangeEvent {
         );
 }
 
-class DisplayNameChangeEvent extends JoinEvent {
+class DisplayNameChangeEvent extends MemberChangeEvent {
   String? get oldSubjectName => previousContent?.displayName;
   String? get newSubjectName => content?.displayName;
 
@@ -299,7 +299,7 @@ class DisplayNameChangeEvent extends JoinEvent {
         );
 }
 
-class AvatarChangeEvent extends JoinEvent {
+class AvatarChangeEvent extends MemberChangeEvent {
   Uri? get oldSubjectAvatarUrl => previousContent?.avatarUrl;
   Uri? get newSubjectAvatarUrl => content?.avatarUrl;
 

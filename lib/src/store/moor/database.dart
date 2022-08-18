@@ -10,6 +10,7 @@ import 'package:drift/backends.dart';
 import 'package:drift/drift.dart';
 
 import '../../event/room/state/member_change_event.dart';
+import '../../event/room/state/request_type.dart';
 
 part 'database.g.dart';
 
@@ -93,6 +94,8 @@ class Rooms extends Table {
 class RoomEvents extends Table {
   TextColumn get id => text()();
 
+  TextColumn get networkId => text()();
+
   TextColumn get type => text()();
 
   TextColumn get roomId =>
@@ -164,7 +167,7 @@ class Database extends _$Database {
   }
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration {
@@ -390,16 +393,22 @@ class Database extends _$Database {
     List<String> roomIds, {
     DateTime? fromTime,
     int? count,
-    bool onlyMemberChanges = false,
+    required RoomEventRequestType requestType,
     bool? inTimeline,
   }) async {
     final roomsList = roomIds.map((e) => "\'$e\'").join(", ");
+    final requestsList = requestType.getEventLists();
+    final requestTypesStrings = requestsList.isNotEmpty
+        ? requestsList.map((e) => "\'$e\'").join(", ")
+        : "";
+
     String whereClause = "room_id = rv1.room_id";
     if (roomIds.isNotEmpty) {
       whereClause += " AND room_id IN ($roomsList)";
     }
-    if (onlyMemberChanges) {
-      whereClause += " AND type = ${MemberChangeEvent.matrixType}";
+
+    if (requestTypesStrings.isNotEmpty) {
+      whereClause += " AND type IN ($requestTypesStrings)";
     }
     if (inTimeline != null) {
       whereClause += " AND in_timeline = ${inTimeline.toString()}";
@@ -427,11 +436,11 @@ class Database extends _$Database {
     return query.map((row) => RoomEventRecord.fromData(row.data)).get();
   }
 
-  //TODO add limit
-  Future<Iterable<RoomEventRecord>> getMemberEventRecordsOfSendersWithIds(
-    List<String> roomIds,
-    Iterable<String> userIds,
-  ) async {
+  Future<Iterable<RoomEventRecord>> getMemberEventRecordsOfSendersWithIds({
+    required List<String> roomIds,
+    required Iterable<String> userIds,
+    int? count,
+  }) async {
     return (select(roomEvents)
           ..where(
             (tbl) =>
@@ -442,16 +451,33 @@ class Database extends _$Database {
         .get();
   }
 
-  //TODO add limit
-  Future<Iterable<EphemeralEventRecord>> getEphemeralEventRecordsWithIds(
-    List<String> roomIds,
-  ) async {
-    final query = select(ephemeralEvents)
-      ..where(
-        (tbl) => tbl.roomId.isIn(roomIds),
-      );
+  Future<Iterable<EphemeralEventRecord>> getEphemeralEventRecordsWithIds({
+    required List<String> roomIds,
+    int? count,
+  }) async {
+    final roomsList = roomIds.map((e) => "\'$e\'").join(", ");
 
-    return query.get();
+    String whereClause = "room_id = rv1.room_id";
+    if (roomIds.isNotEmpty) {
+      whereClause += " AND room_id IN ($roomsList)";
+    }
+
+    final query = customSelect(
+      """select  *
+        from ephemeral_events rv1
+        where room_id in
+        (
+        select room_id
+        from ephemeral_events rv2
+        where $whereClause
+        ${count == null ? '' : 'limit 1'}
+        )""",
+      readsFrom: {ephemeralEvents},
+    );
+
+    return query.map((row) {
+      return EphemeralEventRecord.fromData(row.data);
+    }).get();
   }
 
   Future<Iterable<RoomEventRecord>> getRoomEventRecords(
