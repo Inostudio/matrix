@@ -760,6 +760,7 @@ class $MyUsersTable extends MyUsers
 
 class RoomEventRecord extends DataClass implements Insertable<RoomEventRecord> {
   final String id;
+  final String networkId;
   final String type;
   final String roomId;
   final String senderId;
@@ -773,6 +774,7 @@ class RoomEventRecord extends DataClass implements Insertable<RoomEventRecord> {
   final bool inTimeline;
   RoomEventRecord(
       {required this.id,
+      required this.networkId,
       required this.type,
       required this.roomId,
       required this.senderId,
@@ -790,6 +792,8 @@ class RoomEventRecord extends DataClass implements Insertable<RoomEventRecord> {
     return RoomEventRecord(
       id: const StringType()
           .mapFromDatabaseResponse(data['${effectivePrefix}id'])!,
+      networkId: const StringType()
+          .mapFromDatabaseResponse(data['${effectivePrefix}network_id'])!,
       type: const StringType()
           .mapFromDatabaseResponse(data['${effectivePrefix}type'])!,
       roomId: const StringType()
@@ -818,6 +822,7 @@ class RoomEventRecord extends DataClass implements Insertable<RoomEventRecord> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
+    map['network_id'] = Variable<String>(networkId);
     map['type'] = Variable<String>(type);
     map['room_id'] = Variable<String>(roomId);
     map['sender_id'] = Variable<String>(senderId);
@@ -849,6 +854,7 @@ class RoomEventRecord extends DataClass implements Insertable<RoomEventRecord> {
   RoomEventsCompanion toCompanion(bool nullToAbsent) {
     return RoomEventsCompanion(
       id: Value(id),
+      networkId: Value(networkId),
       type: Value(type),
       roomId: Value(roomId),
       senderId: Value(senderId),
@@ -880,6 +886,7 @@ class RoomEventRecord extends DataClass implements Insertable<RoomEventRecord> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return RoomEventRecord(
       id: serializer.fromJson<String>(json['id']),
+      networkId: serializer.fromJson<String>(json['networkId']),
       type: serializer.fromJson<String>(json['type']),
       roomId: serializer.fromJson<String>(json['roomId']),
       senderId: serializer.fromJson<String>(json['senderId']),
@@ -898,6 +905,7 @@ class RoomEventRecord extends DataClass implements Insertable<RoomEventRecord> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
+      'networkId': serializer.toJson<String>(networkId),
       'type': serializer.toJson<String>(type),
       'roomId': serializer.toJson<String>(roomId),
       'senderId': serializer.toJson<String>(senderId),
@@ -914,6 +922,7 @@ class RoomEventRecord extends DataClass implements Insertable<RoomEventRecord> {
 
   RoomEventRecord copyWith(
           {String? id,
+          String? networkId,
           String? type,
           String? roomId,
           String? senderId,
@@ -927,6 +936,7 @@ class RoomEventRecord extends DataClass implements Insertable<RoomEventRecord> {
           bool? inTimeline}) =>
       RoomEventRecord(
         id: id ?? this.id,
+        networkId: networkId ?? this.networkId,
         type: type ?? this.type,
         roomId: roomId ?? this.roomId,
         senderId: senderId ?? this.senderId,
@@ -943,6 +953,7 @@ class RoomEventRecord extends DataClass implements Insertable<RoomEventRecord> {
   String toString() {
     return (StringBuffer('RoomEventRecord(')
           ..write('id: $id, ')
+          ..write('networkId: $networkId, ')
           ..write('type: $type, ')
           ..write('roomId: $roomId, ')
           ..write('senderId: $senderId, ')
@@ -959,13 +970,26 @@ class RoomEventRecord extends DataClass implements Insertable<RoomEventRecord> {
   }
 
   @override
-  int get hashCode => Object.hash(id, type, roomId, senderId, time, content,
-      previousContent, sentState, transactionId, stateKey, redacts, inTimeline);
+  int get hashCode => Object.hash(
+      id,
+      networkId,
+      type,
+      roomId,
+      senderId,
+      time,
+      content,
+      previousContent,
+      sentState,
+      transactionId,
+      stateKey,
+      redacts,
+      inTimeline);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is RoomEventRecord &&
           other.id == this.id &&
+          other.networkId == this.networkId &&
           other.type == this.type &&
           other.roomId == this.roomId &&
           other.senderId == this.senderId &&
@@ -981,6 +1005,7 @@ class RoomEventRecord extends DataClass implements Insertable<RoomEventRecord> {
 
 class RoomEventsCompanion extends UpdateCompanion<RoomEventRecord> {
   final Value<String> id;
+  final Value<String> networkId;
   final Value<String> type;
   final Value<String> roomId;
   final Value<String> senderId;
@@ -994,6 +1019,7 @@ class RoomEventsCompanion extends UpdateCompanion<RoomEventRecord> {
   final Value<bool> inTimeline;
   const RoomEventsCompanion({
     this.id = const Value.absent(),
+    this.networkId = const Value.absent(),
     this.type = const Value.absent(),
     this.roomId = const Value.absent(),
     this.senderId = const Value.absent(),
@@ -1008,6 +1034,7 @@ class RoomEventsCompanion extends UpdateCompanion<RoomEventRecord> {
   });
   RoomEventsCompanion.insert({
     required String id,
+    required String networkId,
     required String type,
     required String roomId,
     required String senderId,
@@ -1020,12 +1047,14 @@ class RoomEventsCompanion extends UpdateCompanion<RoomEventRecord> {
     this.redacts = const Value.absent(),
     required bool inTimeline,
   })  : id = Value(id),
+        networkId = Value(networkId),
         type = Value(type),
         roomId = Value(roomId),
         senderId = Value(senderId),
         inTimeline = Value(inTimeline);
   static Insertable<RoomEventRecord> custom({
     Expression<String>? id,
+    Expression<String>? networkId,
     Expression<String>? type,
     Expression<String>? roomId,
     Expression<String>? senderId,
@@ -1040,6 +1069,7 @@ class RoomEventsCompanion extends UpdateCompanion<RoomEventRecord> {
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (networkId != null) 'network_id': networkId,
       if (type != null) 'type': type,
       if (roomId != null) 'room_id': roomId,
       if (senderId != null) 'sender_id': senderId,
@@ -1056,6 +1086,7 @@ class RoomEventsCompanion extends UpdateCompanion<RoomEventRecord> {
 
   RoomEventsCompanion copyWith(
       {Value<String>? id,
+      Value<String>? networkId,
       Value<String>? type,
       Value<String>? roomId,
       Value<String>? senderId,
@@ -1069,6 +1100,7 @@ class RoomEventsCompanion extends UpdateCompanion<RoomEventRecord> {
       Value<bool>? inTimeline}) {
     return RoomEventsCompanion(
       id: id ?? this.id,
+      networkId: networkId ?? this.networkId,
       type: type ?? this.type,
       roomId: roomId ?? this.roomId,
       senderId: senderId ?? this.senderId,
@@ -1088,6 +1120,9 @@ class RoomEventsCompanion extends UpdateCompanion<RoomEventRecord> {
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<String>(id.value);
+    }
+    if (networkId.present) {
+      map['network_id'] = Variable<String>(networkId.value);
     }
     if (type.present) {
       map['type'] = Variable<String>(type.value);
@@ -1129,6 +1164,7 @@ class RoomEventsCompanion extends UpdateCompanion<RoomEventRecord> {
   String toString() {
     return (StringBuffer('RoomEventsCompanion(')
           ..write('id: $id, ')
+          ..write('networkId: $networkId, ')
           ..write('type: $type, ')
           ..write('roomId: $roomId, ')
           ..write('senderId: $senderId, ')
@@ -1155,6 +1191,11 @@ class $RoomEventsTable extends RoomEvents
   @override
   late final GeneratedColumn<String?> id = GeneratedColumn<String?>(
       'id', aliasedName, false,
+      type: const StringType(), requiredDuringInsert: true);
+  final VerificationMeta _networkIdMeta = const VerificationMeta('networkId');
+  @override
+  late final GeneratedColumn<String?> networkId = GeneratedColumn<String?>(
+      'network_id', aliasedName, false,
       type: const StringType(), requiredDuringInsert: true);
   final VerificationMeta _typeMeta = const VerificationMeta('type');
   @override
@@ -1220,6 +1261,7 @@ class $RoomEventsTable extends RoomEvents
   @override
   List<GeneratedColumn> get $columns => [
         id,
+        networkId,
         type,
         roomId,
         senderId,
@@ -1245,6 +1287,12 @@ class $RoomEventsTable extends RoomEvents
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     } else if (isInserting) {
       context.missing(_idMeta);
+    }
+    if (data.containsKey('network_id')) {
+      context.handle(_networkIdMeta,
+          networkId.isAcceptableOrUnknown(data['network_id']!, _networkIdMeta));
+    } else if (isInserting) {
+      context.missing(_networkIdMeta);
     }
     if (data.containsKey('type')) {
       context.handle(

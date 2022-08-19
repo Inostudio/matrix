@@ -30,6 +30,7 @@ import '../../util/map.dart';
 abstract class RoomEvent extends Event with Identifiable<EventId> {
   @override
   final EventId id;
+  final String networkId;
 
   final RoomId? roomId;
   final UserId senderId;
@@ -42,6 +43,7 @@ abstract class RoomEvent extends Event with Identifiable<EventId> {
   RoomEvent(RoomEventArgs args)
       : id = args.id,
         roomId = args.roomId,
+        networkId = args.networkId,
         senderId = args.senderId,
         time = args.time,
         sentState = args.sentState,
@@ -52,6 +54,7 @@ abstract class RoomEvent extends Event with Identifiable<EventId> {
       other is RoomEvent &&
       super == other &&
       roomId == other.roomId &&
+          networkId == other.networkId &&
       senderId == other.senderId &&
       time == other.time &&
       transactionId == other.transactionId;
@@ -61,6 +64,7 @@ abstract class RoomEvent extends Event with Identifiable<EventId> {
         super.hashCode,
         roomId,
         senderId,
+    networkId,
         time,
         transactionId,
       ]);
@@ -69,6 +73,7 @@ abstract class RoomEvent extends Event with Identifiable<EventId> {
   Map<String, dynamic> toJson() => super.toJson()
     ..addAll({
       'event_id': id.toJson(),
+      'networkId': networkId,
       'sender': senderId.toString(),
       'origin_server_ts': time?.millisecondsSinceEpoch,
       'unsigned': transactionId != null ? {'transaction_id': transactionId} : {}
@@ -256,12 +261,14 @@ class RoomEventArgs {
   final EventId id;
   final RoomId? roomId;
   final UserId senderId;
+  final String networkId;
   final DateTime? time;
   final SentState? sentState;
   final String? transactionId;
 
   RoomEventArgs({
     required this.id,
+    required this.networkId,
     this.roomId,
     required this.senderId,
     this.time,
@@ -273,6 +280,7 @@ class RoomEventArgs {
     return RoomEventArgs(
       id: event.id,
       roomId: event.roomId,
+      networkId: event.networkId,
       senderId: event.senderId,
       time: event.time,
       transactionId: event.transactionId,
@@ -306,6 +314,7 @@ class RoomEventArgs {
 
     return RoomEventArgs(
       id: id,
+      networkId: id is EventId ? id.value : id,
       senderId: senderId,
       time: time,
       transactionId: transactionId,
@@ -319,9 +328,11 @@ class RoomEventArgs {
     DateTime? time,
     SentState? sentState,
     String? transactionId,
+    String? networkId,
   }) {
     return RoomEventArgs(
       id: id ?? this.id,
+      networkId: networkId ?? this.networkId,
       roomId: roomId ?? this.roomId,
       senderId: senderId ?? this.senderId,
       time: time ?? this.time,

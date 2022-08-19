@@ -262,6 +262,7 @@ class Updater {
     transactionId ??= randomString();
 
     final eventArgs = RoomEventArgs(
+      networkId: transactionId,
       id: EventId(transactionId),
       roomId: roomId,
       time: DateTime.now(),

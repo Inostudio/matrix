@@ -22,6 +22,7 @@ import '../../../matrix_sdk.dart';
 import '../../event/ephemeral/ephemeral.dart';
 import '../../event/ephemeral/ephemeral_event.dart';
 import '../../event/ephemeral/typing_event.dart';
+import '../../event/room/state/request_type.dart';
 import '../../model/context.dart';
 import 'database.dart' hide Rooms;
 
@@ -105,8 +106,9 @@ class MoorStore extends Store {
 
               final messageEventResult = await getRoomEventsWithIDs(
                 [roomRecord.id],
-                count: null,
+                inTimeLine: null, //get all
                 memberIds: [userId],
+                requestType: RoomEventRequestType.all,
               ).then((value) => value.toList());
 
               final relevantUserIds = messageEventResult
@@ -116,9 +118,10 @@ class MoorStore extends Store {
                   .expand((ids) => ids)
                   .map((e) => e.value);
 
+              final uniqueUserIDs = {...relevantUserIds, userId.value};
               final members = await getMessagesMembersWithIds(
-                [roomRecord.id],
-                [...relevantUserIds, userId.value],
+                roomIds: [roomRecord.id],
+                userIds: uniqueUserIDs,
               );
 
               final timeline = Timeline(
@@ -521,15 +524,19 @@ class MoorStore extends Store {
     final ids = roomRecords.map((r) => r.roomRecord.id).toList();
 
     //Get all ephemeral events with ids, create Map<id, [indexes]>
-    final ephemeralEventResult =
-        await _db!.getEphemeralEventRecordsWithIds(ids).then(
-              (records) => records
-                  .map(
-                    (record) => record.toEphemeralEvent(),
-                  )
-                  .whereNotNull()
-                  .toList(),
-            );
+    final ephemeralEventResult = await _db!
+        .getEphemeralEventRecordsWithIds(
+          roomIds: ids,
+          count: timelineLimit,
+        )
+        .then(
+          (records) => records
+              .map(
+                (record) => record.toEphemeralEvent(),
+              )
+              .whereNotNull()
+              .toList(),
+        );
 
     final Map<String?, List<int>> ephemeralMap = _createMapIdToList(
       ephemeralEventResult
@@ -543,6 +550,7 @@ class MoorStore extends Store {
       ids,
       count: timelineLimit,
       memberIds: memberIds,
+      requestType: RoomEventRequestType.onlyMessages,
     ).then((value) => value.toList());
 
     final Map<String?, List<int>> messageEventMap = _createMapIdToList(
@@ -566,8 +574,8 @@ class MoorStore extends Store {
     final uniqueIdStrings = Set.of(relevantUserIds.map((id) => id.toString()));
 
     final messageMembers = await getMessagesMembersWithIds(
-      ids,
-      uniqueIdStrings,
+      roomIds: ids,
+      userIds: uniqueIdStrings,
     ).then((value) => value.toList());
 
     final Map<String?, List<int>> messagesMembersMap = _createMapIdToList(
@@ -740,12 +748,16 @@ class MoorStore extends Store {
     return rooms;
   }
 
-  //TODO add limit
-  Future<Iterable<Member>> getMessagesMembersWithIds(
-    List<String> roomIds,
-    Iterable<String> userIds,
-  ) async {
-    return _db!.getMemberEventRecordsOfSendersWithIds(roomIds, userIds).then(
+  Future<Iterable<Member>> getMessagesMembersWithIds({
+    required List<String> roomIds,
+    required Iterable<String> userIds,
+  }) async {
+    return _db!
+        .getMemberEventRecordsOfSendersWithIds(
+          roomIds: roomIds,
+          userIds: userIds,
+        )
+        .then(
           (records) => records.map((r) => r.toRoomEvent()).whereNotNull().map(
                 (r) => Member.fromEvent(r as MemberChangeEvent),
               ),
@@ -821,15 +833,18 @@ class MoorStore extends Store {
   Future<Iterable<RoomEvent>> getRoomEventsWithIDs(
     List<String> roomIds, {
     int? count,
+    bool? inTimeLine = true,
     DateTime? fromTime,
+    required RoomEventRequestType requestType,
     Iterable<UserId>? memberIds,
   }) async {
     return (await _db
             ?.getRoomEventRecordsWithIDs(
               roomIds,
+              requestType: requestType,
               count: count,
               fromTime: fromTime,
-              inTimeline: true,
+              inTimeline: inTimeLine,
             )
             .then(
               (records) => records.map((r) => r.toRoomEvent()).whereNotNull(),
@@ -992,6 +1007,7 @@ extension on RoomEvent {
 
     return RoomEventRecord(
       id: storedId,
+      networkId: id.value,
       type: type,
       roomId: roomId.toString(),
       senderId: senderId.toString(),
@@ -1022,6 +1038,7 @@ extension on RoomEventRecord {
   T? toRoomEvent<T extends RoomEvent>() {
     final args = RoomEventArgs(
       id: EventId(id),
+      networkId: networkId,
       senderId: UserId(senderId),
       time: time,
       roomId: RoomId(roomId),
