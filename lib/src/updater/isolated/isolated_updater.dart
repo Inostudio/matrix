@@ -26,6 +26,7 @@ import '../updater.dart';
 import 'instruction.dart';
 import 'iso_merge.dart';
 import 'isolate_runner.dart';
+import 'utils.dart';
 
 /// Manages updates to [MyUser] in a different [Isolate].
 class IsolatedUpdater extends Updater {

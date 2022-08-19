@@ -107,7 +107,7 @@ class Updater {
     _sinkStorage = SinkStorage(storeLocation: storeLocation);
 
     if (initSinkStorage) {
-      _initSinkStorage(storeLocation);
+      _initSinkStorage();
     }
   }
 
@@ -115,8 +115,8 @@ class Updater {
     _networkService = HomeServerNetworking(homeServer: homeServer);
   }
 
-  void _initSinkStorage(StoreLocation storeLocation) {
-    _sinkStorage.myUserStorageSink(user.id.value).listen(
+  void _initSinkStorage() {
+    _sinkStorage.myUserStorageSink().listen(
           (storeUpdate) => _notifyWithUpdate(
             storeUpdate,
             (user, delta) => SyncUpdate(user, delta),
@@ -150,7 +150,7 @@ class Updater {
   }) async {
     String? token = syncToken ?? _currentSyncToken;
     if (token == null || token.isEmpty) {
-      token = await _sinkStorage.getToken(_user.id.value);
+      token = await _sinkStorage.getToken();
     }
 
     _syncer.start(

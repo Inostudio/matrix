@@ -14,8 +14,8 @@ class SinkStorage implements BaseSinkStorage {
   }
 
   @override
-  Stream<MyUser> myUserStorageSink(String userId) =>
-      store.myUserStorageSink(userId, timelineLimit: 1);
+  Stream<MyUser> myUserStorageSink() =>
+      store.myUserStorageSink(timelineLimit: 1);
 
   @override
   Stream<Room> roomSinkStorageSink({
@@ -104,7 +104,17 @@ class SinkStorage implements BaseSinkStorage {
       );
 
   @override
-  Future<String?> getToken(String id) async => store.getToken(id);
+  Future<String?> getToken() async => store.getToken();
+
+  @override
+  Future<MyUser?> getMyUser({
+    List<RoomId>? roomIds,
+    int timelineLimit = 100,
+  }) async =>
+      store.getMyUser(
+        roomIds: roomIds,
+        timelineLimit: timelineLimit,
+      );
 
   @override
   bool isReady() => store.isOpen;

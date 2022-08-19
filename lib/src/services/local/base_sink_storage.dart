@@ -3,7 +3,7 @@ import 'package:matrix_sdk/matrix_sdk.dart';
 import '../../model/context.dart';
 
 abstract class BaseSinkStorage {
-  Stream<MyUser> myUserStorageSink(String userId);
+  Stream<MyUser> myUserStorageSink();
 
   Stream<Room> roomSinkStorageSink({
     required String selectedRoomId,
@@ -54,7 +54,12 @@ abstract class BaseSinkStorage {
     required Iterable<UserId> memberIds,
   });
 
-  Future<String?> getToken(String id);
+  Future<String?> getToken();
+
+  Future<MyUser?> getMyUser({
+    List<RoomId>? roomIds,
+    int timelineLimit,
+  });
 
   Future<bool> ensureOpen();
 

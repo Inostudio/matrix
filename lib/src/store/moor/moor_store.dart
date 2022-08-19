@@ -171,13 +171,12 @@ class MoorStore extends Store {
           );
 
   @override
-  Stream<MyUser> myUserStorageSink(
-    String userID, {
+  Stream<MyUser> myUserStorageSink({
     Iterable<RoomId>? roomIds,
     int timelineLimit = 100,
   }) {
     return _db!
-        .getUserSink(userID)
+        .getUserSink()
         .where((userRecord) => userRecord != null)
         .cast<MyUserRecordWithDeviceRecord>()
         .asyncMap(
@@ -190,18 +189,16 @@ class MoorStore extends Store {
   }
 
   @override
-  Future<String?> getToken(String userId) async =>
-      _db!.getUserSyncToken(userId);
+  Future<String?> getToken() async => _db!.getUserSyncToken();
 
   /// If [isolated] is true, will create an [IsolatedUpdater] to manage
   /// the user's updates.
   @override
-  Future<MyUser?> getMyUser(
-    String userID, {
+  Future<MyUser?> getMyUser({
     Iterable<RoomId>? roomIds,
     int timelineLimit = 100,
   }) async {
-    final myUserWithDeviceRecord = await _db?.getMyUserRecord(userID);
+    final myUserWithDeviceRecord = await _db?.getMyUserRecord();
 
     if (myUserWithDeviceRecord == null) {
       return null;

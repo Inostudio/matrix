@@ -8,6 +8,7 @@ import '../../../matrix_sdk.dart';
 import '../../model/instruction.dart';
 import '../../util/logger.dart';
 import 'isolate_runner.dart';
+import 'utils.dart';
 
 abstract class IsolateStorageSinkRunner {
   static Future<void> run(IsolateTransferModel transferModel) async {

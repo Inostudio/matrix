@@ -8,6 +8,7 @@ import 'dart:async';
 import 'dart:isolate';
 
 import 'package:matrix_sdk/src/model/models.dart';
+import 'package:matrix_sdk/src/updater/isolated/utils.dart';
 import 'package:matrix_sdk/src/util/logger.dart';
 import 'package:meta/meta.dart';
 
@@ -15,16 +16,6 @@ import '../../homeserver.dart';
 import '../../store/store.dart';
 import '../updater.dart';
 import 'instruction.dart';
-
-class IsolateTransferModel {
-  final dynamic message;
-  final LoggerVariant loggerVariant;
-
-  const IsolateTransferModel({
-    required this.message,
-    required this.loggerVariant,
-  });
-}
 
 abstract class IsolateRunner {
   static Future<void> run(IsolateTransferModel transferModel) async {

@@ -44,18 +44,16 @@ abstract class Store {
   ///
   /// The [storeLocation] is required because the [Updater] will recreate
   /// the store.
-  Future<MyUser?> getMyUser(
-    String userID, {
+  Future<MyUser?> getMyUser({
     Iterable<RoomId>? roomIds,
     int timelineLimit = 100,
   });
 
   ///Get current user sync token to get minimized updates from matrix server
-  Future<String?> getToken(String userId);
+  Future<String?> getToken();
 
   ///Get sink to [MyUser] in local database
-  Stream<MyUser> myUserStorageSink(
-    String userID, {
+  Stream<MyUser> myUserStorageSink({
     Iterable<RoomId>? roomIds,
     int timelineLimit = 100,
   });
