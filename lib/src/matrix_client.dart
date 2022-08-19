@@ -5,13 +5,14 @@ import 'package:matrix_sdk/matrix_sdk.dart';
 import 'package:matrix_sdk/src/updater/isolated/isolated_updater.dart';
 import 'package:matrix_sdk/src/util/logger.dart';
 
+import 'localUpdater/local_updater.dart';
 import 'model/sync_token.dart';
 
 class MatrixClient {
   final bool isIsolated;
   final bool withDebugLog;
-  final Uri serverUri;
-  final Homeserver _homeServer;
+  Uri? serverUri;
+  Homeserver? _homeServer;
   final StoreLocation _storeLocation;
   final List<StreamSubscription> _streamSubscription = [];
 
@@ -32,18 +33,26 @@ class MatrixClient {
   Stream<Update> get outUpdates => _updatesSubject.stream;
 
   Updater? _updater;
+  LocalUpdater? localUpdater;
 
   MatrixClient({
     this.isIsolated = true,
     this.withDebugLog = false,
-    required this.serverUri,
+    this.serverUri,
     required StoreLocation storeLocation,
-  })  : _homeServer = Homeserver(serverUri),
-        _storeLocation = storeLocation {
-    Log.setLogger(withDebugLog ? LoggerVariant.dev : LoggerVariant.none);
+  }) : _storeLocation = storeLocation {
+    if (serverUri != null) {
+      Log.setLogger(withDebugLog ? LoggerVariant.dev : LoggerVariant.none);
+      _homeServer = Homeserver(serverUri!);
+    }
   }
 
-  Homeserver get homeServer => _homeServer;
+  Homeserver? get homeServer => _homeServer;
+
+  void setServerUri(Uri serverUriToSet) {
+    serverUri = serverUriToSet;
+    _homeServer = Homeserver(serverUri!);
+  }
 
   /// Get all invites for this user. Note that for now this will load
   /// all rooms to memory.
@@ -52,30 +61,50 @@ class MatrixClient {
           .map((r) => Invite._(scope, r))
           .toList(growable: false);*/
 
-  Future<MyUser> login(
+  Future<void> createWithLastLocal() async {
+    await _updater?.stopSync();
+    _updater = null;
+    _clearSubs();
+
+    localUpdater = LocalUpdater(
+      storeLocation: _storeLocation,
+      isIsolated: isIsolated,
+    );
+    await localUpdater?.init();
+    _streamSubscription.add(
+      localUpdater!.userUpdates.listen(_updatesSubject.add),
+    );
+    _streamSubscription.add(
+      localUpdater!.outError.listen(_errorSubject.add),
+    );
+  }
+
+  Future<MyUser> createWithLogin(
     UserIdentifier user,
     String password, {
     Device? device,
   }) async {
-    _streamSubscription
-        .add(_homeServer.outApiCallStats.listen(_apiCallStatsSubject.add));
-    final result = await _homeServer.login(
-      user,
-      password,
-      device: device,
-    );
+    if (serverUri == null) {
+      throw Exception("Server uri is empty $serverUri");
+    }
+
+    await localUpdater?.close();
+    localUpdater = null;
+    _clearSubs();
+
+    final result = await login(user, password, device: device);
 
     if (isIsolated) {
       _updater = await IsolatedUpdater.create(
         result,
-        _homeServer,
+        _homeServer!,
         _storeLocation,
         saveMyUserToStore: isIsolated,
       );
     } else {
       _updater = Updater(
         result,
-        _homeServer,
+        _homeServer!,
         _storeLocation,
         initSinkStorage: !isIsolated,
       );
@@ -91,6 +120,24 @@ class MatrixClient {
     }
 
     return result;
+  }
+
+  Future<MyUser> login(
+    UserIdentifier user,
+    String password, {
+    Device? device,
+  }) async {
+    if (_homeServer == null) {
+      throw Exception("HomeServer is null $_homeServer");
+    }
+
+    _streamSubscription
+        .add(_homeServer!.outApiCallStats.listen(_apiCallStatsSubject.add));
+    return _homeServer!.login(
+      user,
+      password,
+      device: device,
+    );
   }
 
   /// Invalidates the access token of the user. Makes all
@@ -130,11 +177,13 @@ class MatrixClient {
         syncToken: user.syncToken,
       );
 
-  Future<void> stopSync() async {
-    _streamSubscription.forEach((e) {
-      e.cancel();
-    });
+  void _clearSubs() {
+    _streamSubscription.forEach((e) => e.cancel());
     _streamSubscription.clear();
+  }
+
+  Future<void> stopSync() async {
+    _clearSubs();
     await _updater?.stopSync();
   }
 
@@ -163,6 +212,7 @@ class MatrixClient {
   }
 
   Stream<Room> getRoomSink(String roomId) {
+    //TODO add swiching on localUpdater
     if (_updater == null) {
       Log.writer.log("Updater not created");
       return Stream.empty();
@@ -210,8 +260,11 @@ class MatrixClient {
     if (_updater == null) {
       return Future.value(null);
     }
+    if (_homeServer == null) {
+      throw Exception("HomeServer is null $_homeServer");
+    }
 
-    final body = await homeServer.api.rooms.messages(
+    final body = await homeServer!.api.rooms.messages(
       accessToken: _updater!.user.accessToken ?? '',
       roomId: roomID,
       limit: limit,
