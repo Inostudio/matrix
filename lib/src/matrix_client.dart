@@ -33,7 +33,7 @@ class MatrixClient {
   Stream<Update> get outUpdates => _updatesSubject.stream;
 
   Updater? _updater;
-  LocalUpdater? localUpdater;
+  LocalUpdater? _localUpdater;
 
   MatrixClient({
     this.isIsolated = true,
@@ -49,9 +49,19 @@ class MatrixClient {
 
   Homeserver? get homeServer => _homeServer;
 
+  bool? get isLocal {
+    if (_updater == null && _localUpdater != null) {
+      return true;
+    }
+    if (_updater != null && _localUpdater == null) {
+      return false;
+    }
+    return null;
+  }
+
   void setServerUri(Uri serverUriToSet) {
     serverUri = serverUriToSet;
-    _homeServer = Homeserver(serverUri!);
+    _homeServer = Homeserver(serverUriToSet);
   }
 
   /// Get all invites for this user. Note that for now this will load
@@ -62,20 +72,24 @@ class MatrixClient {
           .toList(growable: false);*/
 
   Future<void> createWithLastLocal() async {
+    //Destroy remote updater
     await _updater?.stopSync();
     _updater = null;
     _clearSubs();
 
-    localUpdater = LocalUpdater(
+    //Create local updater
+    _localUpdater = LocalUpdater(
       storeLocation: _storeLocation,
       isIsolated: isIsolated,
     );
-    await localUpdater?.init();
+    await _localUpdater?.init();
+
+    //Make sink
     _streamSubscription.add(
-      localUpdater!.userUpdates.listen(_updatesSubject.add),
+      _localUpdater!.userUpdates.listen(_updatesSubject.add),
     );
     _streamSubscription.add(
-      localUpdater!.outError.listen(_errorSubject.add),
+      _localUpdater!.outError.listen(_errorSubject.add),
     );
   }
 
@@ -88,10 +102,12 @@ class MatrixClient {
       throw Exception("Server uri is empty $serverUri");
     }
 
-    await localUpdater?.close();
-    localUpdater = null;
+    //Destroy local updater
+    await _localUpdater?.close();
+    _localUpdater = null;
     _clearSubs();
 
+    //Perform auth and create updater
     final result = await login(user, password, device: device);
 
     if (isIsolated) {
@@ -110,6 +126,7 @@ class MatrixClient {
       );
     }
 
+    //Make sink
     if (_updater != null) {
       await _updater!.ensureReady();
 
@@ -211,19 +228,27 @@ class MatrixClient {
     return _updater!.loadRoomEvents(roomId: roomId, count: count, room: room);
   }
 
-  Stream<Room> getRoomSink(String roomId) {
-    //TODO add swiching on localUpdater
-    if (_updater == null) {
-      Log.writer.log("Updater not created");
-      return Stream.empty();
+  Stream<Room> getRoomSink(String roomId) async* {
+    await stopOneRoomSink();
+    if (isLocal == true && _localUpdater != null) {
+      yield* _localUpdater!.startRoomSink(roomId);
+    } else if (isLocal == false && _updater != null) {
+      yield* _updater!.startRoomSink(roomId);
     }
-    stopOneRoomSink();
-    _updater!.startRoomSink(roomId);
-    return _updater!.roomUpdates;
+    throw Exception(
+      "Cant handle room close isLocal: $isLocal updater: $_updater, _localUpdater: $_localUpdater,",
+    );
   }
 
-  Future<void> stopOneRoomSink() {
-    return _updater!.closeRoomSink();
+  Future<void> stopOneRoomSink() async {
+    if (isLocal == true && _localUpdater != null) {
+      return _localUpdater!.closeRoomSink();
+    } else if (isLocal == false && _updater != null) {
+      return _updater!.closeRoomSink();
+    }
+    throw Exception(
+      "Cant handle room close: isLocal: $isLocal updater: $_updater, _localUpdater: $_localUpdater,",
+    );
   }
 
   Future<List<Room>> getRooms({

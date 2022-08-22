@@ -1,11 +1,12 @@
 import 'dart:async';
 import 'dart:isolate';
 
-import 'package:meta/meta.dart';
+import 'package:matrix_sdk/src/localUpdater/sink_response.dart';
 
 import '../../../matrix_sdk.dart';
 import '../updater/isolated/utils.dart';
 import '../util/logger.dart';
+import 'instruction.dart';
 import 'local_updater.dart';
 
 abstract class IsolateStorageUpdater {
@@ -21,10 +22,12 @@ abstract class IsolateStorageUpdater {
         LocalUpdater? updater;
         StreamSubscription? subscription;
         StreamSubscription? updateSubscription;
+        StreamSubscription<Room>? roomSinkSubscription;
 
         sendPort.send(receivePort.sendPort);
 
         subscription = messageStream.listen((message) async {
+          //first sink, after [receivePort.sendPort] send
           if (message is IsoStorageUpdaterArgs) {
             updater = LocalUpdater(
               storeLocation: message.storeLocation,
@@ -34,14 +37,24 @@ abstract class IsolateStorageUpdater {
             await updater?.ensureReady();
             updateSubscription = updater?.userUpdates.listen(sendPort.send);
             sendPort.send(IsolateStorageSyncerInitialized());
-          }
-          if (message is IsolateStorageStartSyncInstruction) {
+            //On start sink
+          } else if (message is IsolateStorageStartSyncInstruction) {
             updater?.initSinkStorage();
-          }
-          if (message is IsolateStorageStopSyncInstruction) {
+            //On stop sink
+          } else if (message is IsolateStorageStopSyncInstruction) {
             await updater?.close();
             await updateSubscription?.cancel();
             sendPort.send(IsolateStorageSyncerStopped());
+            //On one room sink start
+          } else if (message is IsolateStorageOneRoomStartSyncInstruction) {
+            roomSinkSubscription =
+                updater?.startRoomSink(message.roomId).listen(
+                      sendPort.send,
+                    );
+            //On one room sink stop
+          } else if (message is IsolateStorageOneRoomStopSyncInstruction) {
+            await updater?.closeRoomSink();
+            await roomSinkSubscription?.cancel();
           }
         });
 
@@ -67,15 +80,3 @@ class IsoStorageUpdaterArgs {
     required this.storeLocation,
   });
 }
-
-@immutable
-class IsolateStorageSyncerInitialized {}
-
-@immutable
-class IsolateStorageSyncerStopped {}
-
-@immutable
-class IsolateStorageStartSyncInstruction {}
-
-@immutable
-class IsolateStorageStopSyncInstruction {}

@@ -119,7 +119,7 @@ class Updater {
     _sinkStorage.myUserStorageSink().listen(
           (storeUpdate) => _notifyWithUpdate(
             storeUpdate,
-            (user, delta) => SyncUpdate(user, delta),
+            SyncUpdate.new,
           ),
         );
   }
