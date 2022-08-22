@@ -6,7 +6,7 @@ import '../util/logger.dart';
 
 String get _separator => "${"=" * 20}";
 
-const int _maxBodyLen = 20000000;
+const int _maxBodyLen = 2000;
 
 class LogRequestInterceptor implements RequestInterceptor {
   @override

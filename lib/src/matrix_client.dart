@@ -73,7 +73,7 @@ class MatrixClient {
 
   Future<void> createWithLastLocal() async {
     //Destroy remote updater
-    await stopSync();
+    await _updater?.stopSync();
     _updater = null;
     _clearSubs();
 
