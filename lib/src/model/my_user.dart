@@ -95,8 +95,7 @@ class MyUser extends MatrixUser implements Contextual<MyUser> {
   /// If [isolated] is true, sync and other requests are processed in a
   /// different [Isolate].
   static Future<MyUser?> fromStore(
-    StoreLocation storeLocation,
-    String userID, {
+    StoreLocation storeLocation, {
     Iterable<RoomId>? roomIds,
     int timelineLimit = 15,
   }) async {
@@ -105,7 +104,6 @@ class MyUser extends MatrixUser implements Contextual<MyUser> {
     await store.open();
 
     final result = await store.getMyUser(
-      userID,
       roomIds: roomIds,
       timelineLimit: timelineLimit,
     );

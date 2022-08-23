@@ -8,8 +8,9 @@ import '../../../matrix_sdk.dart';
 import '../../model/instruction.dart';
 import '../../util/logger.dart';
 import 'isolate_runner.dart';
+import 'utils.dart';
 
-abstract class IsolateStorageSinkRunner {
+abstract class IsolateStorageSyncRunner {
   static Future<void> run(IsolateTransferModel transferModel) async {
     final message = transferModel.message;
     Log.setLogger(transferModel.loggerVariant);
@@ -29,7 +30,7 @@ abstract class IsolateStorageSinkRunner {
               message.myUser,
               Homeserver(message.homeserverUrl),
               message.storeLocation,
-              initSinkStorage: true, //Create sink with store
+              initSyncStorage: true, //Create sync with store
             );
             updaterAvailable.complete();
             subscription?.cancel();

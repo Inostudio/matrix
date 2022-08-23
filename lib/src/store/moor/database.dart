@@ -5,9 +5,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import 'package:collection/collection.dart';
 import 'package:drift/backends.dart';
 import 'package:drift/drift.dart';
+import 'package:matrix_sdk/matrix_sdk.dart';
 
 import '../../event/room/state/member_change_event.dart';
 import '../../event/room/state/request_type.dart';
@@ -174,20 +174,14 @@ class Database extends _$Database {
     return destructiveFallback;
   }
 
-  Future<String?> getUserSyncToken(String userId) async {
-    final query = select(myUsers)
-      ..where((u) => u.id.like('$userId'))
-      ..limit(1);
-    final user = await query.get();
-    return user.firstOrNull?.syncToken;
+  Future<String?> getUserSyncToken() async {
+    final query = select(myUsers);
+    final user = await query.getSingleOrNull();
+    return user?.syncToken;
   }
 
-  Selectable<MyUserRecordWithDeviceRecord?> _selectUserWithDevice(
-    String userID,
-  ) {
-    final query = select(myUsers);
-    query.where((u) => u.id.like('$userID'));
-    query.limit(1);
+  Selectable<MyUserRecordWithDeviceRecord?> _selectUserWithDevice() {
+    final query = select(myUsers)..getSingleOrNull();
 
     return query.join([
       leftOuterJoin(
@@ -202,11 +196,11 @@ class Database extends _$Database {
     );
   }
 
-  Stream<MyUserRecordWithDeviceRecord?> getUserSink(String userID) =>
-      _selectUserWithDevice(userID).watchSingleOrNull();
+  Stream<MyUserRecordWithDeviceRecord?> getUserSync() =>
+      _selectUserWithDevice().watchSingleOrNull();
 
-  Future<MyUserRecordWithDeviceRecord?> getMyUserRecord(String userID) =>
-      _selectUserWithDevice(userID).getSingleOrNull();
+  Future<MyUserRecordWithDeviceRecord?> getMyUserRecord() =>
+      _selectUserWithDevice().getSingleOrNull();
 
   Future<void> setMyUser(MyUsersCompanion companion) async {
     await batch((batch) {
@@ -470,7 +464,7 @@ class Database extends _$Database {
         select room_id
         from ephemeral_events rv2
         where $whereClause
-        ${count == null ? '' : 'limit 1'}
+        ${count == null ? '' : 'limit $count'}
         )""",
       readsFrom: {ephemeralEvents},
     );
