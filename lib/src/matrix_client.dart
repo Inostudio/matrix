@@ -93,11 +93,10 @@ class MatrixClient {
     );
   }
 
-  Future<MyUser> createWithLogin(
-    UserIdentifier user,
-    String password, {
-    Device? device,
-  }) async {
+  Future<MyUser> createWithLogin(UserIdentifier user,
+      String password, {
+        Device? device,
+      }) async {
     if (serverUri == null) {
       throw Exception("Server uri is empty $serverUri");
     }
@@ -139,11 +138,10 @@ class MatrixClient {
     return result;
   }
 
-  Future<MyUser> login(
-    UserIdentifier user,
-    String password, {
-    Device? device,
-  }) async {
+  Future<MyUser> login(UserIdentifier user,
+      String password, {
+        Device? device,
+      }) async {
     if (_homeServer == null) {
       throw Exception("HomeServer is null $_homeServer");
     }
@@ -183,8 +181,7 @@ class MatrixClient {
   bool isSyncing(MyUser user) =>
       user.context?.updater?.syncer.isSyncing ?? false;
 
-  void startSync(
-    MyUser user, {
+  void startSync(MyUser user, {
     Duration maxRetryAfter = const Duration(seconds: 30),
     int timelineLimit = 30,
   }) =>
@@ -234,10 +231,11 @@ class MatrixClient {
       yield* _localUpdater!.startRoomSync(roomId);
     } else if (isLocal == false && _updater != null) {
       yield* _updater!.startRoomSync(roomId);
+    } else {
+      throw Exception(
+        "Cant handle room close isLocal: $isLocal updater: $_updater, _localUpdater: $_localUpdater,",
+      );
     }
-    throw Exception(
-      "Cant handle room close isLocal: $isLocal updater: $_updater, _localUpdater: $_localUpdater,",
-    );
   }
 
   Future<void> stopOneRoomSync() async {
@@ -245,10 +243,11 @@ class MatrixClient {
       return _localUpdater!.closeRoomSync();
     } else if (isLocal == false && _updater != null) {
       return _updater!.closeRoomSync();
+    } else {
+      throw Exception(
+        "Cant handle room close: isLocal: $isLocal updater: $_updater, _localUpdater: $_localUpdater,",
+      );
     }
-    throw Exception(
-      "Cant handle room close: isLocal: $isLocal updater: $_updater, _localUpdater: $_localUpdater,",
-    );
   }
 
   Future<List<Room>> getRooms({
@@ -302,7 +301,7 @@ class MatrixClient {
     final receivedTimeline = Timeline.fromJson(
       (body['chunk'] as List<dynamic>).cast(),
       context:
-          RoomContext.inherit(_updater!.user.context!, roomId: RoomId(roomID)),
+      RoomContext.inherit(_updater!.user.context!, roomId: RoomId(roomID)),
       previousBatch: body['end'],
       previousBatchSetBySync: false,
     );

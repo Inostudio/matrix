@@ -182,8 +182,7 @@ class Database extends _$Database {
   }
 
   Selectable<MyUserRecordWithDeviceRecord?> _selectUserWithDevice() {
-    final query = select(myUsers);
-    query.limit(1);
+    final query = select(myUsers)..getSingleOrNull();
 
     return query.join([
       leftOuterJoin(
@@ -466,7 +465,7 @@ class Database extends _$Database {
         select room_id
         from ephemeral_events rv2
         where $whereClause
-        ${count == null ? '' : 'limit 1'}
+        ${count == null ? '' : 'limit $count'}
         )""",
       readsFrom: {ephemeralEvents},
     );
