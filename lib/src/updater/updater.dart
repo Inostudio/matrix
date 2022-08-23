@@ -194,7 +194,6 @@ class Updater {
     });
   }
 
-  @Deprecated("unused, should be removed")
   Future<RequestUpdate<MyUser>?> setDisplayName({
     required String name,
   }) async {
