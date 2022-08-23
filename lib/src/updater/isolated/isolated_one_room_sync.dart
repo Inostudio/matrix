@@ -10,8 +10,8 @@ import '../../util/logger.dart';
 import 'isolate_runner.dart';
 import 'utils.dart';
 
-abstract class IsolateOneRoomSinkRunner {
-  static StreamSubscription<Room>? roomSinkSubscription;
+abstract class IsolateOneRoomSyncRunner {
+  static StreamSubscription<Room>? roomSyncSubscription;
 
   static Future<void> run(IsolateTransferModel transferModel) async {
     final message = transferModel.message;
@@ -32,7 +32,7 @@ abstract class IsolateOneRoomSinkRunner {
               message.myUser,
               Homeserver(message.homeserverUrl),
               message.storeLocation,
-              initSinkStorage: false, //Create sink with store
+              initSyncStorage: false, //Create sync with store
             );
             updaterAvailable.complete();
             subscription?.cancel();
@@ -54,13 +54,13 @@ abstract class IsolateOneRoomSinkRunner {
 
         instructionSubscription = messageStream.listen((message) async {
           final instruction = message as Instruction;
-          if (instruction is OneRoomSinkInstruction) {
-            roomSinkSubscription = updater
-                ?.startRoomSink(instruction.roomId)
+          if (instruction is OneRoomSyncInstruction) {
+            roomSyncSubscription = updater
+                ?.startRoomSync(instruction.roomId)
                 .listen(sendPort.send);
-          } else if (instruction is CloseRoomSink) {
-            await roomSinkSubscription?.cancel();
-            await updater?.closeRoomSink();
+          } else if (instruction is CloseRoomSync) {
+            await roomSyncSubscription?.cancel();
+            await updater?.closeRoomSync();
           }
         });
 

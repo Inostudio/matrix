@@ -3,11 +3,11 @@ import 'dart:isolate';
 
 import 'package:matrix_sdk/matrix_sdk.dart';
 import 'package:matrix_sdk/src/localUpdater/iso_storage_updater.dart';
-import 'package:matrix_sdk/src/localUpdater/sink_response.dart';
-import 'package:matrix_sdk/src/services/local/sink_storage.dart';
+import 'package:matrix_sdk/src/localUpdater/sync_response.dart';
+import 'package:matrix_sdk/src/services/local/sync_storage.dart';
 import 'package:matrix_sdk/src/util/logger.dart';
 
-import '../services/local/base_sink_storage.dart';
+import '../services/local/base_sync_storage.dart';
 import '../updater/isolated/iso_merge.dart';
 import '../updater/isolated/utils.dart';
 import 'instruction.dart';
@@ -21,7 +21,7 @@ class LocalUpdater {
     this.isIsolated = true,
   });
 
-  BaseSinkStorage? _sinkStorage;
+  BaseSyncStorage? _syncStorage;
 
   MyUser? _user;
 
@@ -46,11 +46,11 @@ class LocalUpdater {
 
   Stream<ErrorWithStackTraceString> get outError => _errorSubject.stream;
 
-  Future<void> init({bool withInitSinkStorage = false}) async {
+  Future<void> init({bool withInitSyncStorage = false}) async {
     if (isIsolated) {
       await _initIsolated();
     } else {
-      await _initMain(withInitSinkStorage: withInitSinkStorage);
+      await _initMain(withInitSyncStorage: withInitSyncStorage);
     }
   }
 
@@ -65,38 +65,38 @@ class LocalUpdater {
     _listenIsolate();
   }
 
-  Future<void> _initMain({bool withInitSinkStorage = false}) async {
-    _sinkStorage = SinkStorage(storeLocation: storeLocation);
-    if (withInitSinkStorage) {
-      initSinkStorage();
+  Future<void> _initMain({bool withInitSyncStorage = false}) async {
+    _syncStorage = SyncStorage(storeLocation: storeLocation);
+    if (withInitSyncStorage) {
+      initSyncStorage();
     }
   }
 
-  Stream<Room> startRoomSink(String roomId) async* {
+  Stream<Room> startRoomSync(String roomId) async* {
     if (isIsolated) {
-      yield* _startSinkIso(roomId);
+      yield* _startSyncIso(roomId);
     } else {
-      yield* _startSinkMain(roomId);
+      yield* _startSyncMain(roomId);
     }
   }
 
-  Stream<Room> _startSinkIso(String roomId) async* {
+  Stream<Room> _startSyncIso(String roomId) async* {
     _sendPort?.send(
       IsolateStorageOneRoomStartSyncInstruction(roomId: roomId),
     );
     yield* roomUpdates;
   }
 
-  Stream<Room> _startSinkMain(String roomId) async* {
+  Stream<Room> _startSyncMain(String roomId) async* {
     UserId? id = _user?.id;
     if (id == null) {
-      final user = await _sinkStorage?.getMyUser();
+      final user = await _syncStorage?.getMyUser();
       id = user?.id;
     }
 
-    if (id == null || _sinkStorage == null) {
+    if (id == null || _syncStorage == null) {
       final errorString =
-          "id or storage not ready id: $id, sinkStorage: $_sinkStorage";
+          "id or storage not ready id: $id, syncStorage: $_syncStorage";
       final error = ErrorWithStackTraceString(
         errorString,
         StackTrace.current.toString(),
@@ -106,8 +106,8 @@ class LocalUpdater {
       throw Exception(errorString);
     }
 
-    _roomSubscription = _sinkStorage!
-        .roomSinkStorageSink(
+    _roomSubscription = _syncStorage!
+        .roomStorageSync(
           selectedRoomId: roomId,
           userId: id,
         )
@@ -116,7 +116,7 @@ class LocalUpdater {
     yield* roomUpdates;
   }
 
-  Future<void> closeRoomSink() async {
+  Future<void> closeRoomSync() async {
     isIsolated
         ? _sendPort?.send(IsolateStorageOneRoomStopSyncInstruction())
         : _roomSubscription?.cancel();
@@ -129,10 +129,10 @@ class LocalUpdater {
       if (message is SendPort) {
         _sendPort = message;
         _sendPort!.send(IsoStorageUpdaterArgs(storeLocation: storeLocation));
-        //on isolate ready to start sink
+        //on isolate ready to start sync
       } else if (message is IsolateStorageSyncerInitialized) {
         _sendPort!.send(IsolateStorageStartSyncInstruction());
-        //on isolate preformed stop sink
+        //on isolate preformed stop sync
       } else if (message is IsolateStorageSyncerStopped) {
         _closeCompleter?.complete();
         //on isolate user update
@@ -149,11 +149,11 @@ class LocalUpdater {
   }
 
   Future<bool> ensureReady() async {
-    return _sinkStorage != null ? await _sinkStorage!.ensureOpen() : false;
+    return _syncStorage != null ? await _syncStorage!.ensureOpen() : false;
   }
 
-  void initSinkStorage() {
-    _userSubscription = _sinkStorage?.myUserStorageSink().listen(
+  void initSyncStorage() {
+    _userSubscription = _syncStorage?.myUserStorageSync().listen(
           (storeUpdate) => _notifyWithUpdate(
             storeUpdate,
             SyncUpdate.new,

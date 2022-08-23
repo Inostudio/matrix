@@ -75,7 +75,7 @@ class MoorStore extends Store {
   }
 
   @override
-  Stream<Room> roomStorageSink({
+  Stream<Room> roomStorageSync({
     required String selectedRoomId,
     required UserId userId,
     Context? context,
@@ -171,12 +171,12 @@ class MoorStore extends Store {
           );
 
   @override
-  Stream<MyUser> myUserStorageSink({
+  Stream<MyUser> myUserStorageSync({
     Iterable<RoomId>? roomIds,
     int timelineLimit = 100,
   }) {
     return _db!
-        .getUserSink()
+        .getUserSync()
         .where((userRecord) => userRecord != null)
         .cast<MyUserRecordWithDeviceRecord>()
         .asyncMap(

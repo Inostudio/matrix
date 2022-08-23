@@ -84,7 +84,7 @@ class MatrixClient {
     );
     await _localUpdater?.init();
 
-    //Make sink
+    //Make sync
     _streamSubscription.add(
       _localUpdater!.userUpdates.listen(_updatesSubject.add),
     );
@@ -122,11 +122,11 @@ class MatrixClient {
         result,
         _homeServer!,
         _storeLocation,
-        initSinkStorage: !isIsolated,
+        initSyncStorage: !isIsolated,
       );
     }
 
-    //Make sink
+    //Make sync
     if (_updater != null) {
       await _updater!.ensureReady();
 
@@ -228,23 +228,23 @@ class MatrixClient {
     return _updater!.loadRoomEvents(roomId: roomId, count: count, room: room);
   }
 
-  Stream<Room> getRoomSink(String roomId) async* {
-    await stopOneRoomSink();
+  Stream<Room> getRoomSync(String roomId) async* {
+    await stopOneRoomSync();
     if (isLocal == true && _localUpdater != null) {
-      yield* _localUpdater!.startRoomSink(roomId);
+      yield* _localUpdater!.startRoomSync(roomId);
     } else if (isLocal == false && _updater != null) {
-      yield* _updater!.startRoomSink(roomId);
+      yield* _updater!.startRoomSync(roomId);
     }
     throw Exception(
       "Cant handle room close isLocal: $isLocal updater: $_updater, _localUpdater: $_localUpdater,",
     );
   }
 
-  Future<void> stopOneRoomSink() async {
+  Future<void> stopOneRoomSync() async {
     if (isLocal == true && _localUpdater != null) {
-      return _localUpdater!.closeRoomSink();
+      return _localUpdater!.closeRoomSync();
     } else if (isLocal == false && _updater != null) {
-      return _updater!.closeRoomSink();
+      return _updater!.closeRoomSync();
     }
     throw Exception(
       "Cant handle room close: isLocal: $isLocal updater: $_updater, _localUpdater: $_localUpdater,",

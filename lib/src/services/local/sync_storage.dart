@@ -1,12 +1,12 @@
 import 'package:matrix_sdk/src/model/context.dart';
-import 'package:matrix_sdk/src/services/local/base_sink_storage.dart';
+import 'package:matrix_sdk/src/services/local/base_sync_storage.dart';
 
 import '../../../matrix_sdk.dart';
 
-class SinkStorage implements BaseSinkStorage {
+class SyncStorage implements BaseSyncStorage {
   late Store store;
 
-  SinkStorage({
+  SyncStorage({
     required StoreLocation storeLocation,
   }) {
     store = storeLocation.create();
@@ -14,16 +14,16 @@ class SinkStorage implements BaseSinkStorage {
   }
 
   @override
-  Stream<MyUser> myUserStorageSink() =>
-      store.myUserStorageSink(timelineLimit: 1);
+  Stream<MyUser> myUserStorageSync() =>
+      store.myUserStorageSync(timelineLimit: 1);
 
   @override
-  Stream<Room> roomSinkStorageSink({
+  Stream<Room> roomStorageSync({
     required String selectedRoomId,
     required UserId userId,
     Context? context,
   }) =>
-      store.roomStorageSink(
+      store.roomStorageSync(
         selectedRoomId: selectedRoomId,
         userId: userId,
       );

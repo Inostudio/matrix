@@ -9,8 +9,8 @@ import 'dart:isolate';
 
 import 'package:matrix_sdk/src/event/room/message_event.dart';
 import 'package:matrix_sdk/src/model/sync_token.dart';
-import 'package:matrix_sdk/src/updater/isolated/iso_storage_sink.dart';
-import 'package:matrix_sdk/src/updater/isolated/isolated_one_room_sink.dart';
+import 'package:matrix_sdk/src/updater/isolated/iso_storage_sync.dart';
+import 'package:matrix_sdk/src/updater/isolated/isolated_one_room_sync.dart';
 
 import '../../event/ephemeral/ephemeral.dart';
 import '../../event/event.dart';
@@ -43,8 +43,8 @@ class IsolatedUpdater extends Updater {
       saveMyUserToStore: saveMyUserToStore,
     );
 
-    await updater._spawnSinkRunner();
-    await updater._spawnOneRoomSinkRunner();
+    await updater._spawnSyncRunner();
+    await updater._spawnOneRoomSyncRunner();
     await updater._spawnRunner();
 
     await updater._syncInitialized;
@@ -162,9 +162,9 @@ class IsolatedUpdater extends Updater {
     });
   }
 
-  Future<void> _spawnSinkRunner() async {
+  Future<void> _spawnSyncRunner() async {
     await Isolate.spawn<IsolateTransferModel>(
-      IsolateStorageSinkRunner.run,
+      IsolateStorageSyncRunner.run,
       IsolateTransferModel(
         message: _syncReceivePort.sendPort,
         loggerVariant: Log.variant,
@@ -172,9 +172,9 @@ class IsolatedUpdater extends Updater {
     );
   }
 
-  Future<void> _spawnOneRoomSinkRunner() async {
+  Future<void> _spawnOneRoomSyncRunner() async {
     await Isolate.spawn<IsolateTransferModel>(
-      IsolateOneRoomSinkRunner.run,
+      IsolateOneRoomSyncRunner.run,
       IsolateTransferModel(
         message: _oneRoomSyncReceivePort.sendPort,
         loggerVariant: Log.variant,
@@ -283,7 +283,7 @@ class IsolatedUpdater extends Updater {
     if (instruction.expectsReturnValue) {
       late Stream stream;
 
-      if (instruction is StorageSinkInstruction) {
+      if (instruction is StorageSyncInstruction) {
         stream = _syncMessageStream;
       } else {
         if (instruction is RequestInstruction) {
@@ -293,7 +293,7 @@ class IsolatedUpdater extends Updater {
             stream = updates;
           }
         } else {
-          if (instruction is OneRoomSinkInstruction) {
+          if (instruction is OneRoomSyncInstruction) {
             stream = roomUpdates;
           } else {
             stream = _messageStream;
@@ -326,7 +326,7 @@ class IsolatedUpdater extends Updater {
         stream = updates;
       }
     } else {
-      if (instruction is OneRoomSinkInstruction) {
+      if (instruction is OneRoomSyncInstruction) {
         stream = roomUpdates;
       } else {
         stream = _messageStream;
@@ -444,8 +444,8 @@ class IsolatedUpdater extends Updater {
       );
 
   @override
-  Stream<Room> startRoomSink(String roomId) => _executeStream(
-        OneRoomSinkInstruction(
+  Stream<Room> startRoomSync(String roomId) => _executeStream(
+        OneRoomSyncInstruction(
           roomId: roomId,
           context: user.context,
           userId: user.id,
@@ -454,8 +454,8 @@ class IsolatedUpdater extends Updater {
       );
 
   @override
-  Future<void> closeRoomSink() => execute(
-        CloseRoomSink(),
+  Future<void> closeRoomSync() => execute(
+        CloseRoomSync(),
         port: _oneRoomSyncSendPort,
       );
 

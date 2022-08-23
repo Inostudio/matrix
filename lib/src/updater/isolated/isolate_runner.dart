@@ -37,7 +37,7 @@ abstract class IsolateRunner {
               message.myUser,
               Homeserver(message.homeserverUrl),
               message.storeLocation,
-              initSinkStorage: false, //Not create updater updater sink
+              initSyncStorage: false, //Not create updater updater sync
             );
             updaterAvailable.complete();
             subscription?.cancel();

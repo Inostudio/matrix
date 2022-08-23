@@ -198,7 +198,7 @@ class Database extends _$Database {
     );
   }
 
-  Stream<MyUserRecordWithDeviceRecord?> getUserSink() =>
+  Stream<MyUserRecordWithDeviceRecord?> getUserSync() =>
       _selectUserWithDevice().watchSingleOrNull();
 
   Future<MyUserRecordWithDeviceRecord?> getMyUserRecord() =>

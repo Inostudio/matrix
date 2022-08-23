@@ -2,10 +2,10 @@ import 'package:matrix_sdk/matrix_sdk.dart';
 
 import '../../model/context.dart';
 
-abstract class BaseSinkStorage {
-  Stream<MyUser> myUserStorageSink();
+abstract class BaseSyncStorage {
+  Stream<MyUser> myUserStorageSync();
 
-  Stream<Room> roomSinkStorageSink({
+  Stream<Room> roomStorageSync({
     required String selectedRoomId,
     required UserId userId,
     Context? context,

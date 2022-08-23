@@ -10,7 +10,7 @@ import 'dart:io';
 import 'package:collection/collection.dart';
 import 'package:image/image.dart';
 import 'package:matrix_sdk/src/model/sync_token.dart';
-import 'package:matrix_sdk/src/services/local/sink_storage.dart';
+import 'package:matrix_sdk/src/services/local/sync_storage.dart';
 import 'package:matrix_sdk/src/services/network/base_network.dart';
 import 'package:matrix_sdk/src/updater/syncer.dart';
 import 'package:mime/mime.dart';
@@ -31,7 +31,7 @@ import '../room/member/membership.dart';
 import '../room/room.dart';
 import '../room/rooms.dart';
 import '../room/timeline.dart';
-import '../services/local/base_sink_storage.dart';
+import '../services/local/base_sync_storage.dart';
 import '../services/network/home_server_network.dart';
 import '../store/store.dart';
 import '../util/random.dart';
@@ -52,7 +52,7 @@ class Updater {
   final Homeserver homeServer;
 
   late BaseNetwork _networkService;
-  late BaseSinkStorage _sinkStorage;
+  late BaseSyncStorage _syncStorage;
 
   /// Most up to date instance of our user.
   MyUser get user => _user;
@@ -90,7 +90,7 @@ class Updater {
   Stream<ApiCallStatistics> get outApiCallStatistics =>
       homeServer.outApiCallStats;
 
-  bool get isReady => _sinkStorage.isReady() && !_updatesSubject.isClosed;
+  bool get isReady => _syncStorage.isReady() && !_updatesSubject.isClosed;
 
   /// Initializes the [myUser] with a valid [Context], and will also
   /// initialize it's properties that need the context, such as [Rooms].
@@ -100,14 +100,14 @@ class Updater {
     this._user,
     this.homeServer,
     StoreLocation storeLocation, {
-    bool initSinkStorage = false,
+    bool initSyncStorage = false,
   }) {
     Updater.register(_user.id, this);
     _initHomeServer();
-    _sinkStorage = SinkStorage(storeLocation: storeLocation);
+    _syncStorage = SyncStorage(storeLocation: storeLocation);
 
-    if (initSinkStorage) {
-      _initSinkStorage();
+    if (initSyncStorage) {
+      _initSyncStorage();
     }
   }
 
@@ -115,8 +115,8 @@ class Updater {
     _networkService = HomeServerNetworking(homeServer: homeServer);
   }
 
-  void _initSinkStorage() {
-    _sinkStorage.myUserStorageSink().listen(
+  void _initSyncStorage() {
+    _syncStorage.myUserStorageSync().listen(
           (storeUpdate) => _notifyWithUpdate(
             storeUpdate,
             SyncUpdate.new,
@@ -124,11 +124,11 @@ class Updater {
         );
   }
 
-  Future<bool> ensureReady() => _sinkStorage.ensureOpen();
+  Future<bool> ensureReady() => _syncStorage.ensureOpen();
 
-  Stream<Room> startRoomSink(String roomId) {
-    oneRoomSync = _sinkStorage
-        .roomSinkStorageSink(
+  Stream<Room> startRoomSync(String roomId) {
+    oneRoomSync = _syncStorage
+        .roomStorageSync(
           selectedRoomId: roomId,
           userId: user.id,
           context: user.context,
@@ -137,11 +137,11 @@ class Updater {
     return roomUpdates;
   }
 
-  Future<void> closeRoomSink() async => oneRoomSync?.cancel();
+  Future<void> closeRoomSync() async => oneRoomSync?.cancel();
 
-  Future<void> saveRoomToDB(Room room) => _sinkStorage.setRoom(room);
+  Future<void> saveRoomToDB(Room room) => _syncStorage.setRoom(room);
 
-  Future<List<String?>?> getRoomIDs() => _sinkStorage.getRoomIds();
+  Future<List<String?>?> getRoomIDs() => _syncStorage.getRoomIds();
 
   Future<void> startSync({
     Duration maxRetryAfter = const Duration(seconds: 30),
@@ -150,7 +150,7 @@ class Updater {
   }) async {
     String? token = syncToken ?? _currentSyncToken;
     if (token == null || token.isEmpty) {
-      token = await _sinkStorage.getToken();
+      token = await _syncStorage.getToken();
     }
 
     _syncer.start(
@@ -167,7 +167,7 @@ class Updater {
         filter: filter,
       );
 
-  ///Notify out sink with new update with data
+  ///Notify out sync with new update with data
   Future<void> _notifyWithUpdate<U extends Update>(
     MyUser delta,
     U Function(MyUser user, MyUser delta) createUpdate,
@@ -188,7 +188,7 @@ class Updater {
       _user = await runComputeMerge(_user, delta);
       if (withSaveInStore) {
         //TODO add comparing user with delta to avoid save duplicate
-        await _sinkStorage.setUserDelta(delta.copyWith(id: _user.id));
+        await _syncStorage.setUserDelta(delta.copyWith(id: _user.id));
       }
       return createUpdate(_user, delta);
     });
@@ -569,9 +569,9 @@ class Updater {
       ),
     );
 
-    await _sinkStorage.wipeAllData();
+    await _syncStorage.wipeAllData();
 
-    await _sinkStorage.close();
+    await _syncStorage.close();
 
     return update;
   }
@@ -580,7 +580,7 @@ class Updater {
     Iterable<RoomId> roomIds,
     int timelineLimit,
   ) async {
-    final rooms = await _sinkStorage.getRoomsByIds(
+    final rooms = await _syncStorage.getRoomsByIds(
       roomIds,
       timelineLimit: timelineLimit,
       context: _user.context!,
@@ -604,7 +604,7 @@ class Updater {
     int offset,
     int timelineLimit,
   ) async {
-    final rooms = await _sinkStorage.getRooms(
+    final rooms = await _syncStorage.getRooms(
       timelineLimit: timelineLimit,
       context: _user.context!,
       memberIds: [_user.id],
@@ -693,7 +693,7 @@ class Updater {
       return Future.value(null);
     }
 
-    final members = await _sinkStorage.getMembers(
+    final members = await _syncStorage.getMembers(
       roomId,
       fromTime: currentRoom.memberTimeline?.last.since,
       count: count,
@@ -881,7 +881,7 @@ class Updater {
           if (currentRoom == null) {
             isNewRoom = true;
             currentRoom = user.rooms?[roomId] ??
-                await _sinkStorage.getRoom(
+                await _syncStorage.getRoom(
                   roomId,
                   context: _user.context!,
                   memberIds: [_user.id],

@@ -15,9 +15,9 @@ import '../../room/room.dart';
 import '../../room/rooms.dart';
 import '../../room/timeline.dart';
 
-abstract class StorageSinkInstruction<T> extends Instruction<T> {}
+abstract class StorageSyncInstruction<T> extends Instruction<T> {}
 
-class StartSyncInstruction extends StorageSinkInstruction<void> {
+class StartSyncInstruction extends StorageSyncInstruction<void> {
   @override
   bool get expectsReturnValue => false;
 
@@ -28,13 +28,13 @@ class StartSyncInstruction extends StorageSinkInstruction<void> {
   StartSyncInstruction(this.maxRetryAfter, this.timelineLimit, this.syncToken);
 }
 
-class RunSyncOnceInstruction extends StorageSinkInstruction<SyncToken> {
+class RunSyncOnceInstruction extends StorageSyncInstruction<SyncToken> {
   final SyncFilter filter;
 
   RunSyncOnceInstruction(this.filter);
 }
 
-class StopSyncInstruction extends StorageSinkInstruction<void> {}
+class StopSyncInstruction extends StorageSyncInstruction<void> {}
 
 class GetRoomIDsInstruction extends Instruction<List<String?>> {}
 
@@ -131,19 +131,19 @@ class SendInstruction extends RequestInstruction<Timeline> {
   );
 }
 
-class OneRoomSinkInstruction extends Instruction<Room> {
+class OneRoomSyncInstruction extends Instruction<Room> {
   final String roomId;
   final Context? context;
   final UserId? userId;
 
-  OneRoomSinkInstruction({
+  OneRoomSyncInstruction({
     required this.roomId,
     this.context,
     this.userId,
   });
 }
 
-class CloseRoomSink extends Instruction<Room> {}
+class CloseRoomSync extends Instruction<Room> {}
 
 class EditTextEventInstruction extends RequestInstruction<Timeline> {
   final RoomId roomId;

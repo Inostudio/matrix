@@ -52,13 +52,13 @@ abstract class Store {
   ///Get current user sync token to get minimized updates from matrix server
   Future<String?> getToken();
 
-  ///Get sink to [MyUser] in local database
-  Stream<MyUser> myUserStorageSink({
+  ///Get sync to [MyUser] in local database
+  Stream<MyUser> myUserStorageSync({
     Iterable<RoomId>? roomIds,
     int timelineLimit = 100,
   });
 
-  Stream<Room> roomStorageSink({
+  Stream<Room> roomStorageSync({
     required String selectedRoomId,
     required UserId userId,
     Context? context,

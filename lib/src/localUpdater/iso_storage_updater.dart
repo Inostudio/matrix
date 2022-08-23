@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:isolate';
 
-import 'package:matrix_sdk/src/localUpdater/sink_response.dart';
+import 'package:matrix_sdk/src/localUpdater/sync_response.dart';
 
 import '../../../matrix_sdk.dart';
 import '../updater/isolated/utils.dart';
@@ -22,12 +22,12 @@ abstract class IsolateStorageUpdater {
         LocalUpdater? updater;
         StreamSubscription? subscription;
         StreamSubscription? updateSubscription;
-        StreamSubscription<Room>? roomSinkSubscription;
+        StreamSubscription<Room>? roomSyncSubscription;
 
         sendPort.send(receivePort.sendPort);
 
         subscription = messageStream.listen((message) async {
-          //first sink, after [receivePort.sendPort] send
+          //first sync, after [receivePort.sendPort] send
           if (message is IsoStorageUpdaterArgs) {
             updater = LocalUpdater(
               storeLocation: message.storeLocation,
@@ -37,24 +37,24 @@ abstract class IsolateStorageUpdater {
             await updater?.ensureReady();
             updateSubscription = updater?.userUpdates.listen(sendPort.send);
             sendPort.send(IsolateStorageSyncerInitialized());
-            //On start sink
+            //On start sync
           } else if (message is IsolateStorageStartSyncInstruction) {
-            updater?.initSinkStorage();
-            //On stop sink
+            updater?.initSyncStorage();
+            //On stop sync
           } else if (message is IsolateStorageStopSyncInstruction) {
             await updater?.close();
             await updateSubscription?.cancel();
             sendPort.send(IsolateStorageSyncerStopped());
-            //On one room sink start
+            //On one room sync start
           } else if (message is IsolateStorageOneRoomStartSyncInstruction) {
-            roomSinkSubscription =
-                updater?.startRoomSink(message.roomId).listen(
+            roomSyncSubscription =
+                updater?.startRoomSync(message.roomId).listen(
                       sendPort.send,
                     );
-            //On one room sink stop
+            //On one room sync stop
           } else if (message is IsolateStorageOneRoomStopSyncInstruction) {
-            await updater?.closeRoomSink();
-            await roomSinkSubscription?.cancel();
+            await updater?.closeRoomSync();
+            await roomSyncSubscription?.cancel();
           }
         });
 
