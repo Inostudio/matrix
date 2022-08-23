@@ -5,7 +5,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import 'package:collection/collection.dart';
 import 'package:drift/backends.dart';
 import 'package:drift/drift.dart';
 import 'package:matrix_sdk/matrix_sdk.dart';
@@ -176,9 +175,9 @@ class Database extends _$Database {
   }
 
   Future<String?> getUserSyncToken() async {
-    final query = select(myUsers)..limit(1);
-    final user = await query.get();
-    return user.firstOrNull?.syncToken;
+    final query = select(myUsers);
+    final user = await query.getSingleOrNull();
+    return user?.syncToken;
   }
 
   Selectable<MyUserRecordWithDeviceRecord?> _selectUserWithDevice() {
