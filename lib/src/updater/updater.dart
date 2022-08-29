@@ -535,9 +535,6 @@ class Updater {
       }
     }
 
-    print(
-        "_networkService_networkService_networkService ${_user.accessToken!} ${roomId.toString()} ${until.toString()} ${receipt ? until.toString() : null}");
-
     await _networkService.setRoomsReadMarkers(
       accessToken: _user.accessToken!,
       roomId: roomId.toString(),

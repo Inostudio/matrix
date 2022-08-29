@@ -33,7 +33,7 @@ abstract class IsolateOneRoomSyncRunner {
               message.myUser,
               Homeserver(message.homeserverUrl),
               message.storeLocation,
-              initSyncStorage: true, //Not create updater updater sync
+              initSyncStorage: false, //Not create updater updater sync
             );
             updaterAvailable.complete();
             subscription?.cancel();
