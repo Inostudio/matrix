@@ -26,6 +26,7 @@ class SyncStorage implements BaseSyncStorage {
       store.roomStorageSync(
         selectedRoomId: selectedRoomId,
         userId: userId,
+        context: context,
       );
 
   @override
