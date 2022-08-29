@@ -137,6 +137,18 @@ class Updater {
     return roomUpdates;
   }
 
+  Future<Room?> fetchRoomFromDB(
+    String roomId, {
+    Context? context,
+    List<UserId>? memberIds,
+  }) async {
+    return _syncStorage.getRoom(
+      RoomId(roomId),
+      context: context ?? user.context,
+      memberIds: memberIds ?? [user.id],
+    );
+  }
+
   Future<void> closeRoomSync() async => oneRoomSync?.cancel();
 
   Future<void> saveRoomToDB(Room room) => _syncStorage.setRoom(room);

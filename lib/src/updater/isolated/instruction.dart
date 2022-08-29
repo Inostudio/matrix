@@ -38,6 +38,18 @@ class StopSyncInstruction extends StorageSyncInstruction<void> {}
 
 class GetRoomIDsInstruction extends Instruction<List<String?>> {}
 
+class GetRoomInstruction extends Instruction<Room> {
+  final String roomId;
+  final Context? context;
+  final List<UserId> memberIds;
+
+  GetRoomInstruction({
+    required this.roomId,
+    required this.context,
+    required this.memberIds,
+  });
+}
+
 class SaveRoomToDBInstruction extends Instruction<void> {
   final Room room;
 
