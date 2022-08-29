@@ -61,7 +61,6 @@ class IsolatedUpdater extends Updater {
     Updater.register(_user.id, this);
 
     _syncMessageStream.listen((message) async {
-
       //On user update
       if (message is MinimizedUpdate) {
         final minimizedUpdate = message;
@@ -416,6 +415,20 @@ class IsolatedUpdater extends Updater {
           userId: user.id,
         ),
         port: _syncSendPort,
+      );
+
+  @override
+  Future<Room?> fetchRoomFromDB(
+    String roomId, {
+    Context? context,
+    List<UserId>? memberIds,
+  }) async =>
+      execute(
+        GetRoomInstruction(
+          roomId: roomId,
+          context: context ?? user.context,
+          memberIds: memberIds ?? [user.id],
+        ),
       );
 
   @override

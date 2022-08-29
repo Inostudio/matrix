@@ -60,7 +60,7 @@ class SyncStorage implements BaseSyncStorage {
   Future<Room?> getRoom(
     RoomId id, {
     int timelineLimit = 15,
-    required Context context,
+    Context? context,
     required Iterable<UserId> memberIds,
   }) =>
       store.getRoom(

@@ -11,6 +11,20 @@ abstract class BaseSyncStorage {
     Context? context,
   });
 
+  Future<Iterable<Room>> getRoomsByIds(
+    Iterable<RoomId>? roomIds, {
+    required int timelineLimit,
+    Iterable<UserId>? memberIds,
+    Context? context,
+  });
+
+  Future<Room?> getRoom(
+    RoomId id, {
+    int timelineLimit = 15,
+    required Iterable<UserId> memberIds,
+    Context? context,
+  });
+
   bool isReady();
 
   Future<void> setUserDelta(MyUser user);
@@ -18,13 +32,6 @@ abstract class BaseSyncStorage {
   Future<void> setRoom(Room room);
 
   Future<List<String?>?> getRoomIds();
-
-  Future<Iterable<Room>> getRoomsByIds(
-    Iterable<RoomId>? roomIds, {
-    Context? context,
-    required int timelineLimit,
-    Iterable<UserId>? memberIds,
-  });
 
   Future<Iterable<Room>> getRooms({
     Context? context,
@@ -45,13 +52,6 @@ abstract class BaseSyncStorage {
     RoomId roomId, {
     int count = 20,
     DateTime? fromTime,
-  });
-
-  Future<Room?> getRoom(
-    RoomId id, {
-    int timelineLimit = 15,
-    required Context context,
-    required Iterable<UserId> memberIds,
   });
 
   Future<String?> getToken();
