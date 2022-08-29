@@ -10,6 +10,7 @@ import '../../util/logger.dart';
 import 'isolate_runner.dart';
 import 'utils.dart';
 
+@Deprecated("Use IsolateStorageSyncRunner cause db can be sink only in one isolate")
 abstract class IsolateOneRoomSyncRunner {
   static StreamSubscription<Room>? roomSyncSubscription;
 
@@ -32,7 +33,7 @@ abstract class IsolateOneRoomSyncRunner {
               message.myUser,
               Homeserver(message.homeserverUrl),
               message.storeLocation,
-              initSyncStorage: false, //Create sync with store
+              initSyncStorage: true, //Not create updater updater sync
             );
             updaterAvailable.complete();
             subscription?.cancel();
@@ -79,5 +80,7 @@ abstract class IsolateOneRoomSyncRunner {
   }
 }
 
+
+@Deprecated("Use SyncerInitialized")
 @immutable
 class OneRoomSyncerInitialized {}

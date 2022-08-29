@@ -39,6 +39,7 @@ class LogResponseInterceptor implements ResponseInterceptor {
     final method = response.base.request?.method;
     final body = response.body;
     final header = response.headers;
+    final error = response.error;
     Log.writer.log(
       """
     MATRIX RESPONSE $method $url
@@ -46,7 +47,9 @@ class LogResponseInterceptor implements ResponseInterceptor {
     HEADER $header
     $_separator
     BODY ${body.toString().length > _maxBodyLen ? "LEN ${body.toString().length}" : body}
-        """,
+    $_separator
+    ${error == null ? "" : "$_separator\nERROR $error"} 
+    """,
     );
     return response;
   }

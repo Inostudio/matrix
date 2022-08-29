@@ -10,7 +10,6 @@ import 'dart:isolate';
 import 'package:matrix_sdk/src/event/room/message_event.dart';
 import 'package:matrix_sdk/src/model/sync_token.dart';
 import 'package:matrix_sdk/src/updater/isolated/iso_storage_sync.dart';
-import 'package:matrix_sdk/src/updater/isolated/isolated_one_room_sync.dart';
 
 import '../../event/ephemeral/ephemeral.dart';
 import '../../event/event.dart';
@@ -44,11 +43,9 @@ class IsolatedUpdater extends Updater {
     );
 
     await updater._spawnSyncRunner();
-    await updater._spawnOneRoomSyncRunner();
     await updater._spawnRunner();
 
     await updater._syncInitialized;
-    await updater._oneRoomSyncInitialized;
     await updater._initialized;
 
     await updater.ensureReady();
@@ -64,6 +61,8 @@ class IsolatedUpdater extends Updater {
     Updater.register(_user.id, this);
 
     _syncMessageStream.listen((message) async {
+
+      //On user update
       if (message is MinimizedUpdate) {
         final minimizedUpdate = message;
         _user = await runComputeMerge(_user, minimizedUpdate.delta);
@@ -76,8 +75,8 @@ class IsolatedUpdater extends Updater {
         }
         return;
       }
-
-      if (message is SendPort) {
+      // on Isolate created
+      else if (message is SendPort) {
         _syncSendPort = message;
 
         _syncSendPort?.send(
@@ -89,29 +88,14 @@ class IsolatedUpdater extends Updater {
           ),
         );
       }
-      if (message is SyncerInitialized) {
+      //on Isolate inited
+      else if (message is SyncerInitialized) {
         _syncerCompleter.complete();
       }
-    });
-    _oneRoomSyncMessageStream.listen((message) async {
-      if (message is Room) {
+      // on Room update
+      else if (message is Room) {
         _roomUpdatesController.add(message);
         return;
-      }
-      if (message is SendPort) {
-        _oneRoomSyncSendPort = message;
-
-        _oneRoomSyncSendPort?.send(
-          UpdaterArgs(
-            myUser: _user,
-            homeserverUrl: _homeServer.url,
-            storeLocation: storeLocation,
-            saveMyUserToStore: true,
-          ),
-        );
-      }
-      if (message is OneRoomSyncerInitialized) {
-        _oneRoomSyncerCompleter.complete();
       }
     });
 
@@ -172,16 +156,6 @@ class IsolatedUpdater extends Updater {
     );
   }
 
-  Future<void> _spawnOneRoomSyncRunner() async {
-    await Isolate.spawn<IsolateTransferModel>(
-      IsolateOneRoomSyncRunner.run,
-      IsolateTransferModel(
-        message: _oneRoomSyncReceivePort.sendPort,
-        loggerVariant: Log.variant,
-      ),
-    );
-  }
-
   Future<void> _spawnRunner() async {
     await Isolate.spawn<IsolateTransferModel>(
       IsolateRunner.run,
@@ -192,7 +166,6 @@ class IsolatedUpdater extends Updater {
     );
   }
 
-  SendPort? _oneRoomSyncSendPort;
   SendPort? _syncSendPort;
   SendPort? _sendPort;
 
@@ -201,10 +174,7 @@ class IsolatedUpdater extends Updater {
 
   final _receivePort = ReceivePort();
   final _syncReceivePort = ReceivePort();
-  final _oneRoomSyncReceivePort = ReceivePort();
 
-  late final Stream<dynamic> __oneRoomSyncMessageStream =
-      _oneRoomSyncReceivePort.asBroadcastStream();
   late final Stream<dynamic> __syncMessageStream =
       _syncReceivePort.asBroadcastStream();
   late final Stream<dynamic> __messageStream = _receivePort.asBroadcastStream();
@@ -212,8 +182,6 @@ class IsolatedUpdater extends Updater {
   Stream<dynamic> get _messageStream => __messageStream;
 
   Stream<dynamic> get _syncMessageStream => __syncMessageStream;
-
-  Stream<dynamic> get _oneRoomSyncMessageStream => __oneRoomSyncMessageStream;
 
   final _errorSubject = StreamController<ErrorWithStackTraceString>.broadcast();
 
@@ -237,13 +205,10 @@ class IsolatedUpdater extends Updater {
 
   final _initializedCompleter = Completer<void>();
   final _syncerCompleter = Completer<void>();
-  final _oneRoomSyncerCompleter = Completer<void>();
 
   Future<void> get _initialized => _initializedCompleter.future;
 
   Future<void> get _syncInitialized => _syncerCompleter.future;
-
-  Future<void> get _oneRoomSyncInitialized => _oneRoomSyncerCompleter.future;
 
   MyUser _user;
 
@@ -450,13 +415,13 @@ class IsolatedUpdater extends Updater {
           context: user.context,
           userId: user.id,
         ),
-        port: _oneRoomSyncSendPort,
+        port: _syncSendPort,
       );
 
   @override
   Future<void> closeRoomSync() => execute(
         CloseRoomSync(),
-        port: _oneRoomSyncSendPort,
+        port: _syncSendPort,
       );
 
   @override

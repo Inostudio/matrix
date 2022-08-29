@@ -11,6 +11,8 @@ import 'isolate_runner.dart';
 import 'utils.dart';
 
 abstract class IsolateStorageSyncRunner {
+  static StreamSubscription<Room>? roomSyncSubscription;
+
   static Future<void> run(IsolateTransferModel transferModel) async {
     final message = transferModel.message;
     Log.setLogger(transferModel.loggerVariant);
@@ -67,6 +69,13 @@ abstract class IsolateStorageSyncRunner {
             sendPort.send(syncResult);
           } else if (instruction is LogoutInstruction) {
             await updater?.logout();
+          } else if (instruction is OneRoomSyncInstruction) {
+            roomSyncSubscription = updater
+                ?.startRoomSync(instruction.roomId)
+                .listen(sendPort.send);
+          } else if (instruction is CloseRoomSync) {
+            await roomSyncSubscription?.cancel();
+            await updater?.closeRoomSync();
           }
         });
 
