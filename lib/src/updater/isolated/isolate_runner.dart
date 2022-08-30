@@ -146,6 +146,7 @@ abstract class IsolateRunner {
             until: instruction.until,
             receipt: instruction.receipt,
             room: instruction.room,
+            fullyRead: instruction.fullyRead,
           );
     } else if (instruction is SendInstruction) {
       await updater

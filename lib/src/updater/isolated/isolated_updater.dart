@@ -380,10 +380,19 @@ class IsolatedUpdater extends Updater {
   Future<RequestUpdate<ReadReceipts>?> markRead({
     required RoomId roomId,
     required EventId until,
+    bool fullyRead = true,
     bool receipt = true,
     Room? room,
   }) =>
-      execute(MarkReadInstruction(roomId, until, receipt, room));
+      execute(
+        MarkReadInstruction(
+          roomId: roomId,
+          until: until,
+          receipt: receipt,
+          room: room,
+          fullyRead: fullyRead,
+        ),
+      );
 
   @override
   Stream<RequestUpdate<Timeline>?> send(

@@ -16,6 +16,7 @@ import 'package:matrix_sdk/src/model/api_call_statistics.dart';
 import 'package:meta/meta.dart';
 
 import '../util/exception.dart';
+import '../util/logger.dart';
 import 'client.dart';
 import 'interceptors.dart';
 import 'media.dart';
@@ -629,16 +630,26 @@ class Rooms {
   Future<void> readMarkers({
     required String accessToken,
     required String roomId,
-    required String fullyRead,
+    String? fullyRead,
     String? read,
   }) async {
-    final body = {
-      'm.fully_read': fullyRead,
-    };
 
-    if (read != null) {
-      body['m.read'] = read;
+    //fullyRead id is incorrect
+    if (fullyRead != null && fullyRead.startsWith("\$") == false) {
+      Log.writer.log("fullyRead id is incorrect $fullyRead");
+      return;
     }
+
+    //read id is incorrect
+    if (read != null && read.startsWith("\$") == false) {
+      Log.writer.log("read id is incorrect $read");
+      return;
+    }
+
+    final body = {
+      if (fullyRead != null && fullyRead.isNotEmpty) 'm.fully_read': fullyRead,
+      if (read != null && read.isNotEmpty) 'm.read': read,
+    };
 
     final stopWatch = Stopwatch();
     stopWatch.start();

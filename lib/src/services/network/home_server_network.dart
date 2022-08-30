@@ -183,7 +183,7 @@ class HomeServerNetworking implements BaseNetwork {
   Future<void> setRoomsReadMarkers({
     required String accessToken,
     required String roomId,
-    required String fullyRead,
+    String? fullyRead,
     String? read,
   }) async =>
       _homeServer.api.rooms.readMarkers(
