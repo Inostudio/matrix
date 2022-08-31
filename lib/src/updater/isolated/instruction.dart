@@ -17,6 +17,8 @@ import '../../room/timeline.dart';
 
 abstract class StorageSyncInstruction<T> extends Instruction<T> {}
 
+abstract class OneRoomInstruction<T> extends Instruction<T> {}
+
 class StartSyncInstruction extends StorageSyncInstruction<void> {
   @override
   bool get expectsReturnValue => false;
@@ -149,7 +151,7 @@ class SendInstruction extends RequestInstruction<Timeline> {
   );
 }
 
-class OneRoomSyncInstruction extends Instruction<Room> {
+class OneRoomSyncInstruction extends OneRoomInstruction<Room> {
   final String roomId;
   final Context? context;
   final UserId? userId;

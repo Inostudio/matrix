@@ -49,9 +49,6 @@ abstract class IsolateRunner {
         await updaterAvailable.future;
         await updater?.ensureReady();
 
-        // Send updates back to main isolate
-        updater?.updates.listen((u) => sendPort.send(u.minimize()));
-
         updater?.outApiCallStatistics.listen(sendPort.send);
 
         sendPort.send(RunnerInitialized());
@@ -76,11 +73,12 @@ abstract class IsolateRunner {
             sendPort.send(null);
           }
           if (instruction is GetRoomInstruction) {
-            await updater?.fetchRoomFromDB(
+            final result = await updater?.fetchRoomFromDB(
               instruction.roomId,
               context: instruction.context,
               memberIds: instruction.memberIds,
             );
+            sendPort.send(result);
           }
 
           if (instruction is RequestInstruction) {
