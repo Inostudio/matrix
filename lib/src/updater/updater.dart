@@ -514,6 +514,7 @@ class Updater {
   Future<RequestUpdate<ReadReceipts>?> markRead({
     required RoomId roomId,
     required EventId until,
+    bool fullyRead = true,
     bool receipt = true,
     Room? room,
   }) async {
@@ -538,7 +539,7 @@ class Updater {
     await _networkService.setRoomsReadMarkers(
       accessToken: _user.accessToken!,
       roomId: roomId.toString(),
-      fullyRead: until.toString(),
+      fullyRead: fullyRead ? until.toString() : null,
       read: receipt ? until.toString() : null,
     );
 

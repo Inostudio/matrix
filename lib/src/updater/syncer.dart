@@ -21,6 +21,7 @@ class Syncer {
   CancelableOperation<Map<String, dynamic>>? _cancelableSyncOnceResponse;
 
   String? _syncToken;
+  String? _syncOnceToken;
 
   /// Syncs data with the user's [_homeserver].
   void start({
@@ -81,7 +82,15 @@ class Syncer {
             retryAfter = maxRetryAfter.inMilliseconds;
           }
         } else {
-          _syncToken = body['next_batch'];
+          // on sync once was triggered - start syncing from syncOnceToken
+          if (_syncOnceToken != null && _syncOnceToken!.isNotEmpty) {
+            _syncToken = _syncOnceToken;
+            _syncOnceToken = null;
+          }
+          //standard sync token incrementing
+          else {
+            _syncToken = body['next_batch'];
+          }
           await _updater.processSync(body);
 
           // Reset exponential backoff.
@@ -145,7 +154,7 @@ class Syncer {
         return null;
       }
 
-      if (_shouldStopSync) {
+      if (_shouldStopSync == true) {
         return null;
       }
 
@@ -184,22 +193,18 @@ class Syncer {
       );
 
       _cancelableSyncOnceResponse = cancelable;
-      // final initStopwatch = Stopwatch();
-      // initStopwatch.start();
       final body = await cancelable.valueOrCancellation();
-      // final time = initStopwatch.elapsedMilliseconds;
-      // print("Stopwatch SYNC : $time");
-      // initStopwatch.stop();
 
       // We're cancelled
       if (body == null) {
         return null;
       }
 
-      if (_shouldStopSync) {
+      if (_shouldStopSync == true) {
         return null;
       }
 
+      _syncOnceToken = body['next_batch'];
       await _updater.processSync(body);
       return SyncToken(body['next_batch']);
     } catch (error) {

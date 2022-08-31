@@ -116,13 +116,19 @@ class MarkReadInstruction extends RequestInstruction<ReadReceipts> {
   final RoomId roomId;
   final EventId until;
   final bool receipt;
+  final bool fullyRead;
   final Room? room;
-
-  // ignore: avoid_positional_boolean_parameters
-  MarkReadInstruction(this.roomId, this.until, this.receipt, this.room);
 
   @override
   final bool basedOnUpdate = true;
+
+  MarkReadInstruction({
+    required this.roomId,
+    required this.until,
+    required this.receipt,
+    required this.fullyRead,
+    this.room,
+  });
 }
 
 class SendInstruction extends RequestInstruction<Timeline> {

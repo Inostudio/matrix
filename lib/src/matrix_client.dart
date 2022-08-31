@@ -279,7 +279,7 @@ class MatrixClient {
     return update?.data?.toList() ?? [];
   }
 
-  @Deprecated("Use [uotUpdates instead]")
+  @Deprecated("Use [outUpdates instead]")
   Future<Room?> loadRoom({
     required String roomID,
     int limit = 20,

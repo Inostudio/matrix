@@ -59,7 +59,7 @@ abstract class BaseNetwork {
   Future<void> setRoomsReadMarkers({
     required String accessToken,
     required String roomId,
-    required String fullyRead,
+    String? fullyRead,
     String? read,
   });
 

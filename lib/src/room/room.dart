@@ -662,6 +662,7 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
   Future<RequestUpdate<ReadReceipts>?> markRead({
     required EventId until,
     bool receipt = true,
+    bool fullyRead = true,
   }) {
     if (context?.updater == null) {
       return Future.value(null);
@@ -671,6 +672,7 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
       until: until,
       receipt: receipt,
       room: this,
+      fullyRead: fullyRead,
     );
   }
 
