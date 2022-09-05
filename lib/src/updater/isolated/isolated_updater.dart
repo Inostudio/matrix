@@ -66,12 +66,7 @@ class IsolatedUpdater extends Updater {
         final minimizedUpdate = message;
         _user = await runComputeMerge(_user, minimizedUpdate.delta);
         final update = minimizedUpdate.deminimize(_user);
-
-        if (update is RequestUpdate && update.basedOnUpdate) {
-          _requestUpdatesBasedOnOthers.add(update);
-        } else {
-          _controller.add(update);
-        }
+        _updaterController.add(update);
         return;
       }
       // on Isolate created
@@ -98,19 +93,13 @@ class IsolatedUpdater extends Updater {
       }
     });
 
-    _messageStream.listen((message) async {
+    _instructionStream.listen((message) async {
       if (message is MinimizedUpdate) {
         final minimizedUpdate = message;
         _user = await runComputeMerge(_user, minimizedUpdate.delta);
 
         final update = minimizedUpdate.deminimize(_user);
-
-        if (update is RequestUpdate && update.basedOnUpdate) {
-          _requestUpdatesBasedOnOthers.add(update);
-        } else {
-          _controller.add(update);
-        }
-
+        _updaterController.add(update);
         return;
       }
 
@@ -159,7 +148,7 @@ class IsolatedUpdater extends Updater {
     await Isolate.spawn<IsolateTransferModel>(
       IsolateRunner.run,
       IsolateTransferModel(
-        message: _receivePort.sendPort,
+        message: _instructionPort.sendPort,
         loggerVariant: Log.variant,
       ),
     );
@@ -171,14 +160,21 @@ class IsolatedUpdater extends Updater {
   @override
   bool get isReady => _sendPort != null;
 
-  final _receivePort = ReceivePort();
+  //Instruction port
+  final _instructionPort = ReceivePort();
+
+  //Update for user and room port
   final _syncReceivePort = ReceivePort();
 
+  //Instruction stream
   late final Stream<dynamic> __syncMessageStream =
       _syncReceivePort.asBroadcastStream();
-  late final Stream<dynamic> __messageStream = _receivePort.asBroadcastStream();
 
-  Stream<dynamic> get _messageStream => __messageStream;
+  //Update stream
+  late final Stream<dynamic> __instructionStream =
+      _instructionPort.asBroadcastStream();
+
+  Stream<dynamic> get _instructionStream => __instructionStream;
 
   Stream<dynamic> get _syncMessageStream => __syncMessageStream;
 
@@ -199,9 +195,6 @@ class IsolatedUpdater extends Updater {
   Stream<ApiCallStatistics> get outApiCallStatistics =>
       _apiCallStatsSubject.stream;
 
-  final _requestUpdatesBasedOnOthers =
-      StreamController<RequestUpdate>.broadcast();
-
   final _initializedCompleter = Completer<void>();
   final _syncerCompleter = Completer<void>();
 
@@ -220,20 +213,22 @@ class IsolatedUpdater extends Updater {
   Homeserver get homeServer => _homeServer;
 
   // ignore: close_sinks
-  late final StreamController<Update> __controller =
+  late final StreamController<Update> __updaterController =
       StreamController<Update>.broadcast();
 
   // ignore: close_sinks
   late final StreamController<Room> __roomUpdatesController =
       StreamController<Room>.broadcast();
 
-  StreamController<Update> get _controller => __controller;
+  //Sync with updater
+  StreamController<Update> get _updaterController => __updaterController;
 
   StreamController<Room> get _roomUpdatesController => __roomUpdatesController;
 
   @override
-  Stream<Update> get updates => _controller.stream;
+  Stream<Update> get updates => _updaterController.stream;
 
+  @override
   Stream<Room> get roomUpdates => _roomUpdatesController.stream;
 
   /// Sends an instruction to the isolate, possibly with a return value.
@@ -245,25 +240,7 @@ class IsolatedUpdater extends Updater {
     portToSent?.send(instruction);
 
     if (instruction.expectsReturnValue) {
-      late Stream stream;
-
-      if (instruction is StorageSyncInstruction) {
-        stream = _syncMessageStream;
-      } else {
-        if (instruction is RequestInstruction) {
-          if ((instruction as RequestInstruction).basedOnUpdate) {
-            stream = _requestUpdatesBasedOnOthers.stream;
-          } else {
-            stream = updates;
-          }
-        } else {
-          if (instruction is OneRoomSyncInstruction) {
-            stream = roomUpdates;
-          } else {
-            stream = _messageStream;
-          }
-        }
-      }
+      final Stream stream = _streamSelector(instruction);
 
       return await stream.firstWhere(
         (event) => event is T?,
@@ -281,21 +258,7 @@ class IsolatedUpdater extends Updater {
     final portToSent = port ?? _sendPort;
     portToSent?.send(instruction);
 
-    late Stream stream;
-
-    if (instruction is RequestInstruction) {
-      if ((instruction as RequestInstruction).basedOnUpdate) {
-        stream = _requestUpdatesBasedOnOthers.stream;
-      } else {
-        stream = updates;
-      }
-    } else {
-      if (instruction is OneRoomSyncInstruction) {
-        stream = roomUpdates;
-      } else {
-        stream = _messageStream;
-      }
-    }
+    final Stream stream = _streamSelector(instruction);
 
     final streamToReturn =
         stream.where((msg) => msg is T).map((msg) => msg as T);
@@ -304,6 +267,20 @@ class IsolatedUpdater extends Updater {
       return streamToReturn;
     } else {
       return streamToReturn.take(updateCount);
+    }
+  }
+
+  Stream _streamSelector(
+    Instruction instruction,
+  ) {
+    if (instruction is StorageSyncInstruction) {
+      return _syncMessageStream;
+    } else if (instruction is RequestInstruction) {
+      return updates;
+    } else if (instruction is OneRoomInstruction) {
+      return roomUpdates;
+    } else {
+      return _instructionStream;
     }
   }
 

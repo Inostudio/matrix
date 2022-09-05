@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:collection/collection.dart';
 import 'package:matrix_sdk/matrix_sdk.dart';
 import 'package:matrix_sdk/src/updater/isolated/isolated_updater.dart';
 import 'package:matrix_sdk/src/util/logger.dart';
@@ -211,8 +210,7 @@ class MatrixClient {
     if (_updater == null) {
       return Future.value(null);
     }
-    final update = await _updater!.loadRoomsByIDs([RoomId(roomID)], limit);
-    return update?.data?.firstWhereOrNull((e) => e.id.value == roomID);
+    return _updater!.fetchRoomFromDB(roomID);
   }
 
   Future<RequestUpdate<Timeline>?> loadRoomEvents({
