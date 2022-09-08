@@ -50,7 +50,7 @@ class RawEventContent extends EventContent {
   Map<String, dynamic> toJson() =>
       _content == null ? super.toJson() : Map.of(_content!);
 
-  dynamic? operator [](String key) => _content?[key];
+  dynamic operator [](String key) => _content?[key];
 
   bool containsKey(String key) => _content?.containsKey(key) ?? false;
 
@@ -89,6 +89,7 @@ class RawEventContent extends EventContent {
   int get hashCode => _content.hashCode;
 }
 
+// ignore: avoid_implementing_value_types
 class RawStateEvent extends RawRoomEvent implements StateEvent {
   @override
   final RawEventContent? previousContent;

@@ -15,7 +15,6 @@ void testLocalUser() {
   group('LocalUser', () {
     group('Sync', () {
       Homeserver hs;
-      MyUser? user;
 
       setUp(() async {
         hs = Homeserver(
@@ -207,7 +206,7 @@ void testLocalUser() {
             }
           }),
         );
-        user = await hs.login(
+        await hs.login(
           Username('pat'),
           'password',
         );

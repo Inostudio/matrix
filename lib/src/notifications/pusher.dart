@@ -4,8 +4,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import 'package:meta/meta.dart';
-
 // When subclassing this class, make sure to add `kind` and `data`
 // to `toJson()`.
 abstract class Pusher {

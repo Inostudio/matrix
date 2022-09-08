@@ -45,8 +45,8 @@ class Typers extends EventContent {
       return null;
     }
 
-    final rawIds = content['user_ids'] as List<dynamic>;
-    final typerIds = rawIds.map((r) => UserId(r)).toList(growable: false);
+    final rawIds = content['user_ids'] as List<String>;
+    final typerIds = rawIds.map<UserId>(UserId.new).toList(growable: false);
 
     return Typers(typerIds: typerIds);
   }

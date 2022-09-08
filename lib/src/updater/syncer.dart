@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:async/async.dart';
 import 'package:matrix_sdk/matrix_sdk.dart';
 import 'package:matrix_sdk/src/model/sync_token.dart';
@@ -101,7 +103,7 @@ class Syncer {
       }
     } catch (e) {
       Log.writer.log(e);
-      print("Sync Error :$e");
+      log("Sync Error :$e");
       await Future.delayed(Duration(seconds: 5));
       start(
         maxRetryAfter: maxRetryAfter,

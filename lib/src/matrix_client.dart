@@ -203,16 +203,6 @@ class MatrixClient {
     await _updater?.stopSync();
   }
 
-  Future<Room?> getRoom({
-    required String roomID,
-    int limit = 20,
-  }) async {
-    if (_updater == null) {
-      return Future.value(null);
-    }
-    return _updater!.fetchRoomFromDB(roomID);
-  }
-
   Future<RequestUpdate<Timeline>?> loadRoomEvents({
     required RoomId roomId,
     required int count,
@@ -263,22 +253,17 @@ class MatrixClient {
     return update?.deltaData?.toList() ?? [];
   }
 
-  @Deprecated("Use [uotUpdates instead]")
-  Future<List<Room?>> getRoomsByIDs({
-    required Iterable<RoomId> roomIDs,
-    int limit = 40,
-    int offset = 0,
-    int timelineLimit = 20,
+  Future<Room?> getRoomFromDB({
+    required String roomID,
+    int limit = 20,
   }) async {
     if (_updater == null) {
-      return Future.value([]);
+      return Future.value(null);
     }
-    final update = await _updater!.loadRoomsByIDs(roomIDs, timelineLimit);
-    return update?.data?.toList() ?? [];
+    return _updater!.fetchRoomFromDB(roomID);
   }
 
-  @Deprecated("Use [outUpdates instead]")
-  Future<Room?> loadRoom({
+  Future<Room?> getRoomFromNetwork({
     required String roomID,
     int limit = 20,
   }) async {
@@ -333,10 +318,4 @@ class MatrixClient {
   }
 
   Stream<SyncToken>? get outSyncToken => _updater?.outSyncToken;
-
-  @Deprecated("Remove later")
-  Future<List<String?>> getRoomIDs() async {
-    final result = await _updater?.getRoomIDs();
-    return result ?? [];
-  }
 }

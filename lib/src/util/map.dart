@@ -14,7 +14,7 @@ extension MapExtensions on Map? {
     for (final key in keys) {
       current = current?[key];
 
-      if (current == null || current is! Map) {
+      if (current == null) {
         return current;
       }
     }

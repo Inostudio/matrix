@@ -588,6 +588,13 @@ class Updater {
     return update;
   }
 
+  Future<void> close() async {
+    await _roomUpdatesSubject.close();
+    await _errorSubject.close();
+    await _tokenSubject.close();
+    await _updatesSubject.close();
+  }
+
   Future<RequestUpdate<Rooms>?> loadRoomsByIDs(
     Iterable<RoomId> roomIds,
     int timelineLimit,
@@ -861,7 +868,7 @@ class Updater {
           rooms: roomDeltas,
           hasSynced: !(_user.hasSynced ?? false) ? true : null,
         )!,
-        (user, delta) => SyncUpdate(user, delta),
+        SyncUpdate.new,
         withSaveInStore: true,
       );
     }
