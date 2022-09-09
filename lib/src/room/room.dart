@@ -47,7 +47,7 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
   @override
   final RoomId id;
 
-  int lastMessageTimeInterval;
+  final int lastMessageTimeInterval;
 
   /// Events timeline.
   final Timeline? timeline;
@@ -991,14 +991,4 @@ class RoomContext extends Context {
     Context context, {
     required this.roomId,
   }) : super(myId: context.myId);
-}
-
-extension _MapMerge<K, V> on Map<K, V> {
-  Map<K, V> merge(Map<K, V>? other) {
-    if (other == null) {
-      return this;
-    }
-
-    return {...this, ...other};
-  }
 }

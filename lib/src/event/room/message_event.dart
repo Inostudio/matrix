@@ -190,7 +190,7 @@ abstract class MessageEventContent extends EventContent {
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{'msgtype': type};
 
-    Map<String, dynamic> relates = {};
+    final Map<String, dynamic> relates = {};
 
     if (inReplyToId != null) {
       relates.addAll({
