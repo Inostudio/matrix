@@ -299,10 +299,13 @@ class Database extends _$Database {
   ) =>
       selectRoomRecordsByIDs(roomIds).get();
 
-  Future<List<String?>> getRoomIDs() {
+  Future<List<String?>> getRoomIDs() async {
     final roomIDs = rooms.id;
-    final query = selectOnly(rooms)..addColumns([rooms.id]);
-    return query.map((row) => row.read(roomIDs)).get();
+    final query = selectOnly(rooms);
+    query.addColumns([rooms.id]);
+    final finQuery = query.map((row) => row.read(roomIDs));
+    final result = await runOperation(onRun: finQuery.get(),);
+    return result ?? [];
   }
 
   Future<List<RoomRecordWithStateRecords>> getRoomRecords(
