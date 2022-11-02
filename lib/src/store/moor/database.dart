@@ -171,11 +171,13 @@ class Database extends _$Database {
 
   Future<T?> runOperation<T>({
     required Future<T?> onRun,
+    Function(dynamic, dynamic)? onError,
   }) {
     return _queue.add(() {
       try {
         return onRun;
-      } catch (error, _) {
+      } catch (error, stack) {
+        onError?.call(error, stack);
         return Future.value(null);
       }
     });
@@ -191,7 +193,10 @@ class Database extends _$Database {
 
   Future<String?> getUserSyncToken() async {
     final query = select(myUsers);
-    final user = await runOperation(onRun: query.getSingleOrNull());
+    final user = await runOperation(onRun: query.getSingleOrNull(),
+        onError: (error, stack) {
+          print("ERROR RUN OPERATION --- getUserSyncToken");
+        });
     return user?.syncToken;
   }
 
@@ -220,7 +225,10 @@ class Database extends _$Database {
   Future<void> setMyUser(MyUsersCompanion companion) async {
     await runOperation(onRun: batch((batch) {
       batch.insert(myUsers, companion, mode: InsertMode.insertOrReplace);
-    }));
+    }),
+        onError: (error, stack) {
+          print("ERROR RUN OPERATION --- setMyUser");
+        });
   }
 
   Selectable<RoomRecordWithStateRecords> selectRoomRecordsByIDs(
@@ -380,14 +388,20 @@ class Database extends _$Database {
           ),
         );
 
-    final result = await runOperation(onRun: finQuery.get());
+    final result = await runOperation(onRun: finQuery.get(),
+        onError: (error, stack) {
+          print("ERROR RUN OPERATION --- getRoomRecords");
+        });
     return result ?? [];
   }
 
   Future<void> setRooms(List<RoomsCompanion> companions) async {
     await runOperation(onRun: batch((batch) async {
       batch.insertAllOnConflictUpdate(rooms, companions);
-    }));
+    }),
+        onError: (error, stack) {
+          print("ERROR RUN OPERATION --- setRooms");
+        });
   }
 
   Future<void> setRoomsLatestMessages(Map<String, int> data) async {
@@ -400,7 +414,10 @@ class Database extends _$Database {
             ),
             where: (t) => t.id.like(key));
       });
-    }));
+    }),
+        onError: (error, stack) {
+          print("ERROR RUN OPERATION --- setRoomsLatestMessages");
+        });
   }
 
   Future<Iterable<RoomEventRecord>> getRoomEventRecordsWithIDs(
@@ -452,7 +469,10 @@ class Database extends _$Database {
     });
 
 
-    final result = await runOperation(onRun: finQuery.get());
+    final result = await runOperation(onRun: finQuery.get(),
+        onError: (error, stack) {
+          print("ERROR RUN OPERATION --- getRoomEventRecordsWithIDs");
+        });
     return result ?? [];
   }
 
@@ -468,7 +488,10 @@ class Database extends _$Database {
                 tbl.type.equals(MemberChangeEvent.matrixType) &
                 (tbl.senderId.isIn(userIds) | tbl.stateKey.isIn(userIds)),
           );
-    final result = await runOperation(onRun: query.get());
+    final result = await runOperation(onRun: query.get(),
+        onError: (error, stack) {
+          print("ERROR RUN OPERATION --- getMemberEventRecordsOfSendersWithIds");
+        });
     return result ?? [];
   }
 
@@ -501,7 +524,10 @@ class Database extends _$Database {
     });
 
 
-    final result = await runOperation(onRun: finQuery.get());
+    final result = await runOperation(onRun: finQuery.get(),
+        onError: (error, stack) {
+          print("ERROR RUN OPERATION --- getEphemeralEventRecordsWithIds");
+        });
     return result ?? [];
   }
 
@@ -538,7 +564,10 @@ class Database extends _$Database {
       query.limit(count);
     }
 
-    final result = await runOperation(onRun: query.get());
+    final result = await runOperation(onRun: query.get(),
+        onError: (error, stack) {
+          print("ERROR RUN OPERATION --- getRoomEventRecords");
+        });
     return result ?? [];
   }
 
@@ -555,7 +584,11 @@ class Database extends _$Database {
           records.map((r) => r.transactionId).where((txnId) => txnId != null),
         ),
       );
-    }));
+    }
+    ),
+        onError: (error, stack) {
+          print("ERROR RUN OPERATION --- setRoomEventRecords");
+        });
   }
 
   /// Get the MemberChangeEvents for each user.
@@ -570,7 +603,10 @@ class Database extends _$Database {
                 tbl.type.equals(MemberChangeEvent.matrixType) &
                 (tbl.senderId.isIn(userIds) | tbl.stateKey.isIn(userIds)),
           );
-    final result = await runOperation(onRun: query.get());
+    final result = await runOperation(onRun: query.get(),
+        onError: (error, stack) {
+          print("ERROR RUN OPERATION --- getMemberEventRecordsOfSenders");
+        });
     return result ?? [];
   }
 
@@ -581,7 +617,10 @@ class Database extends _$Database {
       ..where(
         (tbl) => tbl.roomId.equals(roomId),
       );
-    final result = await runOperation(onRun: query.get());
+    final result = await runOperation(onRun: query.get(),
+        onError: (error, stack) {
+          print("ERROR RUN OPERATION --- getEphemeralEventRecords");
+        });
     return result ?? [];
   }
 
@@ -593,7 +632,10 @@ class Database extends _$Database {
         ephemeralEvents,
         records,
       );
-    }));
+    }),
+        onError: (error, stack) {
+          print("ERROR RUN OPERATION --- getEphemeralEventRecords");
+        });
   }
 
   Future<void> setDeviceRecords(List<DevicesCompanion> companions) async {
@@ -602,7 +644,10 @@ class Database extends _$Database {
         devices,
         companions,
       );
-    }));
+    }),
+        onError: (error, stack) {
+          print("ERROR RUN OPERATION --- setDeviceRecords");
+        });
   }
 
   Future<void> deleteInviteStates(List<String> roomIds) async {
@@ -613,13 +658,19 @@ class Database extends _$Database {
           (tbl) => tbl.id.isIn(['$roomId:%']),
         );
       }
-    }));
+    }),
+        onError: (error, stack) {
+          print("ERROR RUN OPERATION --- deleteInviteStates");
+        });
   }
 
   Future<void> wipeAllData() {
     return transaction(() async {
       for (final table in allTables) {
-        await runOperation(onRun: delete(table).go());
+        await runOperation(onRun: delete(table).go(),
+            onError: (error, stack) {
+              print("ERROR RUN OPERATION --- wipeAllData");
+            });
       }
     });
   }
