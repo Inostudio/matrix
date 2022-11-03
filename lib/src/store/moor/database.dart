@@ -5,6 +5,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import 'dart:developer';
+import 'dart:isolate';
+
 import 'package:drift/backends.dart';
 import 'package:drift/drift.dart';
 import 'package:matrix_sdk/matrix_sdk.dart';
@@ -172,12 +175,17 @@ class Database extends _$Database {
   Future<T?> runOperation<T>({
     required Future<T?> onRun,
     Function(dynamic, dynamic)? onError,
+    int attemptIndex = 1,
   }) {
     return _queue.add(() {
       try {
         return onRun;
       } catch (error, stack) {
         onError?.call(error, stack);
+        if (attemptIndex <= 3) {
+          attemptIndex++;
+          return runOperation(onRun: onRun, attemptIndex: attemptIndex);
+        }
         return Future.value(null);
       }
     });
