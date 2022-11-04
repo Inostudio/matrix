@@ -14,7 +14,6 @@ import 'package:matrix_sdk/matrix_sdk.dart';
 import 'dart:async';
 import '../../event/room/state/member_change_event.dart';
 import '../../event/room/state/request_type.dart';
-import '../../util/logger.dart';
 import '../../util/queue/dart_queue_base.dart';
 
 part 'database.g.dart';
@@ -184,24 +183,8 @@ class Database extends _$Database {
       } catch (error, stack) {
         onError?.call(error, stack);
         if (attemptIndex <= 3) {
-          Log.writer.log(
-            """
-    MATRIX DB REQUEST FAILED 
-    RE_STARTING
-    ATTEMPT $attemptIndex
-      """,
-          );
           attemptIndex++;
           return runOperation(onRun: onRun, attemptIndex: attemptIndex);
-        } else {
-          Log.writer.log(
-            """
-    MATRIX DB REQUEST FAILED 
-    MORE THAN 3 ATTEMPTS
-    GIVING UP :(
-      """,
-          );
-          debugger(message: "DB LOCKED ERROR");
         }
         return Future.value(null);
       }
@@ -218,8 +201,7 @@ class Database extends _$Database {
 
   Future<String?> getUserSyncToken() async {
     final query = select(myUsers);
-    final user = await runOperation(
-        onRun: query.getSingleOrNull(),
+    final user = await runOperation(onRun: query.getSingleOrNull(),
         onError: (error, stack) {
           print("ERROR RUN OPERATION --- getUserSyncToken");
         });
@@ -249,13 +231,12 @@ class Database extends _$Database {
       _selectUserWithDevice().getSingleOrNull();
 
   Future<void> setMyUser(MyUsersCompanion companion) async {
-    await runOperation(onRun: transaction(
-      () async {
-        await into(myUsers).insert(companion, mode: InsertMode.insertOrReplace);
-      },
-    ), onError: (error, stack) {
-      print("ERROR RUN OPERATION --- setMyUser");
-    });
+    await runOperation(onRun: batch((batch) {
+      batch.insert(myUsers, companion, mode: InsertMode.insertOrReplace);
+    }),
+        onError: (error, stack) {
+          print("ERROR RUN OPERATION --- setMyUser");
+        });
   }
 
   Selectable<RoomRecordWithStateRecords> selectRoomRecordsByIDs(
@@ -339,9 +320,7 @@ class Database extends _$Database {
     final query = selectOnly(rooms);
     query.addColumns([rooms.id]);
     final finQuery = query.map((row) => row.read(roomIDs));
-    final result = await runOperation(
-      onRun: finQuery.get(),
-    );
+    final result = await runOperation(onRun: finQuery.get(),);
     return result ?? [];
   }
 
@@ -401,23 +380,23 @@ class Database extends _$Database {
     ]);
     query.limit(limit, offset: offset);
 
-    final finQuery = query.map(
-      (r) => RoomRecordWithStateRecords(
-        roomRecord: r.readTable(rooms),
-        nameChangeRecord: r.readTableOrNull(nameChangeAlias),
-        avatarChangeRecord: r.readTableOrNull(avatarChangeAlias),
-        topicChangeRecord: r.readTableOrNull(topicChangeAlias),
-        powerLevelsChangeRecord: r.readTableOrNull(powerLevelsChangeAlias),
-        joinRulesChangeRecord: r.readTableOrNull(joinRulesChangeAlias),
-        canonicalAliasChangeRecord:
-            r.readTableOrNull(canonicalAliasChangeAlias),
-        creationRecord: r.readTableOrNull(creationAlias),
-        upgradeRecord: r.readTableOrNull(upgradeAlias),
-      ),
-    );
+    final finQuery = query
+        .map(
+          (r) => RoomRecordWithStateRecords(
+            roomRecord: r.readTable(rooms),
+            nameChangeRecord: r.readTableOrNull(nameChangeAlias),
+            avatarChangeRecord: r.readTableOrNull(avatarChangeAlias),
+            topicChangeRecord: r.readTableOrNull(topicChangeAlias),
+            powerLevelsChangeRecord: r.readTableOrNull(powerLevelsChangeAlias),
+            joinRulesChangeRecord: r.readTableOrNull(joinRulesChangeAlias),
+            canonicalAliasChangeRecord:
+                r.readTableOrNull(canonicalAliasChangeAlias),
+            creationRecord: r.readTableOrNull(creationAlias),
+            upgradeRecord: r.readTableOrNull(upgradeAlias),
+          ),
+        );
 
-    final result = await runOperation(
-        onRun: finQuery.get(),
+    final result = await runOperation(onRun: finQuery.get(),
         onError: (error, stack) {
           print("ERROR RUN OPERATION --- getRoomRecords");
         });
@@ -425,29 +404,28 @@ class Database extends _$Database {
   }
 
   Future<void> setRooms(List<RoomsCompanion> companions) async {
-    await runOperation(onRun: transaction(() async {
-      for (RoomsCompanion c in companions) {
-        await into(rooms).insert(c, onConflict: DoUpdate((_) => c));
-      }
-    }), onError: (error, stack) {
-      print("ERROR RUN OPERATION --- setRooms");
-    });
+    await runOperation(onRun: batch((batch) async {
+      batch.insertAllOnConflictUpdate(rooms, companions);
+    }),
+        onError: (error, stack) {
+          print("ERROR RUN OPERATION --- setRooms");
+        });
   }
 
   Future<void> setRoomsLatestMessages(Map<String, int> data) async {
-    await runOperation(onRun: transaction(() async {
-      for (String key in data.keys) {
-        final value = data[key];
-        if (value != null) {
-          await (update(rooms)..where((t) => t.id.like(key)))
-              .write(RoomsCompanion(
-            lastMessageTimeInterval: Value(value),
-          ));
-        }
-      }
-    }), onError: (error, stack) {
-      print("ERROR RUN OPERATION --- setRoomsLatestMessages");
-    });
+    await runOperation(onRun: batch((batch) async {
+      data.forEach((key, value) {
+        batch.update<$RoomsTable, RoomRecord>(
+            rooms,
+            RoomsCompanion(
+              lastMessageTimeInterval: Value(value),
+            ),
+            where: (t) => t.id.like(key));
+      });
+    }),
+        onError: (error, stack) {
+          print("ERROR RUN OPERATION --- setRoomsLatestMessages");
+        });
   }
 
   Future<Iterable<RoomEventRecord>> getRoomEventRecordsWithIDs(
@@ -498,8 +476,8 @@ class Database extends _$Database {
       return RoomEventRecord.fromData(row.data);
     });
 
-    final result = await runOperation(
-        onRun: finQuery.get(),
+
+    final result = await runOperation(onRun: finQuery.get(),
         onError: (error, stack) {
           print("ERROR RUN OPERATION --- getRoomEventRecordsWithIDs");
         });
@@ -512,17 +490,15 @@ class Database extends _$Database {
     int? count,
   }) async {
     final query = select(roomEvents)
-      ..where(
-        (tbl) =>
-            tbl.roomId.isIn(roomIds) &
-            tbl.type.equals(MemberChangeEvent.matrixType) &
-            (tbl.senderId.isIn(userIds) | tbl.stateKey.isIn(userIds)),
-      );
-    final result = await runOperation(
-        onRun: query.get(),
+          ..where(
+            (tbl) =>
+                tbl.roomId.isIn(roomIds) &
+                tbl.type.equals(MemberChangeEvent.matrixType) &
+                (tbl.senderId.isIn(userIds) | tbl.stateKey.isIn(userIds)),
+          );
+    final result = await runOperation(onRun: query.get(),
         onError: (error, stack) {
-          print(
-              "ERROR RUN OPERATION --- getMemberEventRecordsOfSendersWithIds");
+          print("ERROR RUN OPERATION --- getMemberEventRecordsOfSendersWithIds");
         });
     return result ?? [];
   }
@@ -555,8 +531,8 @@ class Database extends _$Database {
       return EphemeralEventRecord.fromData(row.data);
     });
 
-    final result = await runOperation(
-        onRun: finQuery.get(),
+
+    final result = await runOperation(onRun: finQuery.get(),
         onError: (error, stack) {
           print("ERROR RUN OPERATION --- getEphemeralEventRecordsWithIds");
         });
@@ -596,8 +572,7 @@ class Database extends _$Database {
       query.limit(count);
     }
 
-    final result = await runOperation(
-        onRun: query.get(),
+    final result = await runOperation(onRun: query.get(),
         onError: (error, stack) {
           print("ERROR RUN OPERATION --- getRoomEventRecords");
         });
@@ -605,22 +580,23 @@ class Database extends _$Database {
   }
 
   Future<void> setRoomEventRecords(List<RoomEventRecord> records) async {
-    await runOperation(onRun: transaction(() async {
-      for (RoomEventRecord r in records) {
-        await into(roomEvents).insert(
-          r,
-          mode: InsertMode.insertOrReplace,
-        );
-      }
-
-      //Delete fake local events
-      await (delete(roomEvents)
-        ..where((tbl) => tbl.id.isIn(records
-            .map((r) => r.transactionId)
-            .where((txnId) => txnId != null)))).go();
-    }), onError: (error, stack) {
-      print("ERROR RUN OPERATION --- setRoomEventRecords");
-    });
+    await runOperation(onRun: batch((batch) async {
+      batch.insertAll(
+        roomEvents,
+        records,
+        mode: InsertMode.insertOrReplace,
+      );
+      batch.deleteWhere<$RoomEventsTable, RoomEventRecord>(
+        roomEvents,
+        (tbl) => tbl.id.isIn(
+          records.map((r) => r.transactionId).where((txnId) => txnId != null),
+        ),
+      );
+    }
+    ),
+        onError: (error, stack) {
+          print("ERROR RUN OPERATION --- setRoomEventRecords");
+        });
   }
 
   /// Get the MemberChangeEvents for each user.
@@ -629,14 +605,13 @@ class Database extends _$Database {
     Iterable<String> userIds,
   ) async {
     final query = select(roomEvents)
-      ..where(
-        (tbl) =>
-            tbl.roomId.equals(roomId) &
-            tbl.type.equals(MemberChangeEvent.matrixType) &
-            (tbl.senderId.isIn(userIds) | tbl.stateKey.isIn(userIds)),
-      );
-    final result = await runOperation(
-        onRun: query.get(),
+          ..where(
+            (tbl) =>
+                tbl.roomId.equals(roomId) &
+                tbl.type.equals(MemberChangeEvent.matrixType) &
+                (tbl.senderId.isIn(userIds) | tbl.stateKey.isIn(userIds)),
+          );
+    final result = await runOperation(onRun: query.get(),
         onError: (error, stack) {
           print("ERROR RUN OPERATION --- getMemberEventRecordsOfSenders");
         });
@@ -650,8 +625,7 @@ class Database extends _$Database {
       ..where(
         (tbl) => tbl.roomId.equals(roomId),
       );
-    final result = await runOperation(
-        onRun: query.get(),
+    final result = await runOperation(onRun: query.get(),
         onError: (error, stack) {
           print("ERROR RUN OPERATION --- getEphemeralEventRecords");
         });
@@ -661,41 +635,47 @@ class Database extends _$Database {
   Future<void> setEphemeralEventRecords(
     List<EphemeralEventRecord> records,
   ) async {
-    await runOperation(onRun: transaction(() async {
-      for (EphemeralEventRecord r in records) {
-        await into(ephemeralEvents).insert(r, onConflict: DoUpdate((_) => r));
-      }
-    }), onError: (error, stack) {
-      print("ERROR RUN OPERATION --- getEphemeralEventRecords");
-    });
+    await runOperation(onRun: batch((batch) async {
+      batch.insertAllOnConflictUpdate(
+        ephemeralEvents,
+        records,
+      );
+    }),
+        onError: (error, stack) {
+          print("ERROR RUN OPERATION --- getEphemeralEventRecords");
+        });
   }
 
   Future<void> setDeviceRecords(List<DevicesCompanion> companions) async {
-    await runOperation(onRun: transaction(() async {
-      for (DevicesCompanion d in companions) {
-        await into(devices).insert(d, onConflict: DoUpdate((_) => d));
-      }
-    }), onError: (error, stack) {
-      print("ERROR RUN OPERATION --- setDeviceRecords");
-    });
+    await runOperation(onRun: batch((batch) async {
+      batch.insertAllOnConflictUpdate(
+        devices,
+        companions,
+      );
+    }),
+        onError: (error, stack) {
+          print("ERROR RUN OPERATION --- setDeviceRecords");
+        });
   }
 
   Future<void> deleteInviteStates(List<String> roomIds) async {
-    await runOperation(onRun: transaction(() async {
+    await runOperation(onRun: batch((batch) async {
       for (final roomId in roomIds) {
-        await (delete(roomEvents)..where((tbl) => tbl.id.isIn(['$roomId:%'])))
-            .go();
+        batch.deleteWhere<$RoomEventsTable, RoomEventRecord>(
+          roomEvents,
+          (tbl) => tbl.id.isIn(['$roomId:%']),
+        );
       }
-    }), onError: (error, stack) {
-      print("ERROR RUN OPERATION --- deleteInviteStates");
-    });
+    }),
+        onError: (error, stack) {
+          print("ERROR RUN OPERATION --- deleteInviteStates");
+        });
   }
 
   Future<void> wipeAllData() {
     return transaction(() async {
       for (final table in allTables) {
-        await runOperation(
-            onRun: delete(table).go(),
+        await runOperation(onRun: delete(table).go(),
             onError: (error, stack) {
               print("ERROR RUN OPERATION --- wipeAllData");
             });
