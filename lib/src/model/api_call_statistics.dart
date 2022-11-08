@@ -9,6 +9,7 @@ class ApiCallStatistics {
   final int responseStatusCode;
   final int bytesSend;
   final int bytesReceived;
+  final String responseText;
 
   const ApiCallStatistics({
     required this.method,
@@ -18,6 +19,7 @@ class ApiCallStatistics {
     required this.responseStatusCode,
     required this.bytesSend,
     required this.bytesReceived,
+    required this.responseText,
   });
 
   Map<String, dynamic> toJson() {
@@ -29,6 +31,7 @@ class ApiCallStatistics {
       "response_code": responseStatusCode,
       "bytes_send": bytesSend,
       "bytes_received": bytesReceived,
+      "response_text": responseText,
     };
   }
 }
