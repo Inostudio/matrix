@@ -773,6 +773,7 @@ extension on Sink<ApiCallStatistics> {
       responseStatusCode: response.statusCode,
       bytesSend: request?.contentLength ?? 0,
       bytesReceived: response.bodyBytes.length,
+      responseText: response.bodyString,
     ));
   }
 }
