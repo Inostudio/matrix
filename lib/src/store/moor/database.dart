@@ -98,6 +98,7 @@ class Rooms extends Table {
 class RoomEvents extends Table {
   TextColumn get id => text()();
 
+  //TODO now id and networkId is duplicated. If work stable - remove networkId
   TextColumn get networkId => text()();
 
   TextColumn get type => text()();
