@@ -894,14 +894,6 @@ class MoorStoreFileLocation extends MoorStoreLocation {
   MoorStore create() => MoorStore(NativeDatabase(file));
 }
 
-/// TODO: Move to dart:io only file/library
-class MoorStoreMemoryLocation extends MoorStoreLocation {
-  MoorStoreMemoryLocation();
-
-  @override
-  MoorStore create() => MoorStore(NativeDatabase.memory());
-}
-
 extension on DeviceRecord {
   Device toDevice() {
     return Device(
