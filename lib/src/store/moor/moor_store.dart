@@ -894,14 +894,6 @@ class MoorStoreFileLocation extends MoorStoreLocation {
   MoorStore create() => MoorStore(NativeDatabase(file));
 }
 
-/// TODO: Move to dart:io only file/library
-class MoorStoreMemoryLocation extends MoorStoreLocation {
-  MoorStoreMemoryLocation();
-
-  @override
-  MoorStore create() => MoorStore(NativeDatabase.memory());
-}
-
 extension on DeviceRecord {
   Device toDevice() {
     return Device(
@@ -1004,7 +996,7 @@ extension on RoomEvent {
 
     return RoomEventRecord(
       id: storedId,
-      networkId: id.value,
+      networkId: networkId,
       type: type,
       roomId: roomId.toString(),
       senderId: senderId.toString(),
@@ -1020,14 +1012,16 @@ extension on RoomEvent {
   }
 
   String get storedId {
-    var id = this.id.toString();
-
-    if (this is StateEvent) {
-      final it = this as StateEvent;
-      id = '$roomId:$runtimeType:${it.stateKey}';
-    }
-
-    return id;
+    //    var id = this.id.toString();
+    //
+    //     if (this is StateEvent) {
+    //       final it = this as StateEvent;
+    //       id = '$roomId:$runtimeType:${it.stateKey}';
+    //     }
+    //
+    //     return id;
+    //TODO if stable remove and use everywhere id.value on next update
+    return id.value;
   }
 }
 
