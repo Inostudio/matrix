@@ -16,6 +16,7 @@ abstract class MatrixUser with Identifiable<UserId> {
   UserId get id;
 
   String? get name;
+
   Uri? get avatarUrl;
 
   @override

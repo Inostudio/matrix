@@ -7,10 +7,8 @@
 import 'package:quiver/core.dart';
 
 import '../../event/room/state/member_change_event.dart';
-
 import '../../model/identifier.dart';
 import '../../model/matrix_user.dart';
-
 import 'membership.dart';
 
 /// A user that's a member of a certain room.
@@ -22,6 +20,7 @@ class Member extends MatrixUser {
   UserId get id => event.subjectId;
 
   RoomId? get roomId => event.roomId;
+
   DateTime? get since => event.time;
 
   Membership? get membership => event.content?.membership;
@@ -52,4 +51,9 @@ class Member extends MatrixUser {
 
   @override
   int get hashCode => hashObjects([super.hashCode, event]);
+
+  @override
+  String toString() {
+    return 'Member{event: $event, roomId $roomId, name: $name}';
+  }
 }

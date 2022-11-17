@@ -168,6 +168,13 @@ class Receipt {
 
   @override
   int get hashCode => userId.hashCode + eventId.hashCode + time.hashCode;
+
+  @override
+  String toString() {
+    return 'Receipt{type: $type, userId: $userId, eventId: $eventId, time: $time}';
+  }
+
+
 }
 
 @immutable
