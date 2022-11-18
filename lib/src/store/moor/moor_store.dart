@@ -891,7 +891,12 @@ class MoorStoreFileLocation extends MoorStoreLocation {
   MoorStoreFileLocation(this.file);
 
   @override
-  MoorStore create() => MoorStore(NativeDatabase(file));
+  MoorStore create() => MoorStore(
+        NativeDatabase(
+          file,
+          setup: (rawDb) => rawDb.execute('PRAGMA journal_mode=WAL;'),
+        ),
+      );
 }
 
 extension on DeviceRecord {

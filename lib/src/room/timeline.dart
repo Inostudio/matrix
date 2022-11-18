@@ -7,13 +7,13 @@
 import 'package:collection/collection.dart';
 import 'package:matrix_sdk/src/model/request_update.dart';
 
-import '../model/context.dart';
-import '../event/room/room_event.dart';
-import '../model/identifier.dart';
-import 'room.dart';
-import '../model/my_user.dart';
 import '../event/event.dart';
 import '../event/room/raw_room_event.dart';
+import '../event/room/room_event.dart';
+import '../model/context.dart';
+import '../model/identifier.dart';
+import '../model/my_user.dart';
+import 'room.dart';
 
 class Timeline extends DelegatingIterable<RoomEvent>
     implements Contextual<Timeline> {
@@ -138,19 +138,24 @@ class Timeline extends DelegatingIterable<RoomEvent>
       return this;
     }
 
+    final currSet = toSet();
+    final otherSet = other.toSet();
+
+    final differenceCurr = currSet.difference(otherSet);
+
+    final result = List<RoomEvent>.from(
+      differenceCurr..addAll(other),
+      growable: true,
+    ).sorted((first, second) {
+      if (first.time == null || second.time == null) {
+        return 0;
+      } else {
+        return first.time!.isAfter(second.time!) ? 1 : -1;
+      }
+    });
+
     return copyWith(
-      events: [
-        ...where(
-          (event) => !other.any(
-            (otherEvent) =>
-                otherEvent.equals(event) ||
-                (event.transactionId != null &&
-                    otherEvent.transactionId != null &&
-                    event.transactionId == otherEvent.transactionId),
-          ),
-        ),
-        ...other,
-      ],
+      events: result,
       context: other.context,
       previousBatch: other.previousBatch,
       startBatch: other.startBatch,
