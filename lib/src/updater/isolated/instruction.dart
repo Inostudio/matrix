@@ -163,7 +163,10 @@ class OneRoomSyncInstruction extends OneRoomInstruction<Room> {
   });
 }
 
-class CloseRoomSync extends Instruction<Room> {}
+class CloseRoomSync extends Instruction<Room> {
+  @override
+  bool get expectsReturnValue => false;
+}
 
 class EditTextEventInstruction extends RequestInstruction<Timeline> {
   final RoomId roomId;
