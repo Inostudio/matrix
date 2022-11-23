@@ -7,11 +7,11 @@
 import 'dart:async';
 import 'dart:isolate';
 
+import 'package:matrix_sdk/src/event/ephemeral/ephemeral_event.dart';
 import 'package:matrix_sdk/src/event/room/message_event.dart';
 import 'package:matrix_sdk/src/model/sync_token.dart';
 import 'package:matrix_sdk/src/updater/isolated/iso_storage_sync.dart';
 
-import '../../event/ephemeral/ephemeral.dart';
 import '../../event/event.dart';
 import '../../homeserver.dart';
 import '../../model/models.dart';
@@ -424,7 +424,7 @@ class IsolatedUpdater extends Updater {
       );
 
   @override
-  Future<RequestUpdate<Ephemeral>?> setIsTyping({
+  Future<RequestUpdate<EphemeralEventFull>?> setIsTyping({
     required RoomId roomId,
     bool isTyping = false,
     Duration timeout = const Duration(seconds: 30),

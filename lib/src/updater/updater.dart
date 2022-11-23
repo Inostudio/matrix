@@ -16,8 +16,7 @@ import 'package:matrix_sdk/src/updater/syncer.dart';
 import 'package:mime/mime.dart';
 import 'package:synchronized/synchronized.dart';
 
-import '../event/ephemeral/ephemeral.dart';
-import '../event/ephemeral/typing_event.dart';
+import '../event/ephemeral/ephemeral_event.dart';
 import '../event/event.dart';
 import '../event/room/message_event.dart';
 import '../event/room/redaction_event.dart';
@@ -760,7 +759,7 @@ class Updater {
     );
   }
 
-  Future<RequestUpdate<Ephemeral>?> setIsTyping({
+  Future<RequestUpdate<EphemeralEventFull>?> setIsTyping({
     required RoomId roomId,
     required bool isTyping,
     Duration timeout = const Duration(seconds: 30),
@@ -779,19 +778,20 @@ class Updater {
       return null;
     } else {
       return RequestUpdate.fromUpdate(
-        await updates.firstWhere((u) {
-          final containsMe = u.delta.rooms?[roomId]?.ephemeral
-              ?.get<TypingEvent>()
-              .content
-              ?.typerIds
-              .contains(_user.id);
+        await updates.firstWhere(
+          (u) {
+            final containsMe = u
+                .delta.rooms?[roomId]?.ephemeral?.typingEvents.content?.typerIds
+                .whereNotNull()
+                .contains(_user.id);
 
-          return containsMe == null
-              ? false
-              : isTyping
-                  ? containsMe
-                  : !containsMe;
-        }),
+            return containsMe == null
+                ? false
+                : isTyping
+                    ? containsMe
+                    : !containsMe;
+          },
+        ),
         data: (u) => u.rooms?[roomId]?.ephemeral!,
         deltaData: (u) => u.rooms?[roomId]?.ephemeral,
         type: RequestType.setIsTyping,

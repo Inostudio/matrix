@@ -22,7 +22,7 @@ class ReceiptEvent extends EphemeralEvent {
   ReceiptEvent({
     RoomId? roomId,
     this.content,
-  }) : super(roomId);
+  }) : super(roomId: roomId);
 
   @override
   final Receipts? content;
@@ -37,7 +37,7 @@ class ReceiptEvent extends EphemeralEvent {
     );
   }
 
-  ReceiptEvent? merge(ReceiptEvent? other) {
+  ReceiptEvent merge(ReceiptEvent? other) {
     if (other == null) {
       return this;
     }
@@ -89,7 +89,6 @@ class Receipts extends EventContent {
         }
       }
     }
-
     return Receipts(receipts);
   }
 
@@ -173,8 +172,6 @@ class Receipt {
   String toString() {
     return 'Receipt{type: $type, userId: $userId, eventId: $eventId, time: $time}';
   }
-
-
 }
 
 @immutable
