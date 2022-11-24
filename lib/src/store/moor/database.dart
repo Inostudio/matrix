@@ -13,7 +13,6 @@ import 'package:matrix_sdk/matrix_sdk.dart';
 import 'package:matrix_sdk/src/util/logger.dart';
 import 'package:synchronized/synchronized.dart';
 
-import '../../event/room/state/member_change_event.dart';
 import '../../event/room/state/request_type.dart';
 
 part 'database.g.dart';
@@ -130,15 +129,27 @@ class RoomEvents extends Table {
 
 @DataClassName('EphemeralEventRecord')
 class EphemeralEvents extends Table {
-  TextColumn get type => text()();
-
   TextColumn get roomId =>
       text().customConstraint('REFERENCES room_events(id)')();
 
-  TextColumn get content => text().nullable()();
+  TextColumn get typing => text().nullable()();
 
   @override
-  Set<Column> get primaryKey => {type, roomId};
+  Set<Column> get primaryKey => {roomId};
+}
+
+@DataClassName('EphemeralReceiptEventRecord')
+class EphemeralReceiptEvent extends Table {
+  TextColumn get roomId => text()();
+
+  TextColumn get userId => text()();
+
+  TextColumn get eventId => text()();
+
+  IntColumn get timeStamp => integer()();
+
+  @override
+  Set<Column> get primaryKey => {roomId, userId};
 }
 
 @DataClassName('DeviceRecord')
@@ -204,10 +215,27 @@ class Database extends _$Database {
   }
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration {
+    runOperation(
+      onRun: () async {
+        final user = await select(myUsers).getSingleOrNull();
+
+        if (user != null) {
+          final emptyUser = user.copyWith(syncToken: null);
+          await batch(
+            (batch) => batch.insert(
+              myUsers,
+              emptyUser.toCompanion(true),
+              mode: InsertMode.insertOrReplace,
+            ),
+          );
+        }
+      },
+      operationName: "WipeUserTokenMigration",
+    );
     return destructiveFallback;
   }
 
@@ -528,19 +556,23 @@ class Database extends _$Database {
     return result ?? [];
   }
 
-  Future<Iterable<EphemeralEventRecord>> getEphemeralEventRecordsWithIds({
+  Future<Iterable<EphemeralEventTransition>> getEphemeralEventRecordsWithIds({
     required List<String> roomIds,
     int? count,
   }) async {
-    final roomsList = roomIds.map((e) => "\'$e\'").join(", ");
+    final result = await runOperation(
+      operationName: "getEphemeralEventRecordsWithIds",
+      onRun: () async {
+        final List<EphemeralEventTransition> result = [];
+        final roomsList = roomIds.map((e) => "\'$e\'").join(", ");
 
-    String whereClause = "room_id = rv1.room_id";
-    if (roomIds.isNotEmpty) {
-      whereClause += " AND room_id IN ($roomsList)";
-    }
+        String whereClause = "room_id = rv1.room_id";
+        if (roomIds.isNotEmpty) {
+          whereClause += " AND room_id IN ($roomsList)";
+        }
 
-    final query = customSelect(
-      """select  *
+        final query = customSelect(
+          """select  *
         from ephemeral_events rv1
         where room_id in
         (
@@ -549,18 +581,35 @@ class Database extends _$Database {
         where $whereClause
         ${count == null ? '' : 'limit $count'}
         )""",
-      readsFrom: {ephemeralEvents},
+          readsFrom: {ephemeralEvents},
+        );
+
+        final typingQuery = query.map((row) {
+          return EphemeralEventRecord.fromData(row.data);
+        });
+
+        final typing = await typingQuery.get();
+
+        final recordQuery = select(ephemeralReceiptEvent)
+          ..where(
+            (tbl) => tbl.roomId.isIn(roomIds),
+          );
+
+        final readEvents = await recordQuery.get();
+
+        for (final id in roomIds) {
+          final buf = EphemeralEventTransition(
+            roomId: RoomId(id),
+            readEvents: readEvents.where((e) => e.roomId == id).toList(),
+            typing: typing.where((e) => e.roomId == id).toList(),
+          );
+          result.add(buf);
+        }
+
+        return result;
+      },
+      onError: (error) => showError("getEphemeralEventRecordsWithIds", error),
     );
-
-    final finQuery = query.map((row) {
-      return EphemeralEventRecord.fromData(row.data);
-    });
-
-    final result = await runOperation(
-        operationName: "getEphemeralEventRecordsWithIds",
-        onRun: finQuery.get,
-        onError: (error) =>
-            showError("getEphemeralEventRecordsWithIds", error));
     return result ?? [];
   }
 
@@ -646,16 +695,30 @@ class Database extends _$Database {
     return result ?? [];
   }
 
-  Future<Iterable<EphemeralEventRecord>> getEphemeralEventRecords(
+  Future<EphemeralEventTransition> getEphemeralEventRecords(
     String roomId,
   ) async {
-    final query = select(ephemeralEvents)
-      ..where(
-        (tbl) => tbl.roomId.equals(roomId),
-      );
     final result = await runOperation(
       operationName: "getEphemeralEventRecords",
-      onRun: query.get,
+      onRun: () async {
+        final typingQuery = select(ephemeralEvents)
+          ..where(
+            (tbl) => tbl.roomId.equals(roomId),
+          );
+
+        final typing = await typingQuery.get();
+        final recordQuery = select(ephemeralReceiptEvent)
+          ..where(
+            (tbl) => tbl.roomId.equals(roomId),
+          );
+        final record = await recordQuery.get();
+
+        return EphemeralEventTransition(
+          roomId: RoomId(roomId),
+          typing: typing,
+          readEvents: record,
+        );
+      },
       onError: (error) => showError("getEphemeralEventRecords", error),
     );
     return result ?? [];
@@ -674,6 +737,21 @@ class Database extends _$Database {
         }),
         onError: (error) => showError("setEphemeralEventRecords", error),
       );
+
+  Future<void> setEphemeralReceiveEventRecords(
+    List<EphemeralReceiptEventRecord> records,
+  ) async {
+    return runOperation(
+      operationName: "setEphemeralReceiveEventRecords",
+      onRun: () => batch((batch) async {
+        batch.insertAllOnConflictUpdate(
+          ephemeralReceiptEvent,
+          records,
+        );
+      }),
+      onError: (error) => showError("setEphemeralReceiveEventRecords", error),
+    );
+  }
 
   Future<void> setDeviceRecords(List<DevicesCompanion> companions) async =>
       runOperation(
@@ -751,5 +829,17 @@ class RoomRecordWithStateRecords {
     required this.canonicalAliasChangeRecord,
     required this.creationRecord,
     required this.upgradeRecord,
+  });
+}
+
+class EphemeralEventTransition {
+  final RoomId roomId;
+  final List<EphemeralReceiptEventRecord> readEvents;
+  final List<EphemeralEventRecord> typing;
+
+  const EphemeralEventTransition({
+    required this.roomId,
+    required this.readEvents,
+    required this.typing,
   });
 }
