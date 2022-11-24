@@ -185,7 +185,7 @@ class Database extends _$Database {
     driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   }
 
-  Future<T?> runOperation<T>({
+  Future<T> runOperation<T>({
     required Function onRun,
     Function(String)? onError,
     required String operationName,
@@ -268,7 +268,7 @@ class Database extends _$Database {
   Stream<MyUserRecordWithDeviceRecord?> getUserSync() =>
       _selectUserWithDevice().watchSingleOrNull();
 
-  Future<MyUserRecordWithDeviceRecord?> getMyUserRecord() => runOperation(
+  Future<MyUserRecordWithDeviceRecord> getMyUserRecord() => runOperation(
         operationName: "getMyUserRecord",
         onRun: _selectUserWithDevice().getSingleOrNull,
         onError: (error) => showError("getMyUserRecord", error),
@@ -356,13 +356,11 @@ class Database extends _$Database {
 
   Future<List<RoomRecordWithStateRecords>> getRoomRecordsByIDs(
     Iterable<String>? roomIds,
-  ) async =>
-      await runOperation(
+  ) async => runOperation(
         onRun: () => selectRoomRecordsByIDs(roomIds).get(),
         onError: (error) => showError("getRoomRecordsByIDs", error),
         operationName: "getRoomRecordsByIDs",
-      ) ??
-      [];
+      );
 
   Future<List<String?>> getRoomIDs() async {
     final roomIDs = rooms.id;

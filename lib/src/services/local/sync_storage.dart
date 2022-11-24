@@ -108,7 +108,7 @@ class SyncStorage implements BaseSyncStorage {
   Future<String?> getToken() async => store.getToken();
 
   @override
-  Future<MyUser?> getMyUser({
+  Future<MyUser> getMyUser({
     List<RoomId>? roomIds,
     int timelineLimit = 100,
   }) async =>

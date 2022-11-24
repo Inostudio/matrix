@@ -91,6 +91,8 @@ class Updater {
 
   bool get isReady => _syncStorage.isReady() && !_updatesSubject.isClosed;
 
+  final bool initSyncStorage;
+
   /// Initializes the [myUser] with a valid [Context], and will also
   /// initialize it's properties that need the context, such as [Rooms].
   ///
@@ -99,7 +101,7 @@ class Updater {
     this._user,
     this.homeServer,
     StoreLocation storeLocation, {
-    bool initSyncStorage = false,
+    this.initSyncStorage = false,
   }) {
     Updater.register(_user.id, this);
     _initHomeServer();
@@ -215,7 +217,7 @@ class Updater {
     );
 
     return _createUpdate(
-      _user.delta(name: name)!,
+      _user.delta(name: name),
       (user, delta) => RequestUpdate(
         user,
         delta,
@@ -232,7 +234,7 @@ class Updater {
   }) async {
     if (_user.rooms?[from]?.members?[id]?.membership == Membership.kicked) {
       return RequestUpdate.fromUpdate(
-        await updates.first,
+        await _getRelevantUpdate(),
         data: (u) => u.rooms?[from]?.memberTimeline,
         deltaData: (u) => u.rooms?[from]?.memberTimeline,
         type: RequestType.kick,
@@ -246,8 +248,8 @@ class Updater {
     );
 
     return RequestUpdate.fromUpdate(
-      await updates.firstWhere(
-        (u) =>
+      await _getRelevantUpdate(
+        firstWhere: (u) =>
             u.delta.rooms?[from]?.members?.current.kicked.any(
               (m) => m.id == id,
             ) ??
@@ -309,7 +311,7 @@ class Updater {
     }
 
     yield await _createUpdate(
-      _user.delta(rooms: [roomDelta])!,
+      _user.delta(rooms: [roomDelta]),
       (user, delta) => RequestUpdate(
         user,
         delta,
@@ -409,7 +411,7 @@ class Updater {
     }
 
     yield await _createUpdate(
-      _user.delta(rooms: [roomDelta])!,
+      _user.delta(rooms: [roomDelta]),
       (user, delta) => RequestUpdate(
         user,
         delta,
@@ -447,7 +449,7 @@ class Updater {
     final relevantUpdate = await updates.cast<Update?>().firstWhere(
             (update) => update?.delta.rooms?[roomId] != null,
             orElse: () => null) ??
-        await updates.first;
+        await _getRelevantUpdate();
 
     return _createUpdate(
       relevantUpdate.delta,
@@ -495,7 +497,7 @@ class Updater {
                   true,
               orElse: () => null,
             ) ??
-        await updates.first;
+        await _getRelevantUpdate();
 
     return _createUpdate(
       relevantUpdate.delta,
@@ -527,7 +529,7 @@ class Updater {
 
       if (isReadAlready) {
         return RequestUpdate.fromUpdate(
-          await updates.first,
+          await _getRelevantUpdate(),
           data: (u) => u.rooms?[roomId]?.readReceipts,
           deltaData: (u) => u.rooms?[roomId]?.readReceipts,
           type: RequestType.markRead,
@@ -542,22 +544,8 @@ class Updater {
       read: receipt ? until.toString() : null,
     );
 
-    final relevantUpdate = await updates.first;
-
-    //TODO: firstWhere doesn't work good with streams :(
-    //Would be great to return this code in future, but let's remove it for now
-//    final relevantUpdate = receipt
-//        ? await updates.firstWhere(
-//          (update) =>
-//      update.delta.rooms?[roomId]?.readReceipts.any(
-//            (receipt) => receipt.eventId == until,
-//      ) ??
-//          false,
-//    )
-//        : await updates.first;
-
     return RequestUpdate.fromUpdate(
-      relevantUpdate,
+      await _getRelevantUpdate(),
       data: (u) => u.rooms?[roomId]?.readReceipts,
       deltaData: (u) => u.rooms?[roomId]?.readReceipts,
       type: RequestType.markRead,
@@ -569,7 +557,7 @@ class Updater {
     await _networkService.logout(accessToken: _user.accessToken!);
 
     final update = await _createUpdate(
-      _user.delta(isLoggedOut: true)!,
+      _user.delta(isLoggedOut: true),
       (user, delta) => RequestUpdate(
         user,
         delta,
@@ -606,7 +594,7 @@ class Updater {
     );
 
     return _createUpdate(
-      _user.delta(rooms: rooms)!,
+      _user.delta(rooms: rooms),
       (user, delta) => RequestUpdate(
         user,
         delta,
@@ -632,7 +620,7 @@ class Updater {
 
     final update = RequestUpdate(
       _user,
-      _user.delta(rooms: rooms)!,
+      _user.delta(rooms: rooms),
       data: Rooms(rooms, context: _user.context),
       deltaData: Rooms(rooms, context: _user.context),
       type: RequestType.loadRooms,
@@ -689,7 +677,7 @@ class Updater {
     );
 
     return _createUpdate(
-      _user.delta(rooms: [newRoom])!,
+      _user.delta(rooms: [newRoom]),
       withSaveInStore: true,
       (user, delta) => RequestUpdate(user, delta,
           data: user.rooms?[newRoom.id]?.timeline,
@@ -748,7 +736,7 @@ class Updater {
     );
 
     return _createUpdate(
-      _user.delta(rooms: [newRoom])!,
+      _user.delta(rooms: [newRoom]),
       (user, delta) => RequestUpdate(
         user,
         delta,
@@ -778,13 +766,12 @@ class Updater {
       return null;
     } else {
       return RequestUpdate.fromUpdate(
-        await updates.firstWhere(
-          (u) {
+        await _getRelevantUpdate(
+          firstWhere: (u) {
             final containsMe = u
                 .delta.rooms?[roomId]?.ephemeral?.typingEvents.content?.typerIds
                 .whereNotNull()
                 .contains(_user.id);
-
             return containsMe == null
                 ? false
                 : isTyping
@@ -813,8 +800,9 @@ class Updater {
     final roomId = RoomId(body['room_id']);
 
     return RequestUpdate.fromUpdate(
-      await updates.firstWhere(
-        (u) => u.user.rooms?[roomId]?.me?.membership == Membership.joined,
+      await _getRelevantUpdate(
+        firstWhere: (u) =>
+            u.user.rooms?[roomId]?.me?.membership == Membership.joined,
       ),
       data: (u) => u.rooms?[roomId],
       deltaData: (u) => u.rooms?[roomId],
@@ -829,8 +817,8 @@ class Updater {
     );
 
     return RequestUpdate.fromUpdate(
-      await updates.firstWhere(
-        (u) => u.delta.rooms?[id]?.me?.hasLeft ?? false,
+      await _getRelevantUpdate(
+        firstWhere: (u) => u.delta.rooms?[id]?.me?.hasLeft ?? false,
       ),
       data: (u) => u.rooms?[id],
       deltaData: (u) => u.rooms?[id],
@@ -867,9 +855,35 @@ class Updater {
           syncToken: body['next_batch'],
           rooms: roomDeltas,
           hasSynced: !(_user.hasSynced ?? false) ? true : null,
-        )!,
+        ),
         SyncUpdate.new,
         withSaveInStore: true,
+      );
+    }
+  }
+
+  ///Get last update
+  ///if store is synchronized return last from [update]
+  ///else - perform request to db
+  Future<Update> _getRelevantUpdate({
+    Function(Update)? firstWhere,
+  }) async {
+    if (initSyncStorage) {
+      return firstWhere == null
+          ? updates.first
+          : updates.firstWhere((e) => firstWhere(e));
+    } else {
+      final update = await _syncStorage.getMyUser();
+      return _createUpdate(
+        update,
+        (user, delta) => RequestUpdate(
+          user,
+          delta,
+          data: user,
+          deltaData: delta,
+          type: RequestType.logout,
+          basedOnUpdate: true,
+        ),
       );
     }
   }
