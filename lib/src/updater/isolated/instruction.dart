@@ -38,6 +38,16 @@ class RunSyncOnceInstruction extends StorageSyncInstruction<SyncToken> {
 
 class StopSyncInstruction extends StorageSyncInstruction<void> {}
 
+class CloseRoomSync extends StorageSyncInstruction<bool> {
+  final String roomId;
+
+  CloseRoomSync({
+    required this.roomId,
+  });
+}
+
+class CloseAllRoomsSync extends StorageSyncInstruction<bool> {}
+
 class GetRoomIDsInstruction extends Instruction<List<String?>> {}
 
 class GetRoomInstruction extends Instruction<Room> {
@@ -161,11 +171,6 @@ class OneRoomSyncInstruction extends OneRoomInstruction<Room> {
     this.context,
     this.userId,
   });
-}
-
-class CloseRoomSync extends Instruction<Room> {
-  @override
-  bool get expectsReturnValue => false;
 }
 
 class EditTextEventInstruction extends RequestInstruction<Timeline> {

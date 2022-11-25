@@ -217,26 +217,38 @@ class MatrixClient {
   }
 
   Stream<Room> getRoomSync(String roomId) async* {
-    await stopOneRoomSync();
+    await stopAllRoomSync();
     if (isLocal == true && _localUpdater != null) {
       yield* _localUpdater!.startRoomSync(roomId);
     } else if (isLocal == false && _updater != null) {
       yield* _updater!.startRoomSync(roomId);
     } else {
       throw Exception(
-        "Cant handle room close isLocal: $isLocal updater: $_updater, _localUpdater: $_localUpdater,",
+        "Cant handle get room sync isLocal: $isLocal updater: $_updater, _localUpdater: $_localUpdater,",
       );
     }
   }
 
-  Future<void> stopOneRoomSync() async {
+  Future<bool> stopOneRoomSync(String roomId) async {
     if (isLocal == true && _localUpdater != null) {
-      return _localUpdater!.closeRoomSync();
+      return _localUpdater!.closeRoomSync(roomId);
     } else if (isLocal == false && _updater != null) {
-      return _updater!.closeRoomSync();
+      return _updater!.closeRoomSync(roomId);
     } else {
       throw Exception(
         "Cant handle room close: isLocal: $isLocal updater: $_updater, _localUpdater: $_localUpdater,",
+      );
+    }
+  }
+
+  Future<bool> stopAllRoomSync() async {
+    if (isLocal == true && _localUpdater != null) {
+      return _localUpdater!.closeAllRoomSync();
+    } else if (isLocal == false && _updater != null) {
+      return _updater!.closeAllRoomSync();
+    } else {
+      throw Exception(
+        "Cant handle all room close: isLocal: $isLocal updater: $_updater, _localUpdater: $_localUpdater,",
       );
     }
   }

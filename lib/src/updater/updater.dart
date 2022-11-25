@@ -13,6 +13,8 @@ import 'package:matrix_sdk/src/model/sync_token.dart';
 import 'package:matrix_sdk/src/services/local/sync_storage.dart';
 import 'package:matrix_sdk/src/services/network/base_network.dart';
 import 'package:matrix_sdk/src/updater/syncer.dart';
+import 'package:matrix_sdk/src/util/logger.dart';
+import 'package:matrix_sdk/src/util/subscription.dart';
 import 'package:mime/mime.dart';
 import 'package:synchronized/synchronized.dart';
 
@@ -65,7 +67,9 @@ class Updater {
 
   final _lock = Lock();
 
-  StreamSubscription? oneRoomSync;
+  // StreamSubscription? oneRoomSync;
+
+  Map<String, StreamSubscription<Room>> roomIdToSyncSubscription = {};
 
   final _updatesSubject = StreamController<Update>.broadcast();
 
@@ -128,7 +132,7 @@ class Updater {
   Future<bool> ensureReady() => _syncStorage.ensureOpen();
 
   Stream<Room> startRoomSync(String roomId) {
-    oneRoomSync = _syncStorage
+    roomIdToSyncSubscription[roomId] = _syncStorage
         .roomStorageSync(
           selectedRoomId: roomId,
           userId: user.id,
@@ -150,7 +154,27 @@ class Updater {
     );
   }
 
-  Future<void> closeRoomSync() async => oneRoomSync?.cancel();
+  Future<bool> closeRoomSync(String roomId) async {
+    try {
+      final res = await closeOneSubInMap(roomIdToSyncSubscription, roomId);
+      roomIdToSyncSubscription.remove(roomId);
+      return res;
+    } catch (e) {
+      Log.writer.log("closeRoomSync", e.toString());
+      return false;
+    }
+  }
+
+  Future<bool> closeAllRoomSync() async {
+    try {
+      final res = await closeAllSubInMap(roomIdToSyncSubscription);
+      roomIdToSyncSubscription.clear();
+      return res;
+    } catch (e) {
+      Log.writer.log("closeAllRoomSync", e.toString());
+      return false;
+    }
+  }
 
   Future<void> saveRoomToDB(Room room) => _syncStorage.setRoom(room);
 

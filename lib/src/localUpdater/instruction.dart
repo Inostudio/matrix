@@ -16,4 +16,13 @@ class IsolateStorageOneRoomStartSyncInstruction {
 }
 
 @immutable
-class IsolateStorageOneRoomStopSyncInstruction {}
+class IsolateStorageOneRoomStopSyncInstruction {
+  final String roomId;
+
+  const IsolateStorageOneRoomStopSyncInstruction({
+    required this.roomId,
+  });
+}
+
+@immutable
+class IsolateStorageOneRoomStopAllSyncInstruction {}
