@@ -101,9 +101,9 @@ class Syncer {
           await Future.delayed(Duration(milliseconds: retryAfter));
         }
       }
-    } catch (e) {
-      Log.writer.log(e);
-      log("Sync Error :$e");
+    } catch (e, s) {
+      Log.writer.log("$e $s");
+      log("Sync Error :$e $s");
       await Future.delayed(Duration(seconds: 5));
       start(
         maxRetryAfter: maxRetryAfter,

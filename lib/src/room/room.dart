@@ -10,7 +10,6 @@ import 'package:matrix_sdk/src/model/request_update.dart';
 import 'package:matrix_sdk/src/model/update.dart';
 import 'package:meta/meta.dart';
 
-import '../event/ephemeral/ephemeral.dart';
 import '../event/ephemeral/ephemeral_event.dart';
 import '../event/ephemeral/receipt_event.dart';
 import '../event/event.dart';
@@ -109,17 +108,13 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
   /// The [RoomId] of the room that replaced this room.
   RoomId? get replacementId => stateEvents?.upgrade?.content?.replacementRoomId;
 
-  final Ephemeral? ephemeral;
+  final EphemeralEventFull? ephemeral;
 
   Iterable<UserId> get typingUserIds =>
-      ephemeral?.typingEvent?.content?.typerIds ?? [];
+      ephemeral?.typingEvents.content?.typerIds ?? [];
 
-  // TODO: Make not-lazy?
   ReadReceipts get readReceipts => ReadReceipts(
-        ephemeral?.receiptEvent?.content?.receipts.whereReceiptType(
-              ReceiptType.read,
-            ) ??
-            [],
+        ephemeral?.receiptEvents.content?.receipts ?? [],
         context: context,
       );
 
@@ -178,7 +173,7 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
           directUserId: null,
           highlightedUnreadNotificationCount: 0,
           totalUnreadNotificationCount: 0,
-          ephemeral: Ephemeral([]),
+          ephemeral: null,
         );
 
   /// Create a room (delta) from json, specifically from a sync's response.
@@ -238,9 +233,10 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
     }
 
     final ephemeral = body['ephemeral'] != null
-        ? Ephemeral.fromJson(
-            body['ephemeral'],
+        ? EphemeralEventFull.fromMap(
+            map: body['ephemeral'],
             context: context,
+            roomId: context.roomId,
           )
         : null;
 
@@ -281,7 +277,7 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
     UserId? directUserId,
     int? highlightedUnreadNotificationCount,
     int? totalUnreadNotificationCount,
-    Ephemeral? ephemeral,
+    EphemeralEventFull? ephemeral,
   }) {
     id ??= this.id;
     timeline ??= this.timeline;
@@ -638,7 +634,7 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
   /// If [isTyping] is true, a [timeout] can be specified
   /// to notify how long the server should assume that the user is
   /// typing.
-  Future<RequestUpdate<Ephemeral>?> setIsTyping(
+  Future<RequestUpdate<EphemeralEventFull>?> setIsTyping(
     // ignore: avoid_positional_boolean_parameters
     bool isTyping, {
     Duration timeout = const Duration(seconds: 30),

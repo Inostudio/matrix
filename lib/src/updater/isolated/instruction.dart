@@ -4,9 +4,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import 'package:matrix_sdk/src/event/ephemeral/ephemeral_event.dart';
 import 'package:matrix_sdk/src/event/room/message_event.dart';
 
-import '../../event/ephemeral/ephemeral.dart';
 import '../../event/event.dart';
 import '../../model/models.dart';
 import '../../model/sync_token.dart';
@@ -201,7 +201,7 @@ class DeleteEventInstruction extends RequestInstruction<Timeline> {
   final bool basedOnUpdate = true;
 }
 
-class SetIsTypingInstruction extends RequestInstruction<Ephemeral> {
+class SetIsTypingInstruction extends RequestInstruction<EphemeralEventFull> {
   final RoomId? roomId;
   final bool isTyping;
   final Duration timeout;

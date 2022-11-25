@@ -2341,41 +2341,34 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
 
 class EphemeralEventRecord extends DataClass
     implements Insertable<EphemeralEventRecord> {
-  final String type;
   final String roomId;
-  final String? content;
-  EphemeralEventRecord(
-      {required this.type, required this.roomId, this.content});
+  final String? typing;
+  EphemeralEventRecord({required this.roomId, this.typing});
   factory EphemeralEventRecord.fromData(Map<String, dynamic> data,
       {String? prefix}) {
     final effectivePrefix = prefix ?? '';
     return EphemeralEventRecord(
-      type: const StringType()
-          .mapFromDatabaseResponse(data['${effectivePrefix}type'])!,
       roomId: const StringType()
           .mapFromDatabaseResponse(data['${effectivePrefix}room_id'])!,
-      content: const StringType()
-          .mapFromDatabaseResponse(data['${effectivePrefix}content']),
+      typing: const StringType()
+          .mapFromDatabaseResponse(data['${effectivePrefix}typing']),
     );
   }
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    map['type'] = Variable<String>(type);
     map['room_id'] = Variable<String>(roomId);
-    if (!nullToAbsent || content != null) {
-      map['content'] = Variable<String?>(content);
+    if (!nullToAbsent || typing != null) {
+      map['typing'] = Variable<String?>(typing);
     }
     return map;
   }
 
   EphemeralEventsCompanion toCompanion(bool nullToAbsent) {
     return EphemeralEventsCompanion(
-      type: Value(type),
       roomId: Value(roomId),
-      content: content == null && nullToAbsent
-          ? const Value.absent()
-          : Value(content),
+      typing:
+          typing == null && nullToAbsent ? const Value.absent() : Value(typing),
     );
   }
 
@@ -2383,96 +2376,80 @@ class EphemeralEventRecord extends DataClass
       {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return EphemeralEventRecord(
-      type: serializer.fromJson<String>(json['type']),
       roomId: serializer.fromJson<String>(json['roomId']),
-      content: serializer.fromJson<String?>(json['content']),
+      typing: serializer.fromJson<String?>(json['typing']),
     );
   }
   @override
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
-      'type': serializer.toJson<String>(type),
       'roomId': serializer.toJson<String>(roomId),
-      'content': serializer.toJson<String?>(content),
+      'typing': serializer.toJson<String?>(typing),
     };
   }
 
-  EphemeralEventRecord copyWith(
-          {String? type, String? roomId, String? content}) =>
+  EphemeralEventRecord copyWith({String? roomId, String? typing}) =>
       EphemeralEventRecord(
-        type: type ?? this.type,
         roomId: roomId ?? this.roomId,
-        content: content ?? this.content,
+        typing: typing ?? this.typing,
       );
   @override
   String toString() {
     return (StringBuffer('EphemeralEventRecord(')
-          ..write('type: $type, ')
           ..write('roomId: $roomId, ')
-          ..write('content: $content')
+          ..write('typing: $typing')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(type, roomId, content);
+  int get hashCode => Object.hash(roomId, typing);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is EphemeralEventRecord &&
-          other.type == this.type &&
           other.roomId == this.roomId &&
-          other.content == this.content);
+          other.typing == this.typing);
 }
 
 class EphemeralEventsCompanion extends UpdateCompanion<EphemeralEventRecord> {
-  final Value<String> type;
   final Value<String> roomId;
-  final Value<String?> content;
+  final Value<String?> typing;
   const EphemeralEventsCompanion({
-    this.type = const Value.absent(),
     this.roomId = const Value.absent(),
-    this.content = const Value.absent(),
+    this.typing = const Value.absent(),
   });
   EphemeralEventsCompanion.insert({
-    required String type,
     required String roomId,
-    this.content = const Value.absent(),
-  })  : type = Value(type),
-        roomId = Value(roomId);
+    this.typing = const Value.absent(),
+  }) : roomId = Value(roomId);
   static Insertable<EphemeralEventRecord> custom({
-    Expression<String>? type,
     Expression<String>? roomId,
-    Expression<String?>? content,
+    Expression<String?>? typing,
   }) {
     return RawValuesInsertable({
-      if (type != null) 'type': type,
       if (roomId != null) 'room_id': roomId,
-      if (content != null) 'content': content,
+      if (typing != null) 'typing': typing,
     });
   }
 
   EphemeralEventsCompanion copyWith(
-      {Value<String>? type, Value<String>? roomId, Value<String?>? content}) {
+      {Value<String>? roomId, Value<String?>? typing}) {
     return EphemeralEventsCompanion(
-      type: type ?? this.type,
       roomId: roomId ?? this.roomId,
-      content: content ?? this.content,
+      typing: typing ?? this.typing,
     );
   }
 
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    if (type.present) {
-      map['type'] = Variable<String>(type.value);
-    }
     if (roomId.present) {
       map['room_id'] = Variable<String>(roomId.value);
     }
-    if (content.present) {
-      map['content'] = Variable<String?>(content.value);
+    if (typing.present) {
+      map['typing'] = Variable<String?>(typing.value);
     }
     return map;
   }
@@ -2480,9 +2457,8 @@ class EphemeralEventsCompanion extends UpdateCompanion<EphemeralEventRecord> {
   @override
   String toString() {
     return (StringBuffer('EphemeralEventsCompanion(')
-          ..write('type: $type, ')
           ..write('roomId: $roomId, ')
-          ..write('content: $content')
+          ..write('typing: $typing')
           ..write(')'))
         .toString();
   }
@@ -2494,11 +2470,6 @@ class $EphemeralEventsTable extends EphemeralEvents
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $EphemeralEventsTable(this.attachedDatabase, [this._alias]);
-  final VerificationMeta _typeMeta = const VerificationMeta('type');
-  @override
-  late final GeneratedColumn<String?> type = GeneratedColumn<String?>(
-      'type', aliasedName, false,
-      type: const StringType(), requiredDuringInsert: true);
   final VerificationMeta _roomIdMeta = const VerificationMeta('roomId');
   @override
   late final GeneratedColumn<String?> roomId = GeneratedColumn<String?>(
@@ -2506,13 +2477,13 @@ class $EphemeralEventsTable extends EphemeralEvents
       type: const StringType(),
       requiredDuringInsert: true,
       $customConstraints: 'REFERENCES room_events(id)');
-  final VerificationMeta _contentMeta = const VerificationMeta('content');
+  final VerificationMeta _typingMeta = const VerificationMeta('typing');
   @override
-  late final GeneratedColumn<String?> content = GeneratedColumn<String?>(
-      'content', aliasedName, true,
+  late final GeneratedColumn<String?> typing = GeneratedColumn<String?>(
+      'typing', aliasedName, true,
       type: const StringType(), requiredDuringInsert: false);
   @override
-  List<GeneratedColumn> get $columns => [type, roomId, content];
+  List<GeneratedColumn> get $columns => [roomId, typing];
   @override
   String get aliasedName => _alias ?? 'ephemeral_events';
   @override
@@ -2523,27 +2494,21 @@ class $EphemeralEventsTable extends EphemeralEvents
       {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
-    if (data.containsKey('type')) {
-      context.handle(
-          _typeMeta, type.isAcceptableOrUnknown(data['type']!, _typeMeta));
-    } else if (isInserting) {
-      context.missing(_typeMeta);
-    }
     if (data.containsKey('room_id')) {
       context.handle(_roomIdMeta,
           roomId.isAcceptableOrUnknown(data['room_id']!, _roomIdMeta));
     } else if (isInserting) {
       context.missing(_roomIdMeta);
     }
-    if (data.containsKey('content')) {
-      context.handle(_contentMeta,
-          content.isAcceptableOrUnknown(data['content']!, _contentMeta));
+    if (data.containsKey('typing')) {
+      context.handle(_typingMeta,
+          typing.isAcceptableOrUnknown(data['typing']!, _typingMeta));
     }
     return context;
   }
 
   @override
-  Set<GeneratedColumn> get $primaryKey => {type, roomId};
+  Set<GeneratedColumn> get $primaryKey => {roomId};
   @override
   EphemeralEventRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
     return EphemeralEventRecord.fromData(data,
@@ -2553,6 +2518,260 @@ class $EphemeralEventsTable extends EphemeralEvents
   @override
   $EphemeralEventsTable createAlias(String alias) {
     return $EphemeralEventsTable(attachedDatabase, alias);
+  }
+}
+
+class EphemeralReceiptEventRecord extends DataClass
+    implements Insertable<EphemeralReceiptEventRecord> {
+  final String roomId;
+  final String userId;
+  final String eventId;
+  final int timeStamp;
+  EphemeralReceiptEventRecord(
+      {required this.roomId,
+      required this.userId,
+      required this.eventId,
+      required this.timeStamp});
+  factory EphemeralReceiptEventRecord.fromData(Map<String, dynamic> data,
+      {String? prefix}) {
+    final effectivePrefix = prefix ?? '';
+    return EphemeralReceiptEventRecord(
+      roomId: const StringType()
+          .mapFromDatabaseResponse(data['${effectivePrefix}room_id'])!,
+      userId: const StringType()
+          .mapFromDatabaseResponse(data['${effectivePrefix}user_id'])!,
+      eventId: const StringType()
+          .mapFromDatabaseResponse(data['${effectivePrefix}event_id'])!,
+      timeStamp: const IntType()
+          .mapFromDatabaseResponse(data['${effectivePrefix}time_stamp'])!,
+    );
+  }
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['room_id'] = Variable<String>(roomId);
+    map['user_id'] = Variable<String>(userId);
+    map['event_id'] = Variable<String>(eventId);
+    map['time_stamp'] = Variable<int>(timeStamp);
+    return map;
+  }
+
+  EphemeralReceiptEventCompanion toCompanion(bool nullToAbsent) {
+    return EphemeralReceiptEventCompanion(
+      roomId: Value(roomId),
+      userId: Value(userId),
+      eventId: Value(eventId),
+      timeStamp: Value(timeStamp),
+    );
+  }
+
+  factory EphemeralReceiptEventRecord.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return EphemeralReceiptEventRecord(
+      roomId: serializer.fromJson<String>(json['roomId']),
+      userId: serializer.fromJson<String>(json['userId']),
+      eventId: serializer.fromJson<String>(json['eventId']),
+      timeStamp: serializer.fromJson<int>(json['timeStamp']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'roomId': serializer.toJson<String>(roomId),
+      'userId': serializer.toJson<String>(userId),
+      'eventId': serializer.toJson<String>(eventId),
+      'timeStamp': serializer.toJson<int>(timeStamp),
+    };
+  }
+
+  EphemeralReceiptEventRecord copyWith(
+          {String? roomId, String? userId, String? eventId, int? timeStamp}) =>
+      EphemeralReceiptEventRecord(
+        roomId: roomId ?? this.roomId,
+        userId: userId ?? this.userId,
+        eventId: eventId ?? this.eventId,
+        timeStamp: timeStamp ?? this.timeStamp,
+      );
+  @override
+  String toString() {
+    return (StringBuffer('EphemeralReceiptEventRecord(')
+          ..write('roomId: $roomId, ')
+          ..write('userId: $userId, ')
+          ..write('eventId: $eventId, ')
+          ..write('timeStamp: $timeStamp')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(roomId, userId, eventId, timeStamp);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is EphemeralReceiptEventRecord &&
+          other.roomId == this.roomId &&
+          other.userId == this.userId &&
+          other.eventId == this.eventId &&
+          other.timeStamp == this.timeStamp);
+}
+
+class EphemeralReceiptEventCompanion
+    extends UpdateCompanion<EphemeralReceiptEventRecord> {
+  final Value<String> roomId;
+  final Value<String> userId;
+  final Value<String> eventId;
+  final Value<int> timeStamp;
+  const EphemeralReceiptEventCompanion({
+    this.roomId = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.eventId = const Value.absent(),
+    this.timeStamp = const Value.absent(),
+  });
+  EphemeralReceiptEventCompanion.insert({
+    required String roomId,
+    required String userId,
+    required String eventId,
+    required int timeStamp,
+  })  : roomId = Value(roomId),
+        userId = Value(userId),
+        eventId = Value(eventId),
+        timeStamp = Value(timeStamp);
+  static Insertable<EphemeralReceiptEventRecord> custom({
+    Expression<String>? roomId,
+    Expression<String>? userId,
+    Expression<String>? eventId,
+    Expression<int>? timeStamp,
+  }) {
+    return RawValuesInsertable({
+      if (roomId != null) 'room_id': roomId,
+      if (userId != null) 'user_id': userId,
+      if (eventId != null) 'event_id': eventId,
+      if (timeStamp != null) 'time_stamp': timeStamp,
+    });
+  }
+
+  EphemeralReceiptEventCompanion copyWith(
+      {Value<String>? roomId,
+      Value<String>? userId,
+      Value<String>? eventId,
+      Value<int>? timeStamp}) {
+    return EphemeralReceiptEventCompanion(
+      roomId: roomId ?? this.roomId,
+      userId: userId ?? this.userId,
+      eventId: eventId ?? this.eventId,
+      timeStamp: timeStamp ?? this.timeStamp,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (roomId.present) {
+      map['room_id'] = Variable<String>(roomId.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (eventId.present) {
+      map['event_id'] = Variable<String>(eventId.value);
+    }
+    if (timeStamp.present) {
+      map['time_stamp'] = Variable<int>(timeStamp.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EphemeralReceiptEventCompanion(')
+          ..write('roomId: $roomId, ')
+          ..write('userId: $userId, ')
+          ..write('eventId: $eventId, ')
+          ..write('timeStamp: $timeStamp')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $EphemeralReceiptEventTable extends EphemeralReceiptEvent
+    with TableInfo<$EphemeralReceiptEventTable, EphemeralReceiptEventRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $EphemeralReceiptEventTable(this.attachedDatabase, [this._alias]);
+  final VerificationMeta _roomIdMeta = const VerificationMeta('roomId');
+  @override
+  late final GeneratedColumn<String?> roomId = GeneratedColumn<String?>(
+      'room_id', aliasedName, false,
+      type: const StringType(), requiredDuringInsert: true);
+  final VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String?> userId = GeneratedColumn<String?>(
+      'user_id', aliasedName, false,
+      type: const StringType(), requiredDuringInsert: true);
+  final VerificationMeta _eventIdMeta = const VerificationMeta('eventId');
+  @override
+  late final GeneratedColumn<String?> eventId = GeneratedColumn<String?>(
+      'event_id', aliasedName, false,
+      type: const StringType(), requiredDuringInsert: true);
+  final VerificationMeta _timeStampMeta = const VerificationMeta('timeStamp');
+  @override
+  late final GeneratedColumn<int?> timeStamp = GeneratedColumn<int?>(
+      'time_stamp', aliasedName, false,
+      type: const IntType(), requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns => [roomId, userId, eventId, timeStamp];
+  @override
+  String get aliasedName => _alias ?? 'ephemeral_receipt_event';
+  @override
+  String get actualTableName => 'ephemeral_receipt_event';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<EphemeralReceiptEventRecord> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('room_id')) {
+      context.handle(_roomIdMeta,
+          roomId.isAcceptableOrUnknown(data['room_id']!, _roomIdMeta));
+    } else if (isInserting) {
+      context.missing(_roomIdMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(_userIdMeta,
+          userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta));
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('event_id')) {
+      context.handle(_eventIdMeta,
+          eventId.isAcceptableOrUnknown(data['event_id']!, _eventIdMeta));
+    } else if (isInserting) {
+      context.missing(_eventIdMeta);
+    }
+    if (data.containsKey('time_stamp')) {
+      context.handle(_timeStampMeta,
+          timeStamp.isAcceptableOrUnknown(data['time_stamp']!, _timeStampMeta));
+    } else if (isInserting) {
+      context.missing(_timeStampMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {roomId, userId};
+  @override
+  EphemeralReceiptEventRecord map(Map<String, dynamic> data,
+      {String? tablePrefix}) {
+    return EphemeralReceiptEventRecord.fromData(data,
+        prefix: tablePrefix != null ? '$tablePrefix.' : null);
+  }
+
+  @override
+  $EphemeralReceiptEventTable createAlias(String alias) {
+    return $EphemeralReceiptEventTable(attachedDatabase, alias);
   }
 }
 
@@ -2572,6 +2791,8 @@ abstract class _$Database extends GeneratedDatabase {
       'CREATE INDEX IF NOT EXISTS ix_rooms ON rooms(name_change_event_id, avatar_change_event_id, topic_change_event_id, power_levels_change_event_id, join_rules_change_event_id, canonical_alias_change_event_id, creation_event_id, upgrade_event_id, direct_user_id);');
   late final $EphemeralEventsTable ephemeralEvents =
       $EphemeralEventsTable(this);
+  late final $EphemeralReceiptEventTable ephemeralReceiptEvent =
+      $EphemeralReceiptEventTable(this);
   @override
   Iterable<TableInfo> get allTables => allSchemaEntities.whereType<TableInfo>();
   @override
@@ -2584,6 +2805,7 @@ abstract class _$Database extends GeneratedDatabase {
         ixRoomevents,
         rooms,
         ixRooms,
-        ephemeralEvents
+        ephemeralEvents,
+        ephemeralReceiptEvent
       ];
 }

@@ -163,7 +163,7 @@ class MyUser extends MatrixUser implements Contextual<MyUser> {
   }
 
   @override
-  MyUser? delta({
+  MyUser delta({
     String? name,
     Uri? avatarUrl,
     String? accessToken,
