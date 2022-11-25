@@ -1,5 +1,17 @@
 import 'dart:async';
 
+bool doAllSubInMap<T, E>(
+  Map<T, E> subMap,
+  void Function(MapEntry<T, E>) action,
+) {
+  try {
+    subMap.entries.forEach(action);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 Future<bool> closeAllSubInMap<T>(Map<T, StreamSubscription> subMap) async {
   try {
     for (final e in subMap.entries) {

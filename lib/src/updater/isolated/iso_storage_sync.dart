@@ -7,11 +7,12 @@ import 'package:meta/meta.dart';
 import '../../../matrix_sdk.dart';
 import '../../model/instruction.dart';
 import '../../util/logger.dart';
+import '../../util/subscription.dart';
 import 'isolate_runner.dart';
 import 'utils.dart';
 
 abstract class IsolateStorageSyncRunner {
-  static StreamSubscription<Room>? roomSyncSubscription;
+  static Map<String, StreamSubscription<Room>> roomIdToSyncSubscription = {};
 
   static Future<void> run(IsolateTransferModel transferModel) async {
     final message = transferModel.message;
@@ -24,7 +25,7 @@ abstract class IsolateStorageSyncRunner {
       () async {
         final updaterAvailable = Completer<void>();
 
-        Updater? updater;
+        late Updater updater;
         StreamSubscription? subscription;
         subscription = messageStream.listen((message) {
           if (message is UpdaterArgs) {
@@ -40,42 +41,47 @@ abstract class IsolateStorageSyncRunner {
         });
 
         sendPort.send(receivePort.sendPort);
-
         await updaterAvailable.future;
-        await updater?.ensureReady();
-
-        updater?.updates.listen((u) => sendPort.send(u.minimize()));
-
-        updater?.outApiCallStatistics.listen(sendPort.send);
-
+        await updater.ensureReady();
+        updater.updates.listen((u) => sendPort.send(u.minimize()));
+        updater.outApiCallStatistics.listen(sendPort.send);
         sendPort.send(SyncerInitialized());
 
-        StreamSubscription instructionSubscription;
-
+        StreamSubscription? instructionSubscription;
         instructionSubscription = messageStream.listen((message) async {
           final instruction = message as Instruction;
-
           if (instruction is StartSyncInstruction) {
-            await updater?.startSync(
+            await updater.startSync(
               maxRetryAfter: instruction.maxRetryAfter,
               timelineLimit: instruction.timelineLimit,
               syncToken: instruction.syncToken,
             );
           }
           if (instruction is StopSyncInstruction) {
-            await updater?.stopSync();
+            await instructionSubscription?.cancel();
+            await updater.stopSync();
           } else if (instruction is RunSyncOnceInstruction) {
-            final syncResult = await updater?.runSyncOnce(instruction.filter);
+            final syncResult = await updater.runSyncOnce(instruction.filter);
             sendPort.send(syncResult);
           } else if (instruction is LogoutInstruction) {
-            await updater?.logout();
+            await instructionSubscription?.cancel();
+            await updater.logout();
           } else if (instruction is OneRoomSyncInstruction) {
-            roomSyncSubscription = updater
-                ?.startRoomSync(instruction.roomId)
-                .listen(sendPort.send);
+            roomIdToSyncSubscription[instruction.roomId] =
+                updater.startRoomSync(instruction.roomId).listen(sendPort.send);
           } else if (instruction is CloseRoomSync) {
-            await roomSyncSubscription?.cancel();
-            await updater?.closeRoomSync();
+            final resLocal = await closeOneSubInMap(
+              roomIdToSyncSubscription,
+              instruction.roomId,
+            );
+            roomIdToSyncSubscription.remove(instruction.roomId);
+            final resUpd = await updater.closeRoomSync(instruction.roomId);
+            sendPort.send(resUpd && resLocal);
+          } else if (instruction is CloseAllRoomsSync) {
+            final resLocal = await closeAllSubInMap(roomIdToSyncSubscription);
+            final resUpd = await updater.closeAllRoomSync();
+            roomIdToSyncSubscription.clear();
+            sendPort.send(resUpd && resLocal);
           }
         });
 

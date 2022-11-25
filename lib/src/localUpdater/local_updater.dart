@@ -10,6 +10,7 @@ import 'package:matrix_sdk/src/util/logger.dart';
 import '../services/local/base_sync_storage.dart';
 import '../updater/isolated/iso_merge.dart';
 import '../updater/isolated/utils.dart';
+import '../util/subscription.dart';
 import 'instruction.dart';
 
 class LocalUpdater {
@@ -26,10 +27,11 @@ class LocalUpdater {
   MyUser? _user;
 
   final _receivePort = ReceivePort();
-  Completer? _closeCompleter;
+  Completer? _stopCompleter;
   SendPort? _sendPort;
 
-  StreamSubscription? _roomSubscription;
+  Map<String, StreamSubscription<Room>> roomIdToSyncSubscription = {};
+  Map<String, Completer<bool>> roomIdToStopCompleter = {};
   StreamSubscription? _userSubscription;
 
   final StreamController<Room> _roomUpdatesSubject =
@@ -106,7 +108,7 @@ class LocalUpdater {
       throw Exception(errorString);
     }
 
-    _roomSubscription = _syncStorage!
+    roomIdToSyncSubscription[roomId] = _syncStorage!
         .roomStorageSync(
           selectedRoomId: roomId,
           userId: id,
@@ -116,14 +118,52 @@ class LocalUpdater {
     yield* roomUpdates;
   }
 
-  Future<void> closeRoomSync() async {
-    isIsolated
-        ? _sendPort?.send(IsolateStorageOneRoomStopSyncInstruction())
-        : _roomSubscription?.cancel();
+  Future<bool> closeRoomSync(String roomId) async {
+    try {
+      if (isIsolated) {
+        roomIdToStopCompleter[roomId] = Completer();
+        _sendPort?.send(
+          IsolateStorageOneRoomStopSyncInstruction(roomId: roomId),
+        );
+        final result = await roomIdToStopCompleter[roomId]?.future;
+        return result ?? false;
+      } else {
+        final res = closeOneSubInMap(roomIdToSyncSubscription, roomId);
+        roomIdToSyncSubscription.remove(roomId);
+        return res;
+      }
+    } catch (e) {
+      Log.writer.log("LOCAL: closeRoomSync", e.toString());
+      return false;
+    }
+  }
+
+  Future<bool> closeAllRoomSync() async {
+    try {
+      if (isIsolated) {
+        _sendPort?.send(
+          IsolateStorageOneRoomStopAllSyncInstruction(),
+        );
+        final result = await Future.wait(
+          roomIdToStopCompleter.values.map((e) => e.future),
+        );
+        return result.fold<bool>(
+          true,
+          (previousValue, element) => previousValue && element,
+        );
+      } else {
+        final res = closeAllSubInMap(roomIdToSyncSubscription);
+        roomIdToSyncSubscription.clear();
+        return res;
+      }
+    } catch (e) {
+      Log.writer.log("LOCAL: closeRoomSync", e.toString());
+      return false;
+    }
   }
 
   void _listenIsolate() {
-    _closeCompleter = Completer();
+    _stopCompleter = Completer();
     _receivePort.listen((message) {
       //first isolate answer
       if (message is SendPort) {
@@ -134,7 +174,7 @@ class LocalUpdater {
         _sendPort!.send(IsolateStorageStartSyncInstruction());
         //on isolate preformed stop sync
       } else if (message is IsolateStorageSyncerStopped) {
-        _closeCompleter?.complete();
+        _stopCompleter?.complete();
         //on isolate user update
       } else if (message is Update) {
         _userUpdatesController.add(message);
@@ -144,6 +184,16 @@ class LocalUpdater {
         //on isolate error
       } else if (message is ErrorWithStackTraceString) {
         _errorSubject.add(message);
+      } else if (message is IsoStorageUpdateClose) {
+        //on close one room sync
+        if (message.all) {
+          doAllSubInMap<String, Completer>(
+            roomIdToStopCompleter,
+            (p0) => p0.value.complete(message.result),
+          );
+        } else {
+          roomIdToStopCompleter[message.roomId]?.complete(message.result);
+        }
       }
     });
   }
@@ -176,9 +226,9 @@ class LocalUpdater {
 
   Future<void> close() async {
     _sendPort?.send(IsolateStorageStopSyncInstruction());
-    await _closeCompleter?.future;
+    await _stopCompleter?.future;
     await _userSubscription?.cancel();
-    await _roomSubscription?.cancel();
+    await closeAllSubInMap(roomIdToSyncSubscription);
     await _userUpdatesController.close();
     await _errorSubject.close();
     await _roomUpdatesSubject.close();
