@@ -418,10 +418,21 @@ class IsolatedUpdater extends Updater {
       );
 
   @override
-  Future<void> closeRoomSync() => execute(
-        CloseRoomSync(),
+  Future<bool> closeRoomSync(String roomId) async =>
+      (await execute(
+        CloseRoomSync(roomId: roomId),
         port: _syncSendPort,
-      );
+      )) ??
+      false;
+
+  @override
+  Future<bool> closeAllRoomSync() async {
+    return (await execute(
+          CloseAllRoomsSync(),
+          port: _syncSendPort,
+        )) ??
+        false;
+  }
 
   @override
   Future<RequestUpdate<EphemeralEventFull>?> setIsTyping({
