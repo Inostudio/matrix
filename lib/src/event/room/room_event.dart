@@ -7,25 +7,21 @@
 
 import 'package:quiver/core.dart';
 
+import '../../model/identifier.dart';
+import '../../util/map.dart';
 import '../event.dart';
 import 'message_event.dart';
+import 'raw_room_event.dart';
 import 'redaction_event.dart';
-
-import 'state/room_avatar_change_event.dart';
-import 'state/member_change_event.dart';
-import 'state/room_name_change_event.dart';
-import 'state/room_creation_event.dart';
+import 'state/canonical_alias_change_event.dart';
 import 'state/join_rules_change_event.dart';
+import 'state/member_change_event.dart';
 import 'state/power_levels_change_event.dart';
+import 'state/room_avatar_change_event.dart';
+import 'state/room_creation_event.dart';
+import 'state/room_name_change_event.dart';
 import 'state/room_upgrade_event.dart';
 import 'state/topic_change_event.dart';
-import 'state/canonical_alias_change_event.dart';
-
-import 'raw_room_event.dart';
-
-import '../../model/identifier.dart';
-
-import '../../util/map.dart';
 
 abstract class RoomEvent extends Event with Identifiable<EventId> {
   @override
@@ -54,7 +50,7 @@ abstract class RoomEvent extends Event with Identifiable<EventId> {
       other is RoomEvent &&
       super == other &&
       roomId == other.roomId &&
-          networkId == other.networkId &&
+      networkId == other.networkId &&
       senderId == other.senderId &&
       time == other.time &&
       transactionId == other.transactionId;
@@ -64,7 +60,7 @@ abstract class RoomEvent extends Event with Identifiable<EventId> {
         super.hashCode,
         roomId,
         senderId,
-    networkId,
+        networkId,
         time,
         transactionId,
       ]);
