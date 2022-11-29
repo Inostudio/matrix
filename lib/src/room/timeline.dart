@@ -141,7 +141,33 @@ class Timeline extends DelegatingIterable<RoomEvent>
     final currSet = toSet();
     final otherSet = other.toSet();
 
-    final differenceCurr = currSet.difference(otherSet);
+    final differenceCurr = currSet.difference(otherSet).toList();
+
+    //Create lists of trans ids
+    final diffTransIds =
+        differenceCurr.map((e) => e.transactionId).whereNotNull().toList();
+    final diffTransIdsSet = diffTransIds.toSet();
+    final otherTramsIdsSet =
+        otherSet.map((e) => e.transactionId).whereNotNull().toSet();
+
+    //difference Map transactionId -> index
+    final Map<String, int> diffTransIdsToIndexMap = {
+      for (var e in diffTransIds.mapIndexed(
+        (i, e) => MapEntry<String, int>(e, i),
+      ))
+        e.key: e.value
+    };
+
+    //find intersection in transaction ids
+    final transIdsIntersection = otherTramsIdsSet.intersection(diffTransIdsSet);
+
+    //remove intersected ids from resulted merge list
+    for (final id in transIdsIntersection) {
+      final index = diffTransIdsToIndexMap[id];
+      if (index != null) {
+        differenceCurr.removeAt(index);
+      }
+    }
 
     final result = List<RoomEvent>.from(
       differenceCurr..addAll(other),
