@@ -218,31 +218,7 @@ class Database extends _$Database {
   int get schemaVersion => 7;
 
   @override
-  MigrationStrategy get migration {
-    runOperation(
-      onRun: () async {
-        try {
-          final user = await select(myUsers).getSingleOrNull();
-
-          if (user != null) {
-            final emptyUser = user.copyWith(syncToken: null);
-            await batch(
-              (batch) => batch.insert(
-                myUsers,
-                emptyUser.toCompanion(true),
-                mode: InsertMode.insertOrReplace,
-              ),
-            );
-          }
-        } catch (e,st) {
-          Log.writer.log("Migration error - performing wipe \nError: $e\n$st");
-          await wipeAllData();
-        }
-      },
-      operationName: "WipeUserTokenMigration",
-    );
-    return destructiveFallback;
-  }
+  MigrationStrategy get migration => destructiveFallback;
 
   Future<String?> getUserSyncToken() async {
     final query = select(myUsers);
