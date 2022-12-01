@@ -15,40 +15,40 @@ import '../../room/room.dart';
 import '../../room/rooms.dart';
 import '../../room/timeline.dart';
 
-abstract class StorageSyncInstruction<T> extends Instruction<T> {}
+class IsolateRespose<T> {
+  final int? dataInstructionId;
+  final T data;
 
-class StartSyncInstruction extends StorageSyncInstruction<void> {
-  @override
-  bool get expectsReturnValue => false;
-
-  final Duration maxRetryAfter;
-  final int timelineLimit;
-  final String? syncToken;
-
-  StartSyncInstruction(this.maxRetryAfter, this.timelineLimit, this.syncToken);
-}
-
-class RunSyncOnceInstruction extends StorageSyncInstruction<SyncToken> {
-  final SyncFilter filter;
-
-  RunSyncOnceInstruction(this.filter);
-}
-
-class StopSyncInstruction extends StorageSyncInstruction<void> {}
-
-class CloseRoomSync extends StorageSyncInstruction<bool> {
-  final String roomId;
-
-  CloseRoomSync({
-    required this.roomId,
+  const IsolateRespose({
+    required this.dataInstructionId,
+    required this.data,
   });
+
+  @override
+  String toString() {
+    return 'ResponseDataInstructionId{dataInstructionId: $dataInstructionId, data: $data}';
+  }
 }
 
-class CloseAllRoomsSync extends StorageSyncInstruction<bool> {}
+abstract class StorageSyncInstruction<T> extends Instruction<T> {
+  StorageSyncInstruction({required super.instructionId});
+}
 
-class GetRoomIDsInstruction extends Instruction<List<String?>> {}
+abstract class RequestInstruction<T extends Contextual<T>>
+    extends Instruction<RequestUpdate<T>> {
+  /// Some [RequestUpdate]s are wrapped [SyncUpdate]s, we should not send
+  /// those through the `updates` `Stream`.
+  final bool basedOnUpdate = false;
 
-class GetRoomInstruction extends Instruction<Room> {
+  RequestInstruction({required super.instructionId});
+}
+
+class GetRoomIDsInstruction
+    extends Instruction<IsolateRespose<List<String?>>> {
+  GetRoomIDsInstruction({required super.instructionId});
+}
+
+class GetRoomInstruction extends Instruction<IsolateRespose<Room>> {
   final String roomId;
   final Context? context;
   final List<UserId> memberIds;
@@ -57,27 +57,83 @@ class GetRoomInstruction extends Instruction<Room> {
     required this.roomId,
     required this.context,
     required this.memberIds,
+    required super.instructionId,
   });
 }
 
-class SaveRoomToDBInstruction extends Instruction<void> {
+class SaveRoomToDBInstruction extends Instruction<IsolateRespose> {
   final Room room;
 
-  SaveRoomToDBInstruction(this.room);
+  SaveRoomToDBInstruction({
+    required this.room,
+    required super.instructionId,
+  });
 }
 
-abstract class RequestInstruction<T extends Contextual<T>>
-    extends Instruction<RequestUpdate<T>> {
-  /// Some [RequestUpdate]s are wrapped [SyncUpdate]s, we should not send
-  /// those through the `updates` `Stream`.
-  final bool basedOnUpdate = false;
+class OneRoomSyncInstruction extends Instruction<IsolateRespose<Room>> {
+  final String roomId;
+  final Context? context;
+  final UserId? userId;
+
+  OneRoomSyncInstruction({
+    required this.roomId,
+    this.context,
+    this.userId,
+    required super.instructionId,
+  });
+}
+
+class StartSyncInstruction extends StorageSyncInstruction<IsolateRespose> {
+  @override
+  bool get expectsReturnValue => false;
+
+  final Duration maxRetryAfter;
+  final int timelineLimit;
+  final String? syncToken;
+
+  StartSyncInstruction({
+    required this.maxRetryAfter,
+    required this.timelineLimit,
+    this.syncToken,
+    required super.instructionId,
+  });
+}
+
+class RunSyncOnceInstruction extends StorageSyncInstruction<IsolateRespose<SyncToken>> {
+  final SyncFilter filter;
+
+  RunSyncOnceInstruction({
+    required this.filter,
+    required super.instructionId,
+  });
+}
+
+class StopSyncInstruction extends StorageSyncInstruction<IsolateRespose> {
+  StopSyncInstruction({required super.instructionId});
+}
+
+class CloseRoomSync extends StorageSyncInstruction<IsolateRespose<bool>> {
+  final String roomId;
+
+  CloseRoomSync({
+    required this.roomId,
+    required super.instructionId,
+  });
+}
+
+class CloseAllRoomsSync extends StorageSyncInstruction<IsolateRespose<bool>> {
+  CloseAllRoomsSync({required super.instructionId});
 }
 
 class KickInstruction extends RequestInstruction<MemberTimeline> {
   final UserId id;
   final RoomId? from;
 
-  KickInstruction(this.id, this.from);
+  KickInstruction({
+    required this.id,
+    this.from,
+    required super.instructionId,
+  });
 
   @override
   final bool basedOnUpdate = true;
@@ -91,7 +147,12 @@ class LoadRoomEventsInstruction extends RequestInstruction<Timeline> {
   @override
   final bool basedOnUpdate = true;
 
-  LoadRoomEventsInstruction(this.roomId, this.count, this.room);
+  LoadRoomEventsInstruction({
+    this.roomId,
+    required this.count,
+    this.room,
+    required super.instructionId,
+  });
 }
 
 class LoadMembersInstruction extends RequestInstruction<MemberTimeline> {
@@ -99,14 +160,23 @@ class LoadMembersInstruction extends RequestInstruction<MemberTimeline> {
   final int count;
   final Room? room;
 
-  LoadMembersInstruction(this.roomId, this.count, this.room);
+  LoadMembersInstruction({
+    this.roomId,
+    required this.count,
+    this.room,
+    required super.instructionId,
+  });
 }
 
 class LoadRoomsByIDsInstruction extends RequestInstruction<Rooms> {
   final List<RoomId> roomIds;
   final int timelineLimit;
 
-  LoadRoomsByIDsInstruction(this.roomIds, this.timelineLimit);
+  LoadRoomsByIDsInstruction({
+    required this.roomIds,
+    required this.timelineLimit,
+    required super.instructionId,
+  });
 }
 
 class LoadRoomsInstruction extends RequestInstruction<Rooms> {
@@ -114,12 +184,19 @@ class LoadRoomsInstruction extends RequestInstruction<Rooms> {
   final int limit;
   final int offset;
 
-  LoadRoomsInstruction(this.limit, this.offset, this.timelineLimit);
+  LoadRoomsInstruction({
+    required this.limit,
+    required this.offset,
+    required this.timelineLimit,
+    required super.instructionId,
+  });
 }
 
 class LogoutInstruction extends RequestInstruction<MyUser> {
   @override
   final bool basedOnUpdate = true;
+
+  LogoutInstruction({required super.instructionId});
 }
 
 class MarkReadInstruction extends RequestInstruction<ReadReceipts> {
@@ -138,6 +215,7 @@ class MarkReadInstruction extends RequestInstruction<ReadReceipts> {
     required this.receipt,
     required this.fullyRead,
     this.room,
+    required super.instructionId,
   });
 }
 
@@ -149,25 +227,14 @@ class SendInstruction extends RequestInstruction<Timeline> {
   final String type;
   final Room? room;
 
-  SendInstruction(
-    this.roomId,
-    this.content,
-    this.transactionId,
-    this.stateKey,
-    this.type,
-    this.room,
-  );
-}
-
-class OneRoomSyncInstruction extends Instruction<Room> {
-  final String roomId;
-  final Context? context;
-  final UserId? userId;
-
-  OneRoomSyncInstruction({
+  SendInstruction({
     required this.roomId,
-    this.context,
-    this.userId,
+    required this.content,
+    this.transactionId,
+    required this.stateKey,
+    required this.type,
+    this.room,
+    required super.instructionId,
   });
 }
 
@@ -178,12 +245,13 @@ class EditTextEventInstruction extends RequestInstruction<Timeline> {
   final String newContent;
   final Room? room;
 
-  EditTextEventInstruction(
-    this.roomId,
-    this.event,
-    this.newContent,
-    this.transactionId, {
+  EditTextEventInstruction({
+    required this.roomId,
+    required this.event,
+    required this.newContent,
+    this.transactionId,
     this.room,
+    required super.instructionId,
   });
 
   @override
@@ -197,8 +265,14 @@ class DeleteEventInstruction extends RequestInstruction<Timeline> {
   final String? reason;
   final Room? room;
 
-  DeleteEventInstruction(
-      this.roomId, this.eventId, this.transactionId, this.reason, this.room);
+  DeleteEventInstruction({
+    required this.roomId,
+    required this.eventId,
+    this.transactionId,
+    this.reason,
+    this.room,
+    required super.instructionId,
+  });
 
   @override
   final bool basedOnUpdate = true;
@@ -210,7 +284,12 @@ class SetIsTypingInstruction extends RequestInstruction<EphemeralEventFull> {
   final Duration timeout;
 
   // ignore: avoid_positional_boolean_parameters
-  SetIsTypingInstruction(this.roomId, this.isTyping, this.timeout);
+  SetIsTypingInstruction({
+    this.roomId,
+    required this.isTyping,
+    required this.timeout,
+    required super.instructionId,
+  });
 
   @override
   final bool basedOnUpdate = true;
@@ -221,7 +300,12 @@ class JoinRoomInstruction extends RequestInstruction<Room> {
   final RoomAlias? alias;
   final Uri serverUrl;
 
-  JoinRoomInstruction(this.id, this.alias, this.serverUrl);
+  JoinRoomInstruction({
+    this.id,
+    this.alias,
+    required this.serverUrl,
+    required super.instructionId,
+  });
 
   @override
   final bool basedOnUpdate = true;
@@ -230,7 +314,10 @@ class JoinRoomInstruction extends RequestInstruction<Room> {
 class LeaveRoomInstruction extends RequestInstruction<Room> {
   final RoomId id;
 
-  LeaveRoomInstruction(this.id);
+  LeaveRoomInstruction({
+    required this.id,
+    required super.instructionId,
+  });
 
   @override
   final bool basedOnUpdate = true;
@@ -239,13 +326,19 @@ class LeaveRoomInstruction extends RequestInstruction<Room> {
 class SetNameInstruction extends RequestInstruction<MyUser> {
   final String name;
 
-  SetNameInstruction(this.name);
+  SetNameInstruction({
+    required this.name,
+    required super.instructionId,
+  });
 }
 
 class SetPusherInstruction extends RequestInstruction<MyUser> {
   final Map<String, dynamic> pusher;
 
-  SetPusherInstruction(this.pusher);
+  SetPusherInstruction({
+    required this.pusher,
+    required super.instructionId,
+  });
 
   @override
   final bool basedOnUpdate = true;
