@@ -12,6 +12,19 @@ bool doAllSubInMap<T, E>(
   }
 }
 
+Future<bool> doAsyncAllSubInMap<T, E>(
+  Map<T, E> subMap,
+  Future<void> Function(MapEntry<T, E>) action,
+) async {
+  try {
+    final futureList = subMap.entries.map((e) => action(e));
+    await Future.wait(futureList);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 Future<bool> closeAllSubInMap<T>(Map<T, StreamSubscription> subMap) async {
   try {
     for (final e in subMap.entries) {

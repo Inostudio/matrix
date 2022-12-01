@@ -11,6 +11,7 @@ import 'package:matrix_sdk/src/event/ephemeral/ephemeral_event.dart';
 import 'package:matrix_sdk/src/event/room/message_event.dart';
 import 'package:matrix_sdk/src/model/sync_token.dart';
 import 'package:matrix_sdk/src/updater/isolated/iso_storage_sync.dart';
+import 'package:matrix_sdk/src/util/subscription.dart';
 
 import '../../event/event.dart';
 import '../../homeserver.dart';
@@ -88,8 +89,8 @@ class IsolatedUpdater extends Updater {
       }
       // on Room update
       else if (message is Room) {
-        _roomUpdatesController.add(message);
-        return;
+        final roomId = message.id.value;
+        _updateOneRoomSync(roomId, message);
       }
     });
 
@@ -216,20 +217,14 @@ class IsolatedUpdater extends Updater {
   late final StreamController<Update> __updaterController =
       StreamController<Update>.broadcast();
 
-  // ignore: close_sinks
-  late final StreamController<Room> __roomUpdatesController =
-      StreamController<Room>.broadcast();
-
   //Sync with updater
   StreamController<Update> get _updaterController => __updaterController;
-
-  StreamController<Room> get _roomUpdatesController => __roomUpdatesController;
 
   @override
   Stream<Update> get updates => _updaterController.stream;
 
   @override
-  Stream<Room> get roomUpdates => _roomUpdatesController.stream;
+  Map<String, StreamController<Room>> roomIdToSyncController = {};
 
   /// Sends an instruction to the isolate, possibly with a return value.
   Future<T?> execute<T>(
@@ -242,9 +237,10 @@ class IsolatedUpdater extends Updater {
     if (instruction.expectsReturnValue) {
       final Stream stream = _streamSelector(instruction);
 
-      return await stream.firstWhere(
-        (event) => event is T?,
-      ) as T?;
+      return await stream
+          .firstWhere((event) => event is T? //(&& event.id == instruction.id,)
+              //TODO add instruction id and handling
+              ) as T?;
     }
 
     return null;
@@ -277,11 +273,26 @@ class IsolatedUpdater extends Updater {
       return _syncMessageStream;
     } else if (instruction is RequestInstruction) {
       return updates;
-    } else if (instruction is OneRoomInstruction) {
-      return roomUpdates;
+    } else if (instruction is OneRoomSyncInstruction) {
+      return getOneRoomUpdates(instruction.roomId);
     } else {
       return _instructionStream;
     }
+  }
+
+  void _updateOneRoomSync(String roomId, Room room) {
+    if (!roomIdToSyncController.keys.contains(roomId)) {
+      roomIdToSyncController[roomId] = StreamController<Room>.broadcast();
+    }
+    roomIdToSyncController[roomId]!.add(room);
+  }
+
+  @override
+  Stream<Room> getOneRoomUpdates(String roomId) {
+    if (!roomIdToSyncController.keys.contains(roomId)) {
+      roomIdToSyncController[roomId] = StreamController<Room>.broadcast();
+    }
+    return roomIdToSyncController[roomId]!.stream;
   }
 
   @override
@@ -394,14 +405,19 @@ class IsolatedUpdater extends Updater {
       );
 
   @override
-  Stream<Room> startRoomSync(String roomId) => _executeStream(
-        OneRoomSyncInstruction(
-          roomId: roomId,
-          context: user.context,
-          userId: user.id,
-        ),
-        port: _syncSendPort,
-      );
+  Stream<Room> startRoomSync(String roomId) {
+    if (!roomIdToSyncController.keys.contains(roomId)) {
+      roomIdToSyncController[roomId] = StreamController<Room>.broadcast();
+    }
+    return _executeStream(
+      OneRoomSyncInstruction(
+        roomId: roomId,
+        context: user.context,
+        userId: user.id,
+      ),
+      port: _syncSendPort,
+    );
+  }
 
   @override
   Future<Room?> fetchRoomFromDB(
@@ -418,20 +434,30 @@ class IsolatedUpdater extends Updater {
       );
 
   @override
-  Future<bool> closeRoomSync(String roomId) async =>
-      (await execute(
-        CloseRoomSync(roomId: roomId),
-        port: _syncSendPort,
-      )) ??
-      false;
+  Future<bool> closeRoomSync(String roomId) async {
+    final result = (await execute(
+          CloseRoomSync(roomId: roomId),
+          port: _syncSendPort,
+        )) ??
+        false;
+    await roomIdToSyncController[roomId]?.close();
+    roomIdToSyncController.remove(roomId);
+    return result;
+  }
 
   @override
   Future<bool> closeAllRoomSync() async {
-    return (await execute(
+    final result = (await execute(
           CloseAllRoomsSync(),
           port: _syncSendPort,
         )) ??
         false;
+    await doAsyncAllSubInMap<String, StreamController<Room>>(
+      roomIdToSyncController,
+      (e) => e.value.close(),
+    );
+    roomIdToSyncController.clear();
+    return result;
   }
 
   @override

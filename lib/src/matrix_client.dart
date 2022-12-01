@@ -161,6 +161,7 @@ class MatrixClient {
   ///
   /// Returns the [Update] where [MyUser] has logged out, if successful.
   Future<RequestUpdate<MyUser>?> logout() async {
+    await stopAllRoomSync();
     await stopSync();
     return _updater?.logout();
   }
@@ -217,7 +218,6 @@ class MatrixClient {
   }
 
   Stream<Room> getRoomSync(String roomId) async* {
-    await stopAllRoomSync();
     if (isLocal == true && _localUpdater != null) {
       yield* _localUpdater!.startRoomSync(roomId);
     } else if (isLocal == false && _updater != null) {

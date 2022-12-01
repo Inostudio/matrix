@@ -640,7 +640,7 @@ class Database extends _$Database {
         onRun: () => batch((batch) async {
           batch.insertAll(
             roomEvents,
-            records,
+            records.map((e) => e.toCompanion(true)),
             mode: InsertMode.insertOrReplace,
           );
           batch.deleteWhere<$RoomEventsTable, RoomEventRecord>(
