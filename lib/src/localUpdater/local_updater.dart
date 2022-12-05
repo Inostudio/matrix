@@ -63,6 +63,7 @@ class LocalUpdater {
         loggerVariant: Log.variant,
         message: _receivePort.sendPort,
       ),
+      errorsAreFatal: false,
     );
     _listenIsolate();
   }

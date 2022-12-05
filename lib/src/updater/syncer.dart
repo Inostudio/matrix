@@ -161,8 +161,8 @@ class Syncer {
       }
 
       return body;
-    } on Exception catch (e) {
-      Log.writer.log(e);
+    } on Exception catch (e, st) {
+      Log.writer.log("error $e\nStack: $st");
       _updater.inError.add(ErrorWithStackTraceString(
         e.toString(),
         StackTrace.current.toString(),
@@ -209,16 +209,17 @@ class Syncer {
       _syncOnceToken = body['next_batch'];
       await _updater.processSync(body);
       return SyncToken(body['next_batch']);
-    } catch (error) {
-      if (error is MatrixException) {
-        final statusCode = error.body["status_code"];
+    } catch (e, st) {
+      Log.writer.log("error$e\nStack: $st");
+      if (e is MatrixException) {
+        final statusCode = e.body["status_code"];
         if (statusCode is int && statusCode >= 500) {
           return Future.delayed(const Duration(milliseconds: 500),
               () => runSyncOnce(filter: filter));
         }
       } else {
         _updater.inError.add(ErrorWithStackTraceString(
-          error.toString(),
+          e.toString(),
           StackTrace.current.toString(),
         ));
       }

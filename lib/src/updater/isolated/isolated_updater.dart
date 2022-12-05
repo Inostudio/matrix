@@ -142,6 +142,7 @@ class IsolatedUpdater extends Updater {
         message: _syncReceivePort.sendPort,
         loggerVariant: Log.variant,
       ),
+      errorsAreFatal: false,
     );
   }
 
@@ -152,6 +153,7 @@ class IsolatedUpdater extends Updater {
         message: _instructionPort.sendPort,
         loggerVariant: Log.variant,
       ),
+      errorsAreFatal: false,
     );
   }
 
