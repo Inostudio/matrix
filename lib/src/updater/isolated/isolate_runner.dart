@@ -44,14 +44,20 @@ abstract class IsolateRunner {
           }
         });
 
-        sendPort.send(receivePort.sendPort);
+        sendPort.send(
+          makeResponseData(null, receivePort.sendPort),
+        );
 
         await updaterAvailable.future;
         await updater?.ensureReady();
 
-        updater?.outApiCallStatistics.listen(sendPort.send);
+        updater?.outApiCallStatistics.listen(
+          (e) => makeResponseData(null, e),
+        );
 
-        sendPort.send(RunnerInitialized());
+        sendPort.send(
+          makeResponseData(null, RunnerInitialized()),
+        );
 
         StreamSubscription instructionSubscription;
 
@@ -60,17 +66,23 @@ abstract class IsolateRunner {
 
           if (instruction is StopSyncInstruction) {
             await updater?.syncer.stop();
-            sendPort.send(null);
+            sendPort.send(
+              makeResponseData(instruction, null),
+            );
           }
 
           if (instruction is GetRoomIDsInstruction) {
             final result = await updater?.getRoomIDs();
-            sendPort.send(result);
+            sendPort.send(
+              makeResponseData(instruction, result),
+            );
           }
 
           if (instruction is SaveRoomToDBInstruction) {
             await updater?.saveRoomToDB(instruction.room);
-            sendPort.send(null);
+            sendPort.send(
+              makeResponseData(instruction, null),
+            );
           }
           if (instruction is GetRoomInstruction) {
             final result = await updater?.fetchRoomFromDB(
@@ -78,7 +90,9 @@ abstract class IsolateRunner {
               context: instruction.context,
               memberIds: instruction.memberIds,
             );
-            sendPort.send(result);
+            sendPort.send(
+              makeResponseData(instruction, result),
+            );
           }
 
           if (instruction is RequestInstruction) {
@@ -91,9 +105,12 @@ abstract class IsolateRunner {
       },
       (error, stackTrace) {
         sendPort.send(
-          ErrorWithStackTraceString(
-            error.toString(),
-            stackTrace.toString(),
+          makeResponseData(
+            null,
+            ErrorWithStackTraceString(
+              error.toString(),
+              stackTrace.toString(),
+            ),
           ),
         );
       },
@@ -157,7 +174,9 @@ abstract class IsolateRunner {
             room: instruction.room,
           )
           .forEach(
-            (update) => sendPort.send(update?.minimize()),
+            (update) => sendPort.send(
+              makeResponseData(instruction, update?.minimize()),
+            ),
           );
 
       return;
@@ -204,12 +223,17 @@ abstract class IsolateRunner {
     final result = await operation();
 
     if (instruction is RunSyncOnceInstruction) {
-      sendPort.send(result);
+      sendPort.send(makeResponseData(instruction, result));
       return;
     }
 
     if (result != null && (result is! Update || instruction.basedOnUpdate)) {
-      sendPort.send(result is RequestUpdate ? result.minimize() : result);
+      sendPort.send(
+        makeResponseData(
+          instruction,
+          result is RequestUpdate ? result.minimize() : result,
+        ),
+      );
     }
   }
 }

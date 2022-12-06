@@ -68,7 +68,7 @@ class Updater {
   final _lock = Lock();
 
   Map<String, StreamSubscription<Room>> roomIdToSyncSubscription = {};
-  Map<String, StreamController<Room>> roomIdToSyncController = {};
+  final Map<String, StreamController<Room>> _roomIdToSyncController = {};
 
   final _updatesSubject = StreamController<Update>.broadcast();
 
@@ -126,8 +126,8 @@ class Updater {
   Future<bool> ensureReady() => _syncStorage.ensureOpen();
 
   Stream<Room> startRoomSync(String roomId) {
-    if (!roomIdToSyncController.keys.contains(roomId)) {
-      roomIdToSyncController[roomId] = StreamController<Room>.broadcast();
+    if (!_roomIdToSyncController.keys.contains(roomId)) {
+      _roomIdToSyncController[roomId] = StreamController<Room>.broadcast();
     }
 
     roomIdToSyncSubscription[roomId] = _syncStorage
@@ -137,21 +137,21 @@ class Updater {
           context: user.context,
         )
         .listen((room) => _updateOneRoomSync(roomId, room));
-    return getOneRoomUpdates(roomId);
+    return _getOneRoomUpdates(roomId);
   }
 
   void _updateOneRoomSync(String roomId, Room room) {
-    if (!roomIdToSyncController.keys.contains(roomId)) {
-      roomIdToSyncController[roomId] = StreamController<Room>.broadcast();
+    if (!_roomIdToSyncController.keys.contains(roomId)) {
+      _roomIdToSyncController[roomId] = StreamController<Room>.broadcast();
     }
-    roomIdToSyncController[roomId]!.add(room);
+    _roomIdToSyncController[roomId]!.add(room);
   }
 
-  Stream<Room> getOneRoomUpdates(String roomId) {
-    if (!roomIdToSyncController.keys.contains(roomId)) {
-      roomIdToSyncController[roomId] = StreamController<Room>.broadcast();
+  Stream<Room> _getOneRoomUpdates(String roomId) {
+    if (!_roomIdToSyncController.keys.contains(roomId)) {
+      _roomIdToSyncController[roomId] = StreamController<Room>.broadcast();
     }
-    return roomIdToSyncController[roomId]!.stream;
+    return _roomIdToSyncController[roomId]!.stream;
   }
 
   Future<Room?> fetchRoomFromDB(
@@ -170,8 +170,8 @@ class Updater {
     try {
       final res = await closeOneSubInMap(roomIdToSyncSubscription, roomId);
       roomIdToSyncSubscription.remove(roomId);
-      await roomIdToSyncController[roomId]?.close();
-      roomIdToSyncController.remove(roomId);
+      await _roomIdToSyncController[roomId]?.close();
+      _roomIdToSyncController.remove(roomId);
       return res;
     } catch (e) {
       Log.writer.log("closeRoomSync", e.toString());
@@ -184,10 +184,10 @@ class Updater {
       final res = await closeAllSubInMap(roomIdToSyncSubscription);
       roomIdToSyncSubscription.clear();
       await doAsyncAllSubInMap<String, StreamController<Room>>(
-        roomIdToSyncController,
+        _roomIdToSyncController,
         (e) => e.value.close(),
       );
-      roomIdToSyncController.clear();
+      _roomIdToSyncController.clear();
       return res;
     } catch (e) {
       Log.writer.log("closeAllRoomSync", e.toString());
@@ -620,10 +620,10 @@ class Updater {
 
   Future<void> close() async {
     await doAsyncAllSubInMap<String, StreamController<Room>>(
-      roomIdToSyncController,
+      _roomIdToSyncController,
       (e) => e.value.close(),
     );
-    roomIdToSyncController.clear();
+    _roomIdToSyncController.clear();
     await _errorSubject.close();
     await _tokenSubject.close();
     await _updatesSubject.close();

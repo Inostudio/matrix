@@ -40,12 +40,19 @@ abstract class IsolateStorageSyncRunner {
           }
         });
 
-        sendPort.send(receivePort.sendPort);
+        sendPort.send(makeResponseData(null, receivePort.sendPort));
         await updaterAvailable.future;
         await updater.ensureReady();
-        updater.updates.listen((u) => sendPort.send(u.minimize()));
-        updater.outApiCallStatistics.listen(sendPort.send);
-        sendPort.send(SyncerInitialized());
+        updater.updates.listen(
+          (u) => sendPort.send(makeResponseData(null, u.minimize())),
+        );
+        updater.outApiCallStatistics.listen(
+          (e) => sendPort.send(makeResponseData(null, e)),
+        );
+        sendPort.send(makeResponseData(
+          null,
+          SyncerInitialized(),
+        ));
 
         StreamSubscription? instructionSubscription;
         instructionSubscription = messageStream.listen((message) async {
@@ -62,13 +69,19 @@ abstract class IsolateStorageSyncRunner {
             await updater.stopSync();
           } else if (instruction is RunSyncOnceInstruction) {
             final syncResult = await updater.runSyncOnce(instruction.filter);
-            sendPort.send(syncResult);
+            sendPort.send(
+              makeResponseData(instruction, syncResult),
+            );
           } else if (instruction is LogoutInstruction) {
             await instructionSubscription?.cancel();
             await updater.logout();
           } else if (instruction is OneRoomSyncInstruction) {
             roomIdToSyncSubscription[instruction.roomId] =
-                updater.startRoomSync(instruction.roomId).listen(sendPort.send);
+                updater.startRoomSync(instruction.roomId).listen(
+                      (e) => sendPort.send(
+                        makeResponseData(instruction, e),
+                      ),
+                    );
           } else if (instruction is CloseRoomSync) {
             final resLocal = await closeOneSubInMap(
               roomIdToSyncSubscription,
@@ -76,12 +89,16 @@ abstract class IsolateStorageSyncRunner {
             );
             roomIdToSyncSubscription.remove(instruction.roomId);
             final resUpd = await updater.closeRoomSync(instruction.roomId);
-            sendPort.send(resUpd && resLocal);
+            sendPort.send(
+              makeResponseData(instruction, resUpd && resLocal),
+            );
           } else if (instruction is CloseAllRoomsSync) {
             final resLocal = await closeAllSubInMap(roomIdToSyncSubscription);
             final resUpd = await updater.closeAllRoomSync();
             roomIdToSyncSubscription.clear();
-            sendPort.send(resUpd && resLocal);
+            sendPort.send(
+              makeResponseData(instruction, resUpd && resLocal),
+            );
           }
         });
 
@@ -90,9 +107,12 @@ abstract class IsolateStorageSyncRunner {
       },
       (error, stackTrace) {
         sendPort.send(
-          ErrorWithStackTraceString(
-            error.toString(),
-            stackTrace.toString(),
+          makeResponseData(
+            null,
+            ErrorWithStackTraceString(
+              error.toString(),
+              stackTrace.toString(),
+            ),
           ),
         );
       },
