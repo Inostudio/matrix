@@ -874,10 +874,21 @@ class Updater {
   }
 
   /// Note: Will return RequestUpdate<Pushers> in the future.
-  Future<void> setPusher(Map<String, dynamic> pusher) {
-    return _networkService.setPusher(
+  Future<RequestUpdate<MyUser>?> setPusher(Map<String, dynamic> pusher) async {
+    await _networkService.setPusher(
       accessToken: _user.accessToken ?? '',
       body: pusher,
+    );
+
+    return _createUpdate(
+      _user.delta(),
+      (user, delta) => RequestUpdate(
+        user,
+        delta,
+        data: user,
+        deltaData: delta,
+        type: RequestType.setName,
+      ),
     );
   }
 

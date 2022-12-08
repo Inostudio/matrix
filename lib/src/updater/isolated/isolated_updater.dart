@@ -255,21 +255,26 @@ class IsolatedUpdater extends Updater {
     Instruction instruction, {
     SendPort? port,
   }) async {
-    final portToSent = port ?? _sendPort;
-    portToSent?.send(instruction);
+    try {
+      final portToSent = port ?? _sendPort;
+      portToSent?.send(instruction);
 
-    if (instruction.expectsReturnValue) {
-      final stream = _streamSelector(instruction);
+      if (instruction.expectsReturnValue) {
+        final stream = _streamSelector(instruction);
 
-      final streamRes = await stream.firstWhere((event) {
-        return _checkResponse(event, instruction);
-      }).catchError(
-        (e) => Log.writer.log("execute Instruction: $instruction\ndata:$e"),
-      ) as IsolateRespose;
-      return streamRes.data;
+        final streamRes = await stream
+            .where((msg) => msg is IsolateRespose && msg.data is T)
+            .firstWhere((event) => _checkResponse(event, instruction));
+        return streamRes.data;
+      }
+
+      return null;
+    } catch (e, st) {
+      Log.writer.log(
+        "execute Instruction: $instruction\nInstructionID ${instruction.instructionId}\nerror:$e\nStackTrace: $st",
+      );
+      rethrow;
     }
-
-    return null;
   }
 
   Stream<T> _executeStream<T>(
@@ -277,37 +282,39 @@ class IsolatedUpdater extends Updater {
     int? updateCount,
     SendPort? port,
   }) {
-    final portToSent = port ?? _sendPort;
-    portToSent?.send(instruction);
+    try {
+      final portToSent = port ?? _sendPort;
+      portToSent?.send(instruction);
 
-    final Stream stream = _streamSelector(instruction);
+      final Stream stream = _streamSelector(instruction);
 
-    final streamToReturn = stream
-        .where((msg) => msg is IsolateRespose)
-        .map((msg) => msg as IsolateRespose);
+      final streamToReturn = stream
+          .where((msg) => msg is IsolateRespose && msg.data is T)
+          .where((msg) => _checkResponse(msg, instruction));
 
-    if (updateCount == null) {
-      return streamToReturn.map((event) => event.data);
-    } else {
-      return streamToReturn.take(updateCount).map((event) => event.data);
+      if (updateCount == null) {
+        return streamToReturn.map<T>((event) => event.data);
+      } else {
+        return streamToReturn.take(updateCount).map<T>((event) => event.data);
+      }
+    } catch (e, st) {
+      Log.writer.log(
+        "execute Instruction: $instruction\nInstructionID ${instruction.instructionId}\nerror:$e\nStackTrace: $st",
+      );
+      rethrow;
     }
   }
 
-  //if event isn't ResponseDataInstructionId - false
-  //if id is null - true
-  //if id not null and equal instruction.id - true
-  //if id not null and not equal instruction.id - false
-  bool _checkResponse<T>(dynamic event, Instruction<dynamic> instruction) {
-    if (event is IsolateRespose<T?>?) {
-      if (event?.dataInstructionId == null) {
-        return true;
-      } else if (instruction.instructionId == event!.dataInstructionId) {
-        return true;
-      } else {
-        return false;
-      }
-    } else {
+  //If any instruction id is null - false
+  //If instruction id equal response instruction id - true; else - false
+  bool _checkResponse(
+    IsolateRespose event,
+    Instruction<dynamic> instruction,
+  ) {
+    if (event.dataInstructionId == null || event.dataInstructionId == null) {
       return false;
+    } else {
+      return instruction.instructionId == event.dataInstructionId;
     }
   }
 
@@ -637,7 +644,7 @@ class IsolatedUpdater extends Updater {
       );
 
   @override
-  Future<void> setPusher(Map<String, dynamic> pusher) async => execute(
+  Future<RequestUpdate<MyUser>?> setPusher(Map<String, dynamic> pusher) async => execute(
         SetPusherInstruction(
           pusher: pusher,
           instructionId: await _getNextInstructionNumber(),
