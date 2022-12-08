@@ -12,6 +12,7 @@ import 'package:matrix_sdk/src/event/room/message_event.dart';
 import 'package:matrix_sdk/src/model/sync_token.dart';
 import 'package:matrix_sdk/src/updater/isolated/iso_storage_sync.dart';
 import 'package:matrix_sdk/src/util/subscription.dart';
+import 'package:synchronized/synchronized.dart';
 
 import '../../event/event.dart';
 import '../../homeserver.dart';
@@ -77,6 +78,7 @@ class IsolatedUpdater extends Updater {
             instructionId: message.dataInstructionId,
           ),
         );
+        return;
       }
       // on Isolate created
       else if (message is IsolateRespose<SendPort>) {
@@ -100,6 +102,10 @@ class IsolatedUpdater extends Updater {
         final roomId = message.data.id.value;
         _updateOneRoomSync(roomId, message);
       }
+
+      if (message is IsolateRespose<ApiCallStatistics>) {
+        _apiCallStatsSubject.add(message.data);
+      }
     });
 
     _instructionStream.listen((m) async {
@@ -115,6 +121,7 @@ class IsolatedUpdater extends Updater {
             instructionId: message.dataInstructionId,
           ),
         );
+        return;
       }
 
       if (message is IsolateRespose<SendPort>) {
@@ -335,21 +342,24 @@ class IsolatedUpdater extends Updater {
   }
 
   int instructionNumber = 1;
+  final instructionNumberLock = Lock();
 
-  int _getNextInstructionNumber() => instructionNumber += 1;
+  Future<int> _getNextInstructionNumber() async {
+    return instructionNumberLock.synchronized(() => instructionNumber++);
+  }
 
   @override
-  Future<List<String?>?> getRoomIDs() => execute(
+  Future<List<String?>?> getRoomIDs() async => execute(
         GetRoomIDsInstruction(
-          instructionId: _getNextInstructionNumber(),
+          instructionId: await _getNextInstructionNumber(),
         ),
       );
 
   @override
-  Future<void> saveRoomToDB(Room room) => execute(
+  Future<void> saveRoomToDB(Room room) async => execute(
         SaveRoomToDBInstruction(
           room: room,
-          instructionId: _getNextInstructionNumber(),
+          instructionId: await _getNextInstructionNumber(),
         ),
       );
 
@@ -364,14 +374,14 @@ class IsolatedUpdater extends Updater {
           maxRetryAfter: maxRetryAfter,
           timelineLimit: timelineLimit,
           syncToken: syncToken,
-          instructionId: _getNextInstructionNumber(),
+          instructionId: await _getNextInstructionNumber(),
         ),
       );
 
   @override
   Future<void> stopSync() async => _syncSendPort?.send(
         StopSyncInstruction(
-          instructionId: _getNextInstructionNumber(),
+          instructionId: await _getNextInstructionNumber(),
         ),
       );
 
@@ -379,7 +389,7 @@ class IsolatedUpdater extends Updater {
   Future<SyncToken?> runSyncOnce(SyncFilter filter) async => execute(
       RunSyncOnceInstruction(
         filter: filter,
-        instructionId: _getNextInstructionNumber(),
+        instructionId: await _getNextInstructionNumber(),
       ),
       port: _syncSendPort);
 
@@ -387,12 +397,12 @@ class IsolatedUpdater extends Updater {
   Future<RequestUpdate<MemberTimeline>?> kick(
     UserId id, {
     RoomId? from,
-  }) =>
+  }) async =>
       execute(
         KickInstruction(
           id: id,
           from: from,
-          instructionId: _getNextInstructionNumber(),
+          instructionId: await _getNextInstructionNumber(),
         ),
       );
 
@@ -401,13 +411,13 @@ class IsolatedUpdater extends Updater {
     RoomId? roomId,
     int count = 20,
     Room? room,
-  }) =>
+  }) async =>
       execute(
         LoadRoomEventsInstruction(
           roomId: roomId,
           count: count,
           room: room,
-          instructionId: _getNextInstructionNumber(),
+          instructionId: await _getNextInstructionNumber(),
         ),
       );
 
@@ -416,13 +426,13 @@ class IsolatedUpdater extends Updater {
     RoomId? roomId,
     int count = 10,
     Room? room,
-  }) =>
+  }) async =>
       execute(
         LoadMembersInstruction(
           roomId: roomId,
           count: count,
           room: room,
-          instructionId: _getNextInstructionNumber(),
+          instructionId: await _getNextInstructionNumber(),
         ),
       );
 
@@ -430,12 +440,12 @@ class IsolatedUpdater extends Updater {
   Future<RequestUpdate<Rooms>?> loadRoomsByIDs(
     Iterable<RoomId> roomIds,
     int timelineLimit,
-  ) =>
+  ) async =>
       execute(
         LoadRoomsByIDsInstruction(
           roomIds: roomIds.toList(),
           timelineLimit: timelineLimit,
-          instructionId: _getNextInstructionNumber(),
+          instructionId: await _getNextInstructionNumber(),
         ),
       );
 
@@ -444,13 +454,13 @@ class IsolatedUpdater extends Updater {
     int limit,
     int offset,
     int timelineLimit,
-  ) =>
+  ) async =>
       execute(
         LoadRoomsInstruction(
           limit: limit,
           offset: offset,
           timelineLimit: timelineLimit,
-          instructionId: _getNextInstructionNumber(),
+          instructionId: await _getNextInstructionNumber(),
         ),
       );
 
@@ -458,12 +468,12 @@ class IsolatedUpdater extends Updater {
   Future<RequestUpdate<MyUser>?> logout() async {
     final result = await execute(
       LogoutInstruction(
-        instructionId: _getNextInstructionNumber(),
+        instructionId: await _getNextInstructionNumber(),
       ),
     );
     _syncSendPort?.send(
       LogoutInstruction(
-        instructionId: _getNextInstructionNumber(),
+        instructionId: await _getNextInstructionNumber(),
       ),
     );
     await __updaterController.close();
@@ -477,7 +487,7 @@ class IsolatedUpdater extends Updater {
     bool fullyRead = true,
     bool receipt = true,
     Room? room,
-  }) =>
+  }) async =>
       execute(
         MarkReadInstruction(
           roomId: roomId,
@@ -485,7 +495,7 @@ class IsolatedUpdater extends Updater {
           receipt: receipt,
           room: room,
           fullyRead: fullyRead,
-          instructionId: _getNextInstructionNumber(),
+          instructionId: await _getNextInstructionNumber(),
         ),
       );
 
@@ -497,33 +507,34 @@ class IsolatedUpdater extends Updater {
     String? transactionId,
     String stateKey = '',
     String type = '',
-  }) =>
-      _executeStream(
-        SendInstruction(
-          roomId: roomId,
-          content: content,
-          transactionId: transactionId,
-          stateKey: stateKey,
-          type: type,
-          room: room,
-          instructionId: _getNextInstructionNumber(),
-        ),
-        // 2 updates are sent, one for local echo and one for being sent.
-        updateCount: 2,
-      );
+  }) async* {
+    yield* _executeStream(
+      SendInstruction(
+        roomId: roomId,
+        content: content,
+        transactionId: transactionId,
+        stateKey: stateKey,
+        type: type,
+        room: room,
+        instructionId: await _getNextInstructionNumber(),
+      ),
+      // 2 updates are sent, one for local echo and one for being sent.
+      updateCount: 2,
+    );
+  }
 
   @override
-  Stream<Room> startRoomSync(String roomId) {
+  Stream<Room> startRoomSync(String roomId) async* {
     if (!_roomIdToSyncController.keys.contains(roomId)) {
       _roomIdToSyncController[roomId] =
           StreamController<IsolateRespose<Room>>.broadcast();
     }
-    return _executeStream(
+    yield* _executeStream(
       OneRoomSyncInstruction(
         roomId: roomId,
         context: user.context,
         userId: user.id,
-        instructionId: _getNextInstructionNumber(),
+        instructionId: await _getNextInstructionNumber(),
       ),
       port: _syncSendPort,
     );
@@ -540,7 +551,7 @@ class IsolatedUpdater extends Updater {
           roomId: roomId,
           context: context ?? user.context,
           memberIds: memberIds ?? [user.id],
-          instructionId: _getNextInstructionNumber(),
+          instructionId: await _getNextInstructionNumber(),
         ),
       );
 
@@ -549,7 +560,7 @@ class IsolatedUpdater extends Updater {
     final result = (await execute(
           CloseRoomSync(
             roomId: roomId,
-            instructionId: _getNextInstructionNumber(),
+            instructionId: await _getNextInstructionNumber(),
           ),
           port: _syncSendPort,
         )) ??
@@ -563,7 +574,7 @@ class IsolatedUpdater extends Updater {
   Future<bool> closeAllRoomSync() async {
     final result = (await execute(
           CloseAllRoomsSync(
-            instructionId: _getNextInstructionNumber(),
+            instructionId: await _getNextInstructionNumber(),
           ),
           port: _syncSendPort,
         )) ??
@@ -581,13 +592,13 @@ class IsolatedUpdater extends Updater {
     required RoomId roomId,
     bool isTyping = false,
     Duration timeout = const Duration(seconds: 30),
-  }) =>
+  }) async =>
       execute(
         SetIsTypingInstruction(
           roomId: roomId,
           isTyping: isTyping,
           timeout: timeout,
-          instructionId: _getNextInstructionNumber(),
+          instructionId: await _getNextInstructionNumber(),
         ),
       );
 
@@ -596,40 +607,40 @@ class IsolatedUpdater extends Updater {
     RoomId? id,
     RoomAlias? alias,
     required Uri serverUrl,
-  }) =>
+  }) async =>
       execute(
         JoinRoomInstruction(
           id: id,
           alias: alias,
           serverUrl: serverUrl,
-          instructionId: _getNextInstructionNumber(),
+          instructionId: await _getNextInstructionNumber(),
         ),
       );
 
   @override
-  Future<RequestUpdate<Room>?> leaveRoom(RoomId id) => execute(
+  Future<RequestUpdate<Room>?> leaveRoom(RoomId id) async => execute(
         LeaveRoomInstruction(
           id: id,
-          instructionId: _getNextInstructionNumber(),
+          instructionId: await _getNextInstructionNumber(),
         ),
       );
 
   @override
   Future<RequestUpdate<MyUser>?> setDisplayName({
     required String name,
-  }) =>
+  }) async =>
       execute(
         SetNameInstruction(
           name: name,
-          instructionId: _getNextInstructionNumber(),
+          instructionId: await _getNextInstructionNumber(),
         ),
       );
 
   @override
-  Future<void> setPusher(Map<String, dynamic> pusher) => execute(
+  Future<void> setPusher(Map<String, dynamic> pusher) async => execute(
         SetPusherInstruction(
           pusher: pusher,
-          instructionId: _getNextInstructionNumber(),
+          instructionId: await _getNextInstructionNumber(),
         ),
       );
 
@@ -648,7 +659,7 @@ class IsolatedUpdater extends Updater {
         newContent: newContent,
         transactionId: transactionId,
         room: room,
-        instructionId: _getNextInstructionNumber(),
+        instructionId: await _getNextInstructionNumber(),
       ),
     );
   }
@@ -668,7 +679,7 @@ class IsolatedUpdater extends Updater {
         transactionId: transactionId,
         reason: reason,
         room: room,
-        instructionId: _getNextInstructionNumber(),
+        instructionId: await _getNextInstructionNumber(),
       ),
     );
   }

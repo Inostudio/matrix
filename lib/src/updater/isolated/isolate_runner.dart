@@ -52,7 +52,7 @@ abstract class IsolateRunner {
         await updater?.ensureReady();
 
         updater?.outApiCallStatistics.listen(
-          (e) => makeResponseData(null, e),
+          (e) => sendPort.send(makeResponseData(null, e)),
         );
 
         sendPort.send(

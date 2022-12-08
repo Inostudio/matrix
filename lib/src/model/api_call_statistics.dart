@@ -34,4 +34,9 @@ class ApiCallStatistics {
       "response_text": responseText,
     };
   }
+
+  @override
+  String toString() {
+    return 'ApiCallStatistics{method: $method, requestMethod: $requestMethod, requestUrl: $requestUrl, responseTimeMillis: $responseTimeMillis, responseStatusCode: $responseStatusCode, bytesSend: $bytesSend, bytesReceived: $bytesReceived, responseText: $responseText}';
+  }
 }
