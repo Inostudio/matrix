@@ -49,10 +49,9 @@ abstract class IsolateStorageSyncRunner {
         updater.outApiCallStatistics.listen(
           (e) => sendPort.send(makeResponseData(null, e)),
         );
-        sendPort.send(makeResponseData(
-          null,
-          SyncerInitialized(),
-        ));
+        sendPort.send(
+          makeResponseData(null, SyncerInitialized()),
+        );
 
         StreamSubscription? instructionSubscription;
         instructionSubscription = messageStream.listen((message) async {
