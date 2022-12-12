@@ -23,7 +23,6 @@ import '../event/event.dart';
 import '../event/room/message_event.dart';
 import '../event/room/redaction_event.dart';
 import '../event/room/room_event.dart';
-import '../event/room/state/room_creation_event.dart';
 import '../event/room/state/state_event.dart';
 import '../homeserver.dart';
 import '../model/models.dart';
@@ -304,7 +303,8 @@ class Updater {
     );
   }
 
-  Stream<RequestUpdate<Timeline>?> send(
+  //Perform [send] request and then mapping it's stream into Update
+  Stream<RequestUpdate<Timeline>?> makeTimeLineFromSend(
     RoomId roomId,
     EventContent content, {
     Room? room,
@@ -312,8 +312,123 @@ class Updater {
     String stateKey = '',
     String type = '',
   }) async* {
-    final Room? currentRoom = room ??= _user.rooms![roomId];
+    send(
+      roomId,
+      content,
+      room: room,
+      transactionId: transactionId,
+      stateKey: stateKey,
+      type: type,
+    ).map(
+      (event) async {
+        if (event == null) {
+          return null;
+        }
 
+        final Room? currentRoom = room ??= _user.rooms![roomId];
+
+        final timelineDelta = currentRoom?.timeline?.delta(
+          events: [event],
+        );
+        if (timelineDelta == null) {
+          return null;
+        }
+
+        final roomDelta = currentRoom?.delta(
+          timeline: timelineDelta,
+        );
+
+        if (roomDelta == null) {
+          return null;
+        }
+
+        return _createUpdate(
+          _user.delta(rooms: [roomDelta]),
+          (user, delta) => RequestUpdate(
+            user,
+            delta,
+            data: currentRoom?.timeline,
+            deltaData: currentRoom?.timeline,
+            type: RequestType.sendRoomEvent,
+          ),
+        );
+      },
+    );
+  }
+
+  Future<RoomEvent?> sendReadyEvent(
+    RoomEvent roomEvent, {
+    required bool isState,
+  }) async {
+    if (roomEvent.content != null ||
+        roomEvent.transactionId == null ||
+        roomEvent.roomId == null) {
+      return null;
+    } else {
+      try {
+        final eventArgs = RoomEventArgs(
+          networkId: roomEvent.transactionId!,
+          id: EventId(roomEvent.transactionId!),
+          roomId: roomEvent.roomId,
+          time: DateTime.now(),
+          senderId: _user.id,
+          sentState: SentState.unsent,
+          transactionId: roomEvent.transactionId,
+        );
+
+        final fileEvent = await _handleSendFile(roomEvent, eventArgs);
+        if (fileEvent != null) {
+          roomEvent = fileEvent;
+        }
+
+        final Map<String, dynamic> body =
+            await _sendRoomNetwork(roomEvent, roomEvent.roomId!);
+        final eventId = EventId(body['event_id']);
+
+        final sentEvent = RoomEvent.fromContent(
+          roomEvent.content!,
+          eventArgs.copyWith(
+            id: eventId,
+            sentState: SentState.sent,
+          ),
+          type: roomEvent.type,
+          isState: isState,
+        );
+
+        return sentEvent;
+      } catch (e) {
+        final eventArgs = RoomEventArgs(
+          networkId: roomEvent.transactionId!,
+          id: EventId(roomEvent.transactionId!),
+          roomId: roomEvent.roomId,
+          time: DateTime.now(),
+          senderId: _user.id,
+          sentState: SentState.unsent,
+          transactionId: roomEvent.transactionId,
+        );
+
+        final errorEvent = RoomEvent.fromContent(
+          roomEvent.content!,
+          eventArgs.copyWith(
+            id: EventId(roomEvent.transactionId!),
+            sentState: SentState.sent,
+          ),
+          type: roomEvent.type,
+          isState: isState,
+        );
+        return errorEvent;
+      }
+    }
+  }
+
+  Stream<RoomEvent?> send(
+    RoomId roomId,
+    EventContent content, {
+    Room? room,
+    String? transactionId,
+    String stateKey = '',
+    String type = '',
+  }) async* {
     transactionId ??= randomString();
 
     final eventArgs = RoomEventArgs(
@@ -326,49 +441,74 @@ class Updater {
       transactionId: transactionId,
     );
 
-    var event = RoomEvent.fromContent(
+    var fakeEvent = RoomEvent.fromContent(
       content,
       eventArgs,
       type: type,
       isState: stateKey.isNotEmpty,
     );
 
-    if (event == null) {
+    yield fakeEvent;
+
+    if (fakeEvent != null) {
+      final fileEvent = await _handleSendFile(fakeEvent, eventArgs);
+      if (fileEvent != null) {
+        fakeEvent = fileEvent;
+      }
+    }
+
+    if (fakeEvent == null) {
       return;
     }
 
-    if (event is RoomCreationEvent) {
-      throw ArgumentError('This event type cannot be send.');
+    try {
+      final Map<String, dynamic> body =
+          await _sendRoomNetwork(fakeEvent, roomId);
+      final eventId = EventId(body['event_id']);
+
+      final sentEvent = RoomEvent.fromContent(
+        content,
+        eventArgs.copyWith(
+          id: eventId,
+          sentState: SentState.sent,
+        ),
+        type: type,
+        isState: stateKey.isNotEmpty,
+      );
+
+      yield sentEvent;
+    } catch (e) {
+      final eventArgs = RoomEventArgs(
+        networkId: transactionId,
+        id: EventId(transactionId),
+        roomId: roomId,
+        time: DateTime.now(),
+        senderId: _user.id,
+        sentState: SentState.sentError,
+        transactionId: transactionId,
+      );
+
+      final errorEvent = RoomEvent.fromContent(
+        content,
+        eventArgs,
+        type: type,
+        isState: stateKey.isNotEmpty,
+      );
+
+      yield errorEvent;
     }
+  }
 
-    var timelineDelta = currentRoom?.timeline?.delta(events: [event]);
-
-    if (timelineDelta == null) {
-      return;
-    }
-
-    var roomDelta = currentRoom?.delta(timeline: timelineDelta);
-
-    if (roomDelta == null) {
-      return;
-    }
-
-    yield await _createUpdate(
-      _user.delta(rooms: [roomDelta]),
-      (user, delta) => RequestUpdate(
-        user,
-        delta,
-        data: currentRoom?.timeline,
-        deltaData: currentRoom?.timeline,
-        type: RequestType.sendRoomEvent,
-      ),
-    );
-
+  Future<RoomEvent?> _handleSendFile(
+    RoomEvent roomEvent,
+    RoomEventArgs args,
+  ) async {
     // TODO: Support for web
     // Upload images from image message events that have a file uri
-    if (event is ImageMessageEvent && event.content?.url?.scheme == 'file') {
+    if (roomEvent is ImageMessageEvent &&
+        roomEvent.content?.url?.scheme == 'file') {
       final file = File(
-        event.content!.url!.toFilePath(windows: Platform.isWindows),
+        roomEvent.content!.url!.toFilePath(windows: Platform.isWindows),
       );
 
       final fileName = file.path.split(Platform.pathSeparator).last;
@@ -383,86 +523,47 @@ class Updater {
 
       final image = decodeImage(file.readAsBytesSync());
 
-      // TODO: Add copyWith
-      event = RoomEvent.fromContent(
+      return RoomEvent.fromContent(
         ImageMessage(
           url: matrixUrl!,
-          body: event.content!.body,
-          inReplyToId: event.content!.inReplyToId,
+          body: roomEvent.content!.body,
+          inReplyToId: roomEvent.content!.inReplyToId,
           info: ImageInfo(
             width: image?.width ?? 0,
             height: image?.height ?? 0,
           ),
         ),
-        eventArgs,
+        args,
         type: "",
       );
     }
+    return null;
+  }
 
-    if (event == null) {
-      return;
-    }
-
+  Future<Map<String, dynamic>> _sendRoomNetwork(
+    RoomEvent roomEvent,
+    RoomId roomId,
+  ) async {
     Map<String, dynamic> body;
-    if (event is StateEvent) {
+
+    if (roomEvent is StateEvent) {
       body = await _networkService.sendRoomsState(
         accessToken: _user.accessToken!,
         roomId: roomId.toString(),
-        eventType: event.type,
-        stateKey: stateKey,
-        content: event.content?.toJson() ?? {},
+        eventType: roomEvent.type,
+        stateKey: roomEvent.stateKey ?? "",
+        content: roomEvent.content?.toJson() ?? {},
       );
     } else {
       body = await _networkService.roomsSend(
         accessToken: _user.accessToken!,
         roomId: roomId.toString(),
-        eventType: event.type,
-        transactionId: transactionId,
-        content: event.content?.toJson() ?? {},
+        eventType: roomEvent.type,
+        transactionId: roomEvent.transactionId ?? "",
+        content: roomEvent.content?.toJson() ?? {},
       );
     }
-
-    final eventId = EventId(body['event_id']);
-
-    final sentEvent = RoomEvent.fromContent(
-      content,
-      eventArgs.copyWith(
-        id: eventId,
-        sentState: SentState.sent,
-      ),
-      type: type,
-      isState: stateKey.isNotEmpty,
-    );
-
-    if (sentEvent == null) {
-      return;
-    }
-
-    timelineDelta = currentRoom?.timeline?.delta(
-      events: [sentEvent],
-    );
-    if (timelineDelta == null) {
-      return;
-    }
-
-    roomDelta = currentRoom?.delta(
-      timeline: timelineDelta,
-    );
-
-    if (roomDelta == null) {
-      return;
-    }
-
-    yield await _createUpdate(
-      _user.delta(rooms: [roomDelta]),
-      (user, delta) => RequestUpdate(
-        user,
-        delta,
-        data: currentRoom?.timeline,
-        deltaData: currentRoom?.timeline,
-        type: RequestType.sendRoomEvent,
-      ),
-    );
+    return body;
   }
 
   Future<RequestUpdate<Timeline>?> edit(

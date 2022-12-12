@@ -97,6 +97,30 @@ abstract class IsolateRunner {
 
           if (instruction is RequestInstruction) {
             await _executeRequest(updater, sendPort, instruction);
+          } else if (instruction is SendInstruction) {
+            await updater
+                ?.send(
+                  instruction.roomId,
+                  instruction.content,
+                  transactionId: instruction.transactionId,
+                  stateKey: instruction.stateKey,
+                  type: instruction.type,
+                  room: instruction.room,
+                )
+                .forEach(
+                  (update) => sendPort.send(
+                    makeResponseData(instruction, update),
+                  ),
+                );
+
+            return;
+          } else if (instruction is SendReadyInstruction) {
+            final data = await updater?.sendReadyEvent(
+              instruction.roomEvent,
+              isState: instruction.isState,
+            );
+            sendPort.send(makeResponseData(instruction, data));
+            return;
           }
         });
 
@@ -163,23 +187,6 @@ abstract class IsolateRunner {
             room: instruction.room,
             fullyRead: instruction.fullyRead,
           );
-    } else if (instruction is SendInstruction) {
-      await updater
-          .send(
-            instruction.roomId,
-            instruction.content,
-            transactionId: instruction.transactionId,
-            stateKey: instruction.stateKey,
-            type: instruction.type,
-            room: instruction.room,
-          )
-          .forEach(
-            (update) => sendPort.send(
-              makeResponseData(instruction, update?.minimize()),
-            ),
-          );
-
-      return;
     } else if (instruction is SetIsTypingInstruction) {
       operation = () => updater.setIsTyping(
             roomId: instruction.roomId!,
