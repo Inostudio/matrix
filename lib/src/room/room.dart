@@ -546,11 +546,34 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
       stateEvents!.powerLevelsChange!.content!.userLevels ?? {},
     );
     userLevels[id] = to;
-    return send(
+    return makeTimeLineFromSend(
       stateEvents!.powerLevelsChange!.content!.copyWith(
         userLevels: userLevels,
       ),
     ).last;
+  }
+
+
+
+  //Same as [makeTimeLineFromSend] but return Stream<RoomEvent>
+  //Made to extends control fake message logic fom matrix side
+  Stream<RoomEvent?> send(
+      EventContent content, {
+        String? transactionId,
+        String stateKey = '',
+        String type = '',
+      }) {
+    if (context?.updater == null) {
+      return Future.value(null).asStream();
+    }
+    return context!.updater!.send(
+      id,
+      content,
+      transactionId: transactionId,
+      stateKey: stateKey,
+      type: type,
+      room: this,
+    );
   }
 
   /// Send an [Event] to the [Room]. Can be any [RoomEvent]
@@ -568,7 +591,7 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
   ///
   /// If a [RawEventContent] is being send, [type] must not be null. Unused
   /// otherwise.
-  Stream<RequestUpdate<Timeline>?> send(
+  Stream<RequestUpdate<Timeline>?> makeTimeLineFromSend(
     EventContent content, {
     String? transactionId,
     String stateKey = '',
@@ -577,7 +600,7 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
     if (context?.updater == null) {
       return Future.value(null).asStream();
     }
-    return context!.updater!.send(
+    return context!.updater!.makeTimeLineFromSend(
       id,
       content,
       transactionId: transactionId,
@@ -612,19 +635,19 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
     return result ?? Future.value(null);
   }
 
-  Future<Update?> setName(String name) => send(RoomNameChange(name: name)).last;
+  Future<Update?> setName(String name) => makeTimeLineFromSend(RoomNameChange(name: name)).last;
 
   Future<Update?> setAvatarUri(Uri avatarUrl) =>
-      send(RoomAvatarChange(url: avatarUrl)).last;
+      makeTimeLineFromSend(RoomAvatarChange(url: avatarUrl)).last;
 
   Future<Update?> setTopic(String topic) =>
-      send(TopicChange(topic: topic)).last;
+      makeTimeLineFromSend(TopicChange(topic: topic)).last;
 
   Future<Update?> upgrade({
     required RoomId replacementRoomId,
     required String message,
   }) =>
-      send(RoomUpgrade(
+      makeTimeLineFromSend(RoomUpgrade(
         replacementRoomId: replacementRoomId,
         body: message,
       )).last;

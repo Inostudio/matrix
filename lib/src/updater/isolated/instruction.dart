@@ -6,6 +6,7 @@
 
 import 'package:matrix_sdk/src/event/ephemeral/ephemeral_event.dart';
 import 'package:matrix_sdk/src/event/room/message_event.dart';
+import 'package:matrix_sdk/src/event/room/room_event.dart';
 
 import '../../event/event.dart';
 import '../../model/models.dart';
@@ -43,8 +44,37 @@ abstract class RequestInstruction<T extends Contextual<T>>
   RequestInstruction({required super.instructionId});
 }
 
-class GetRoomIDsInstruction
-    extends Instruction<IsolateRespose<List<String?>>> {
+class SendInstruction extends Instruction<IsolateRespose<RoomEvent>> {
+  final RoomId roomId;
+  final EventContent content;
+  final String? transactionId;
+  final String stateKey;
+  final String type;
+  final Room? room;
+
+  SendInstruction({
+    required this.roomId,
+    required this.content,
+    this.transactionId,
+    required this.stateKey,
+    required this.type,
+    this.room,
+    required super.instructionId,
+  });
+}
+
+class SendReadyInstruction extends Instruction<IsolateRespose<RoomEvent>> {
+  final RoomEvent roomEvent;
+  final bool isState;
+
+  SendReadyInstruction({
+    required this.roomEvent,
+    required this.isState,
+    required super.instructionId,
+  });
+}
+
+class GetRoomIDsInstruction extends Instruction<IsolateRespose<List<String?>>> {
   GetRoomIDsInstruction({required super.instructionId});
 }
 
@@ -99,7 +129,8 @@ class StartSyncInstruction extends StorageSyncInstruction<IsolateRespose> {
   });
 }
 
-class RunSyncOnceInstruction extends StorageSyncInstruction<IsolateRespose<SyncToken>> {
+class RunSyncOnceInstruction
+    extends StorageSyncInstruction<IsolateRespose<SyncToken>> {
   final SyncFilter filter;
 
   RunSyncOnceInstruction({
@@ -214,25 +245,6 @@ class MarkReadInstruction extends RequestInstruction<ReadReceipts> {
     required this.until,
     required this.receipt,
     required this.fullyRead,
-    this.room,
-    required super.instructionId,
-  });
-}
-
-class SendInstruction extends RequestInstruction<Timeline> {
-  final RoomId roomId;
-  final EventContent content;
-  final String? transactionId;
-  final String stateKey;
-  final String type;
-  final Room? room;
-
-  SendInstruction({
-    required this.roomId,
-    required this.content,
-    this.transactionId,
-    required this.stateKey,
-    required this.type,
     this.room,
     required super.instructionId,
   });

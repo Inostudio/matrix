@@ -15,6 +15,7 @@ import 'package:matrix_sdk/src/util/subscription.dart';
 import 'package:synchronized/synchronized.dart';
 
 import '../../event/event.dart';
+import '../../event/room/room_event.dart';
 import '../../homeserver.dart';
 import '../../model/models.dart';
 import '../../room/member/member_timeline.dart';
@@ -507,7 +508,22 @@ class IsolatedUpdater extends Updater {
       );
 
   @override
-  Stream<RequestUpdate<Timeline>?> send(
+  Future<RoomEvent?> sendReadyEvent(
+    RoomEvent roomEvent, {
+    required bool isState,
+  }) async {
+    return execute(
+      SendReadyInstruction(
+        isState: isState,
+        roomEvent: roomEvent,
+        instructionId: await _getNextInstructionNumber(),
+      ),
+      // 2 updates are sent, one for local echo and one for being sent.
+    );
+  }
+
+  @override
+  Stream<RoomEvent?> send(
     RoomId roomId,
     EventContent content, {
     Room? room,
@@ -644,7 +660,8 @@ class IsolatedUpdater extends Updater {
       );
 
   @override
-  Future<RequestUpdate<MyUser>?> setPusher(Map<String, dynamic> pusher) async => execute(
+  Future<RequestUpdate<MyUser>?> setPusher(Map<String, dynamic> pusher) async =>
+      execute(
         SetPusherInstruction(
           pusher: pusher,
           instructionId: await _getNextInstructionNumber(),
