@@ -82,9 +82,11 @@ abstract class RoomEvent extends Event with Identifiable<EventId> {
     if (!json.containsKey('event_id') || json["event_id"] == null) {
       return null;
     }
+    final transactionId = json["unsigned"]["transaction_id"];
 
     final args = RoomEventArgs.fromJson(json).copyWith(
       roomId: roomId,
+      transactionId: transactionId,
     );
 
     RoomEvent? event;
@@ -351,4 +353,10 @@ class RoomEventArgs {
       transactionId: other.transactionId,
     );
   }
+
+  @override
+  String toString() {
+    return 'RoomEventArgs{id: $id, roomId: $roomId, senderId: $senderId, networkId: $networkId, time: $time, sentState: $sentState, transactionId: $transactionId}';
+  }
+
 }
