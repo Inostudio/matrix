@@ -450,6 +450,8 @@ class Updater {
 
     yield fakeEvent;
 
+    //TODO save fake event in future
+
     if (fakeEvent != null) {
       final fileEvent = await _handleSendFile(fakeEvent, eventArgs);
       if (fileEvent != null) {
@@ -470,13 +472,16 @@ class Updater {
         content,
         eventArgs.copyWith(
           id: eventId,
+          networkId: eventId.value,
           sentState: SentState.sent,
+          transactionId: transactionId,
         ),
         type: type,
         isState: stateKey.isNotEmpty,
       );
 
       yield sentEvent;
+      //TODO delete fake event in future
     } catch (e) {
       final eventArgs = RoomEventArgs(
         networkId: transactionId,
