@@ -344,14 +344,11 @@ class SetNameInstruction extends RequestInstruction<MyUser> {
   });
 }
 
-class SetPusherInstruction extends RequestInstruction<MyUser> {
+class SetPusherInstruction extends Instruction<IsolateRespose<RoomEvent>> {
   final Map<String, dynamic> pusher;
 
   SetPusherInstruction({
     required this.pusher,
     required super.instructionId,
   });
-
-  @override
-  final bool basedOnUpdate = true;
 }

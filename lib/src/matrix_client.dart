@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:matrix_sdk/matrix_sdk.dart';
+import 'package:matrix_sdk/src/services/local/base_sync_storage.dart';
+import 'package:matrix_sdk/src/services/local/sync_storage.dart';
 import 'package:matrix_sdk/src/updater/isolated/isolated_updater.dart';
 import 'package:matrix_sdk/src/util/logger.dart';
 
@@ -33,6 +35,7 @@ class MatrixClient {
 
   Updater? _updater;
   LocalUpdater? _localUpdater;
+  late BaseSyncStorage _syncStorage;
 
   MatrixClient({
     this.isIsolated = true,
@@ -40,6 +43,7 @@ class MatrixClient {
     this.serverUri,
     required StoreLocation storeLocation,
   }) : _storeLocation = storeLocation {
+    _syncStorage = SyncStorage(storeLocation: storeLocation);
     if (serverUri != null) {
       Log.setLogger(withDebugLog ? LoggerVariant.dev : LoggerVariant.none);
       _homeServer = Homeserver(serverUri!);
@@ -90,6 +94,62 @@ class MatrixClient {
     _streamSubscription.add(
       _localUpdater!.outError.listen(_errorSubject.add),
     );
+  }
+
+  Future<MyUser> createWithLoginOrLastToken(
+    UserIdentifier user,
+    String password, {
+    Device? device,
+  }) async {
+    if (serverUri == null) {
+      throw Exception("Server uri is empty $serverUri");
+    }
+
+    //Destroy local updater
+    await _localUpdater?.close();
+    _localUpdater = null;
+    _clearSubs();
+
+    await _syncStorage.ensureOpen();
+
+    MyUser? myUser;
+    final localUser = await _syncStorage.getMyUser();
+    final userToken = localUser?.accessToken;
+
+    if (localUser != null && userToken != null && userToken.isNotEmpty) {
+      myUser = localUser;
+    } else {
+      final networkUser = await login(user, password, device: device);
+      myUser = networkUser;
+    }
+
+    if (isIsolated) {
+      _updater = await IsolatedUpdater.create(
+        myUser,
+        _homeServer!,
+        _storeLocation,
+        saveMyUserToStore: isIsolated,
+      );
+    } else {
+      _updater = Updater(
+        myUser,
+        _homeServer!,
+        _storeLocation,
+        initSyncStorage: !isIsolated,
+      );
+    }
+
+    //Make sync
+    if (_updater != null) {
+      await _updater!.ensureReady();
+
+      _streamSubscription.add(_updater!.updates.listen(_updatesSubject.add));
+      _streamSubscription
+          .add(_updater!.outApiCallStatistics.listen(_apiCallStatsSubject.add));
+      _streamSubscription.add(_updater!.outError.listen(_errorSubject.add));
+    }
+
+    return myUser;
   }
 
   Future<MyUser> createWithLogin(
@@ -149,11 +209,14 @@ class MatrixClient {
 
     _streamSubscription
         .add(_homeServer!.outApiCallStats.listen(_apiCallStatsSubject.add));
-    return _homeServer!.login(
+    await _syncStorage.ensureOpen();
+    final myUser = await _homeServer!.login(
       user,
       password,
       device: device,
     );
+    await _syncStorage.setUserDelta(myUser);
+    return myUser;
   }
 
   /// Invalidates the access token of the user. Makes all

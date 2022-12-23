@@ -18,6 +18,7 @@ import '../updater.dart';
 import 'instruction.dart';
 
 abstract class IsolateRunner {
+
   static Future<void> run(IsolateTransferModel transferModel) async {
     final message = transferModel.message;
     Log.setLogger(transferModel.loggerVariant);
@@ -122,6 +123,13 @@ abstract class IsolateRunner {
             sendPort.send(makeResponseData(instruction, data));
             return;
           }
+          else if (instruction is SetPusherInstruction) {
+            final data = await updater?.setPusher(
+              instruction.pusher,
+            );
+            sendPort.send(makeResponseData(instruction, data));
+            return;
+          }
         });
 
         await instructionSubscription.asFuture();
@@ -203,8 +211,6 @@ abstract class IsolateRunner {
       operation = () => updater.leaveRoom(instruction.id);
     } else if (instruction is SetNameInstruction) {
       operation = () => updater.setDisplayName(name: instruction.name);
-    } else if (instruction is SetPusherInstruction) {
-      operation = () => updater.setPusher(instruction.pusher);
     } else if (instruction is EditTextEventInstruction) {
       operation = () => updater.edit(
             instruction.roomId,

@@ -660,8 +660,7 @@ class IsolatedUpdater extends Updater {
       );
 
   @override
-  Future<RequestUpdate<MyUser>?> setPusher(Map<String, dynamic> pusher) async =>
-      execute(
+  Future<bool?> setPusher(Map<String, dynamic> pusher) async => execute(
         SetPusherInstruction(
           pusher: pusher,
           instructionId: await _getNextInstructionNumber(),

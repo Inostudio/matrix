@@ -249,7 +249,7 @@ class Database extends _$Database {
   Stream<MyUserRecordWithDeviceRecord?> getUserSync() =>
       _selectUserWithDevice().watchSingleOrNull();
 
-  Future<MyUserRecordWithDeviceRecord> getMyUserRecord() => runOperation(
+  Future<MyUserRecordWithDeviceRecord?> getMyUserRecord() async => runOperation(
         operationName: "getMyUserRecord",
         onRun: _selectUserWithDevice().getSingleOrNull,
         onError: (error) => showError("getMyUserRecord", error),
@@ -257,8 +257,10 @@ class Database extends _$Database {
 
   Future<void> setMyUser(MyUsersCompanion companion) async => runOperation(
         onRun: () => batch(
-          (batch) => batch.insert(myUsers, companion,
-              mode: InsertMode.insertOrReplace),
+          (batch) => batch.insertAllOnConflictUpdate(
+            myUsers,
+            [companion],
+          ),
         ),
         onError: (error) => showError("setMyUser", error),
         operationName: "setMyUser",
