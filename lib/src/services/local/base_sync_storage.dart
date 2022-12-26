@@ -56,7 +56,7 @@ abstract class BaseSyncStorage {
 
   Future<String?> getToken();
 
-  Future<MyUser> getMyUser({
+  Future<MyUser?> getMyUser({
     List<RoomId>? roomIds,
     int timelineLimit,
   });

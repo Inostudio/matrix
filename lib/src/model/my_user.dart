@@ -152,7 +152,7 @@ class MyUser extends MatrixUser implements Contextual<MyUser> {
       id: other.id,
       name: other.name,
       avatarUrl: other.avatarUrl,
-      accessToken: other.accessToken,
+      accessToken: other.accessToken ?? accessToken,
       syncToken: other.syncToken,
       currentDevice:
           currentDevice?.merge(other.currentDevice) ?? other.currentDevice,

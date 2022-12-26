@@ -980,22 +980,13 @@ class Updater {
   }
 
   /// Note: Will return RequestUpdate<Pushers> in the future.
-  Future<RequestUpdate<MyUser>?> setPusher(Map<String, dynamic> pusher) async {
-    await _networkService.setPusher(
+  Future<bool?> setPusher(Map<String, dynamic> pusher) async {
+    final pusherIsSet = await _networkService.setPusher(
       accessToken: _user.accessToken ?? '',
       body: pusher,
     );
 
-    return _createUpdate(
-      _user.delta(),
-      (user, delta) => RequestUpdate(
-        user,
-        delta,
-        data: user,
-        deltaData: delta,
-        type: RequestType.setName,
-      ),
-    );
+    return pusherIsSet;
   }
 
   Future<void> processSync(Map<String, dynamic> body) async {
@@ -1039,7 +1030,7 @@ class Updater {
     } else {
       final update = await _syncStorage.getMyUser();
       return _createUpdate(
-        update,
+        update ?? user,
         (user, delta) => RequestUpdate(
           user,
           delta,

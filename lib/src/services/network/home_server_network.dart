@@ -200,11 +200,12 @@ class HomeServerNetworking implements BaseNetwork {
     required int length,
     required String contentType,
     String fileName = '',
-  }) async => _homeServer.upload(
-      as: as,
-      bytes: bytes,
-      length: length,
-      contentType: contentType,
-      fileName: fileName,
-    );
+  }) async =>
+      _homeServer.upload(
+        as: as,
+        bytes: bytes,
+        length: length,
+        contentType: contentType,
+        fileName: fileName,
+      );
 }
