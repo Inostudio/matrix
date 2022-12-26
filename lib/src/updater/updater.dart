@@ -208,10 +208,11 @@ class Updater {
       token = await _syncStorage.getToken();
     }
 
-    _syncer.start(
+    await _syncer.start(
       maxRetryAfter: maxRetryAfter,
       timelineLimit: timelineLimit,
       syncToken: token,
+      withLoadFakes: true,
     );
   }
 
@@ -450,7 +451,9 @@ class Updater {
 
     yield fakeEvent;
 
-    //TODO save fake event in future
+    if (fakeEvent != null) {
+      await _syncStorage.addFakeEvent(fakeEvent);
+    }
 
     if (fakeEvent != null) {
       final fileEvent = await _handleSendFile(fakeEvent, eventArgs);
@@ -481,7 +484,10 @@ class Updater {
       );
 
       yield sentEvent;
-      //TODO delete fake event in future
+
+      if (fakeEvent.transactionId != null) {
+        await _syncStorage.deleteFakeEvent(fakeEvent.transactionId!);
+      }
     } catch (e) {
       final eventArgs = RoomEventArgs(
         networkId: transactionId,
@@ -840,6 +846,14 @@ class Updater {
     );
   }
 
+  Future<Iterable<RoomEvent>> getAllFakeMessages() {
+    return _syncStorage.getAllFakeEvents();
+  }
+
+  Future<bool> deleteFakeEvent(String transactionId) {
+    return _syncStorage.deleteFakeEvent(transactionId);
+  }
+
   Future<RequestUpdate<MemberTimeline>?> loadMembers({
     required RoomId roomId,
     int count = 10,
@@ -989,7 +1003,7 @@ class Updater {
     return pusherIsSet;
   }
 
-  Future<void> processSync(Map<String, dynamic> body) async {
+  Future<SyncUpdate?> processSync(Map<String, dynamic> body) async {
     final roomDeltas = await _processRooms(body);
 
     String? syncToken;
@@ -1005,7 +1019,7 @@ class Updater {
             syncToken != _currentSyncToken)) {
       _currentSyncToken = syncToken;
 
-      await _createUpdate(
+      return _createUpdate(
         _user.delta(
           syncToken: body['next_batch'],
           rooms: roomDeltas,
@@ -1015,6 +1029,7 @@ class Updater {
         withSaveInStore: true,
       );
     }
+    return null;
   }
 
   ///Get last update

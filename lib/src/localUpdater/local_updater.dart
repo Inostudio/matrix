@@ -83,6 +83,9 @@ class LocalUpdater {
     }
   }
 
+  Future<Iterable<RoomEvent>> getAllFakeMessages() async =>
+      await _syncStorage?.getAllFakeEvents() ?? [];
+
   Stream<Room> _startSyncIso(String roomId) async* {
     _sendPort?.send(
       IsolateStorageOneRoomStartSyncInstruction(roomId: roomId),

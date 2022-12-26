@@ -430,6 +430,21 @@ class IsolatedUpdater extends Updater {
       );
 
   @override
+  Future<Iterable<RoomEvent>> getAllFakeMessages() async => await execute(
+        LoadFakeRoomEventsInstruction(
+          instructionId: await _getNextInstructionNumber(),
+        ),
+      );
+
+  @override
+  Future<bool> deleteFakeEvent(String transactionId) async => await execute(
+        DeleteFakeRoomEventInstruction(
+          transactionId: transactionId,
+          instructionId: await _getNextInstructionNumber(),
+        ),
+      );
+
+  @override
   Future<RequestUpdate<MemberTimeline>?> loadMembers({
     RoomId? roomId,
     int count = 10,

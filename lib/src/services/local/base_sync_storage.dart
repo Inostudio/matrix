@@ -61,6 +61,12 @@ abstract class BaseSyncStorage {
     int timelineLimit,
   });
 
+  Future<bool> addFakeEvent(RoomEvent fakeRoomEvent);
+
+  Future<bool> deleteFakeEvent(String transactionId);
+
+  Future<List<RoomEvent>> getAllFakeEvents();
+
   Future<bool> ensureOpen();
 
   Future<void> close();
