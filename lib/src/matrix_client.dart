@@ -328,7 +328,7 @@ class MatrixClient {
     return update?.deltaData?.toList() ?? [];
   }
 
-  Future<Iterable<RoomEvent>> getAllFakeMessages(){
+  Future<Iterable<RoomEvent>> getAllFakeMessages() {
     if (isLocal == true && _localUpdater != null) {
       return _localUpdater!.getAllFakeMessages();
     } else if (isLocal == false && _updater != null) {
@@ -338,7 +338,6 @@ class MatrixClient {
         "Cant handle getAllFakeMessages isLocal: $isLocal updater: $_updater, _localUpdater: $_localUpdater,",
       );
     }
-
   }
 
   Future<Room?> getRoomFromDB({

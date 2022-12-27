@@ -122,7 +122,9 @@ class Updater {
         );
   }
 
-  Future<bool> ensureReady() => _syncStorage.ensureOpen();
+  Future<bool> ensureReady() async {
+    return (await _syncStorage.ensureOpen()) && isReady;
+  }
 
   Stream<Room> startRoomSync(String roomId) {
     if (!_roomIdToSyncController.keys.contains(roomId)) {

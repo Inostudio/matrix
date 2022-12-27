@@ -29,6 +29,9 @@ class Syncer {
   late Iterable<RoomEvent> _initialFakes;
 
   Future<void> _getInitialFakes() async {
+    while (!(await _updater.ensureReady())) {
+      await Future.delayed(Duration(milliseconds: 500));
+    }
     _initialFakes = await _updater.getAllFakeMessages();
   }
 
