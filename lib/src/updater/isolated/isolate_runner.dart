@@ -18,7 +18,6 @@ import '../updater.dart';
 import 'instruction.dart';
 
 abstract class IsolateRunner {
-
   static Future<void> run(IsolateTransferModel transferModel) async {
     final message = transferModel.message;
     Log.setLogger(transferModel.loggerVariant);
@@ -122,8 +121,17 @@ abstract class IsolateRunner {
             );
             sendPort.send(makeResponseData(instruction, data));
             return;
-          }
-          else if (instruction is SetPusherInstruction) {
+          } else if (instruction is LoadFakeRoomEventsInstruction) {
+            final data = await updater?.getAllFakeMessages();
+            sendPort.send(makeResponseData(instruction, data));
+            return;
+          } else if (instruction is DeleteFakeRoomEventInstruction) {
+            final data = await updater?.deleteFakeEvent(
+              instruction.transactionId,
+            );
+            sendPort.send(makeResponseData(instruction, data));
+            return;
+          } else if (instruction is SetPusherInstruction) {
             final data = await updater?.setPusher(
               instruction.pusher,
             );

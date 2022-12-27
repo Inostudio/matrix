@@ -79,6 +79,12 @@ abstract class Store {
     Iterable<UserId>? memberIds,
   });
 
+  Future<bool> addFakeEvent(RoomEvent fakeRoomEvent);
+
+  Future<bool> deleteFakeMessage(String transactionId);
+
+  Future<List<RoomEvent>> getAllFakeEvents();
+
   /// Load certain page of rooms, sorted by lastMessageTimeInterval
   Future<Iterable<Room>> getRooms({
     Context? context,

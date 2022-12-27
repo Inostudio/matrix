@@ -186,6 +186,20 @@ class LoadRoomEventsInstruction extends RequestInstruction<Timeline> {
   });
 }
 
+class LoadFakeRoomEventsInstruction
+    extends Instruction<IsolateRespose<RoomEvent>> {
+  LoadFakeRoomEventsInstruction({required super.instructionId});
+}
+
+class DeleteFakeRoomEventInstruction extends Instruction<IsolateRespose<bool>> {
+  final String transactionId;
+
+  DeleteFakeRoomEventInstruction({
+    required this.transactionId,
+    required super.instructionId,
+  });
+}
+
 class LoadMembersInstruction extends RequestInstruction<MemberTimeline> {
   final RoomId? roomId;
   final int count;

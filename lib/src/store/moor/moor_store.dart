@@ -463,6 +463,24 @@ class MoorStore extends Store {
     }
   }
 
+  @override
+  Future<bool> addFakeEvent(RoomEvent fakeRoomEvent) async {
+    return _db!.addOneFakeMessage(
+      fakeRoomEvent.toFakeRecord(inTimeline: false),
+    );
+  }
+
+  @override
+  Future<bool> deleteFakeMessage(String transactionId) async {
+    return _db!.deleteFakeMessage(transactionId);
+  }
+
+  @override
+  Future<List<RoomEvent>> getAllFakeEvents() async {
+    final data = await _db!.getAllFakeMessages();
+    return data.map((e) => e.toRoomFakeEvent()).toList();
+  }
+
   Future<Iterable<Room>> getRoomsByIDsOptimized(
     Iterable<RoomId>? roomIds, {
     Context? context,
@@ -1068,6 +1086,42 @@ extension on RoomEvent {
     );
   }
 
+  RoomFakeEventRecord toFakeRecord({
+    required bool inTimeline,
+  }) {
+    String? stateKey, previousContent;
+    if (this is StateEvent) {
+      final it = this as StateEvent;
+      // Automatic cast doesn't seem to work on this
+      stateKey = it.stateKey;
+
+      previousContent = it.previousContent != null
+          ? json.encode(it.previousContent!.toJson())
+          : null;
+    }
+
+    String? redacts;
+    if (this is RedactionEvent) {
+      redacts = (this as RedactionEvent).redacts.toString();
+    }
+
+    return RoomFakeEventRecord(
+      id: storedId,
+      networkId: networkId,
+      type: type,
+      roomId: roomId.toString(),
+      senderId: senderId.toString(),
+      time: time,
+      content: content != null ? json.encode(content?.toJson()) : null,
+      previousContent: previousContent,
+      sentState: sentState?.toShortString(),
+      transactionId: transactionId,
+      stateKey: stateKey,
+      redacts: redacts,
+      inTimeline: inTimeline,
+    );
+  }
+
   String get storedId {
     //    var id = this.id.toString();
     //
@@ -1083,7 +1137,116 @@ extension on RoomEvent {
 }
 
 extension on RoomEventRecord {
-  T? toRoomEvent<T extends RoomEvent>() {
+  T toRoomEvent<T extends RoomEvent>() {
+    final args = RoomEventArgs(
+      id: EventId(id),
+      networkId: networkId,
+      senderId: UserId(senderId),
+      time: time,
+      roomId: RoomId(roomId),
+      sentState: sentState?.toSentState(),
+      transactionId: transactionId,
+    );
+
+    dynamic decodedContent, decodedPreviousContent;
+    if (content != null) {
+      decodedContent = json.decode(content!);
+    }
+
+    if (previousContent != null) {
+      decodedPreviousContent = json.decode(previousContent!);
+    }
+
+    switch (type) {
+      case MessageEvent.matrixType:
+        return MessageEvent.instance(
+          args,
+          content: MessageEventContent.fromJson(decodedContent),
+        ) as T;
+      case MemberChangeEvent.matrixType:
+        return MemberChangeEvent(
+          args,
+          content: MemberChange.fromJson(decodedContent),
+          previousContent: MemberChange.fromJson(decodedPreviousContent),
+          stateKey: stateKey ?? '',
+        ) as T;
+      case RedactionEvent.matrixType:
+        return RedactionEvent(
+          args,
+          content: Redaction.fromJson(decodedContent),
+          redacts: EventId(redacts ?? ''),
+        ) as T;
+      case RoomAvatarChangeEvent.matrixType:
+        return RoomAvatarChangeEvent(
+          args,
+          content: RoomAvatarChange.fromJson(decodedContent),
+          previousContent: RoomAvatarChange.fromJson(decodedPreviousContent),
+        ) as T;
+      case RoomNameChangeEvent.matrixType:
+        return RoomNameChangeEvent(
+          args,
+          content: RoomNameChange.fromJson(decodedContent),
+          previousContent: RoomNameChange.fromJson(decodedPreviousContent),
+        ) as T;
+      case RoomCreationEvent.matrixType:
+        return RoomCreationEvent(
+          args,
+          content: RoomCreation.fromJson(decodedContent),
+          previousContent: RoomCreation.fromJson(decodedPreviousContent),
+        ) as T;
+      case RoomUpgradeEvent.matrixType:
+        return RoomUpgradeEvent(
+          args,
+          content: RoomUpgrade.fromJson(decodedContent),
+          previousContent: RoomUpgrade.fromJson(decodedPreviousContent),
+        ) as T;
+      case TopicChangeEvent.matrixType:
+        return TopicChangeEvent(
+          args,
+          content: TopicChange.fromJson(decodedContent),
+          previousContent: TopicChange.fromJson(decodedPreviousContent),
+        ) as T;
+      case PowerLevelsChangeEvent.matrixType:
+        return PowerLevelsChangeEvent.instance(
+          args,
+          content: PowerLevelsChange.fromJson(decodedContent),
+          previousContent: PowerLevelsChange.fromJson(decodedPreviousContent),
+        ) as T;
+      case JoinRulesChangeEvent.matrixType:
+        return JoinRulesChangeEvent(
+          args,
+          content: JoinRules.fromJson(decodedContent),
+          previousContent: JoinRules.fromJson(decodedPreviousContent),
+        ) as T;
+      case CanonicalAliasChangeEvent.matrixType:
+        return CanonicalAliasChangeEvent(
+          args,
+          content: CanonicalAliasChange.fromJson(decodedContent),
+          previousContent: CanonicalAliasChange.fromJson(
+            decodedPreviousContent,
+          ),
+        ) as T;
+      default:
+        return stateKey != null
+            ? RawStateEvent(
+                args,
+                type: type,
+                content: RawEventContent.fromJson(decodedContent),
+                previousContent:
+                    RawEventContent.fromJson(decodedPreviousContent),
+                stateKey: stateKey,
+              ) as T
+            : RawRoomEvent(
+                args,
+                type: type,
+                content: RawEventContent.fromJson(decodedContent),
+              ) as T;
+    }
+  }
+}
+
+extension on RoomFakeEventRecord {
+  T toRoomFakeEvent<T extends RoomEvent>() {
     final args = RoomEventArgs(
       id: EventId(id),
       networkId: networkId,
@@ -1254,7 +1417,16 @@ extension on EphemeralEventFull {
 }
 
 extension on SentState {
-  String toShortString() => toString().split('.')[1];
+  String toShortString() {
+    switch (this) {
+      case SentState.unsent:
+        return "unsent";
+      case SentState.sent:
+        return "sent";
+      case SentState.sentError:
+        return "sentError";
+    }
+  }
 }
 
 extension on String {
@@ -1264,6 +1436,8 @@ extension on String {
         return SentState.unsent;
       case 'sent':
         return SentState.sent;
+      case 'sentError':
+        return SentState.sentError;
       default:
         return null;
     }

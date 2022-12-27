@@ -93,6 +93,40 @@ class Rooms extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+@DataClassName('RoomFakeEventRecord')
+class RoomFakeEvents extends Table {
+  TextColumn get id => text()();
+
+  //TODO now id and networkId is duplicated. If work stable - remove networkId
+  TextColumn get networkId => text()();
+
+  TextColumn get type => text()();
+
+  TextColumn get roomId =>
+      text().customConstraint('REFERENCES room_events(id)')();
+
+  TextColumn get senderId => text()();
+
+  DateTimeColumn get time => dateTime().nullable()();
+
+  TextColumn get content => text().nullable()();
+
+  TextColumn get previousContent => text().nullable()();
+
+  TextColumn get sentState => text().nullable()();
+
+  TextColumn get transactionId => text().nullable()();
+
+  TextColumn get stateKey => text().nullable()();
+
+  TextColumn get redacts => text().nullable()();
+
+  BoolColumn get inTimeline => boolean()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DataClassName('RoomEventRecord')
 class RoomEvents extends Table {
   TextColumn get id => text()();
@@ -215,7 +249,7 @@ class Database extends _$Database {
   }
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => destructiveFallback;
@@ -656,6 +690,60 @@ class Database extends _$Database {
         }),
         onError: (error) => showError("setRoomEventRecords", error),
       );
+
+  Future<Iterable<RoomFakeEventRecord>> getAllFakeMessages() async {
+    final query = select(roomFakeEvents);
+
+    query.orderBy([
+      (e) => OrderingTerm(expression: e.time, mode: OrderingMode.desc),
+    ]);
+
+    final result = await runOperation(
+      operationName: "getAllFakeMessages",
+      onRun: query.get,
+      onError: (error) => showError("getAllFakeMessages", error),
+    );
+    return result ?? [];
+  }
+
+  Future<bool> addOneFakeMessage(
+    RoomFakeEventRecord record,
+  ) async => runOperation(
+      operationName: "addOneFakeMessage",
+      onRun: () {
+        batch(
+          (batch) => batch.insert(
+            roomFakeEvents,
+            record.toCompanion(true),
+            mode: InsertMode.insertOrReplace,
+          ),
+        );
+        return true;
+      },
+      onError: (error) {
+        showError("addOneFakeMessage", error);
+        return false;
+      },
+    );
+
+  Future<bool> deleteFakeMessage(String transactionId) async => runOperation(
+      operationName: "deleteFakeMessage",
+      onRun: () {
+        batch(
+          (batch) {
+            batch.deleteWhere<RoomFakeEvents, RoomFakeEventRecord>(
+              roomFakeEvents,
+              (tbl) => tbl.transactionId.equals(transactionId),
+            );
+          },
+        );
+        return true;
+      },
+      onError: (error) {
+        showError("deleteFakeMessage", error);
+        return false;
+      },
+    );
 
   /// Get the MemberChangeEvents for each user.
   Future<Iterable<RoomEventRecord>> getMemberEventRecordsOfSenders(

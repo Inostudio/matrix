@@ -128,4 +128,16 @@ class SyncStorage implements BaseSyncStorage {
 
   @override
   Future<void> wipeAllData() => store.wipeAllData();
+
+  @override
+  Future<List<RoomEvent>> getAllFakeEvents() => store.getAllFakeEvents();
+
+  @override
+  Future<bool> addFakeEvent(RoomEvent fakeRoomEvent) =>
+      store.addFakeEvent(fakeRoomEvent);
+
+  @override
+  Future<bool> deleteFakeEvent(String transactionId) {
+    return store.deleteFakeMessage(transactionId);
+  }
 }
