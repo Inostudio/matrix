@@ -28,6 +28,7 @@ class LocalUpdater {
 
   final _receivePort = ReceivePort();
   Completer? _stopCompleter;
+  final Completer _sendPortReadyCompleter = Completer();
   SendPort? _sendPort;
 
   Map<String, StreamSubscription<Room>> roomIdToSyncSubscription = {};
@@ -83,8 +84,34 @@ class LocalUpdater {
     }
   }
 
-  Future<Iterable<RoomEvent>> getAllFakeMessages() async =>
-      await _syncStorage?.getAllFakeEvents() ?? [];
+  Completer<Iterable<RoomEvent>>? _getRoomEventsCompleter;
+  Future<Iterable<RoomEvent>> getAllFakeMessages() async {
+    if (isIsolated) {
+      await _sendPortReadyCompleter.future;
+      _getRoomEventsCompleter = Completer();
+      _sendPort?.send(IsolateStorageGetAllFake());
+      final result = await _getRoomEventsCompleter?.future;
+      return result ?? [];
+    } else {
+      return await _syncStorage?.getAllFakeEvents() ?? [];
+    }
+  }
+
+  Completer<bool>? _deleteRoomEventsCompleter;
+
+  Future<bool> deleteFakeEvent(String transactionId) async {
+    if (isIsolated) {
+      await _sendPortReadyCompleter.future;
+      _deleteRoomEventsCompleter = Completer();
+      _sendPort?.send(
+        IsolateStorageDeleteFakeEvent(transactionId: transactionId),
+      );
+      final result = await _deleteRoomEventsCompleter?.future;
+      return result ?? false;
+    } else {
+      return await _syncStorage?.deleteFakeEvent(transactionId) ?? false;
+    }
+  }
 
   Stream<Room> _startSyncIso(String roomId) async* {
     _sendPort?.send(
@@ -173,6 +200,7 @@ class LocalUpdater {
       if (message is SendPort) {
         _sendPort = message;
         _sendPort!.send(IsoStorageUpdaterArgs(storeLocation: storeLocation));
+        _sendPortReadyCompleter.complete();
         //on isolate ready to start sync
       } else if (message is IsolateStorageSyncerInitialized) {
         _sendPort!.send(IsolateStorageStartSyncInstruction());
@@ -198,6 +226,10 @@ class LocalUpdater {
         } else {
           roomIdToStopCompleter[message.roomId]?.complete(message.result);
         }
+      } else if (message is IsolateStorageGetAllFakeResp) {
+        _getRoomEventsCompleter?.complete(message.fakes);
+      } else if (message is IsolateStorageDeleteFakeResp) {
+        _deleteRoomEventsCompleter?.complete(message.result);
       }
     });
   }
