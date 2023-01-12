@@ -85,6 +85,12 @@ abstract class IsolateStorageUpdater {
                 result: resUpd && resLocal,
               ),
             );
+          } else if (message is IsolateStorageGetAllFake) {
+            final fakes = await updater.getAllFakeMessages();
+            sendPort.send(IsolateStorageGetAllFakeResp(fakes: fakes.toList()));
+          } else if (message is IsolateStorageDeleteFakeEvent) {
+            final res = await updater.deleteFakeEvent(message.transactionId);
+            sendPort.send(IsolateStorageDeleteFakeResp(result: res));
           }
         });
 
@@ -138,4 +144,20 @@ class IsoStorageUpdateClose {
         roomId: roomId,
         all: false,
       );
+}
+
+class IsolateStorageGetAllFakeResp {
+  final List<RoomEvent> fakes;
+
+  const IsolateStorageGetAllFakeResp({
+    required this.fakes,
+  });
+}
+
+class IsolateStorageDeleteFakeResp {
+  final bool result;
+
+  const IsolateStorageDeleteFakeResp({
+    required this.result,
+  });
 }

@@ -509,6 +509,9 @@ class Updater {
       );
 
       yield errorEvent;
+      if (errorEvent != null) {
+        await _syncStorage.addFakeEvent(errorEvent);
+      }
     }
   }
 

@@ -26,3 +26,15 @@ class IsolateStorageOneRoomStopSyncInstruction {
 
 @immutable
 class IsolateStorageOneRoomStopAllSyncInstruction {}
+
+@immutable
+class IsolateStorageGetAllFake {}
+
+@immutable
+class IsolateStorageDeleteFakeEvent {
+  final String transactionId;
+
+  const IsolateStorageDeleteFakeEvent({
+    required this.transactionId,
+  });
+}

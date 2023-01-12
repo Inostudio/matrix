@@ -340,6 +340,18 @@ class MatrixClient {
     }
   }
 
+  Future<bool> deleteFakeEvent(String transactionId) {
+    if (isLocal == true && _localUpdater != null) {
+      return _localUpdater!.deleteFakeEvent(transactionId);
+    } else if (isLocal == false && _updater != null) {
+      return _updater!.deleteFakeEvent(transactionId);
+    } else {
+      throw Exception(
+        "Cant handle getAllFakeMessages isLocal: $isLocal updater: $_updater, _localUpdater: $_localUpdater,",
+      );
+    }
+  }
+
   Future<Room?> getRoomFromDB({
     required String roomID,
     int limit = 20,
