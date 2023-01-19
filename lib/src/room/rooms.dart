@@ -48,7 +48,7 @@ class Rooms extends DelegatingIterable<Room> implements Contextual<Rooms> {
   /// Load more rooms, returning the [Update] where [MyUser] has more rooms.
   Future<RequestUpdate<Rooms>?> load({
     required Iterable<RoomId> roomIds,
-    int timelineLimit = 10,
+    int timelineLimit = 30,
   }) {
     final result = context?.updater?.loadRoomsByIDs(roomIds, timelineLimit);
     return result ?? Future.value(null);
