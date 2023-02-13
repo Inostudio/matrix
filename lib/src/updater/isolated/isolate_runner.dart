@@ -176,17 +176,6 @@ abstract class IsolateRunner {
             count: instruction.count,
             room: instruction.room,
           );
-    } else if (instruction is LoadMembersInstruction) {
-      operation = () => updater.loadMembers(
-            roomId: instruction.roomId!,
-            count: instruction.count,
-            room: instruction.room,
-          );
-    } else if (instruction is LoadRoomsByIDsInstruction) {
-      operation = () => updater.loadRoomsByIDs(
-            instruction.roomIds,
-            instruction.timelineLimit,
-          );
     } else if (instruction is LoadRoomsInstruction) {
       operation = () => updater.loadRooms(
             instruction.limit,
@@ -217,8 +206,6 @@ abstract class IsolateRunner {
           );
     } else if (instruction is LeaveRoomInstruction) {
       operation = () => updater.leaveRoom(instruction.id);
-    } else if (instruction is SetNameInstruction) {
-      operation = () => updater.setDisplayName(name: instruction.name);
     } else if (instruction is EditTextEventInstruction) {
       operation = () => updater.edit(
             instruction.roomId,
