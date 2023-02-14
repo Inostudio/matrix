@@ -5,7 +5,6 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import 'package:collection/collection.dart';
-import 'package:matrix_sdk/src/model/request_update.dart';
 
 import '../../event/room/room_event.dart';
 import '../../event/room/state/member_change_event.dart';
@@ -59,17 +58,6 @@ class MemberTimeline extends DelegatingIterable<Member>
 
   /// Load more members, returning the [Update] where [MyUser] has a room
   /// with a member timeline containing more members.
-  Future<RequestUpdate<MemberTimeline>?> load({
-    int count = 20,
-    Room? room,
-  }) async {
-    final result = context?.updater?.loadMembers(
-      roomId: context!.roomId,
-      count: count,
-      room: room,
-    );
-    return result ?? Future.value(null);
-  }
 
   Iterable<Member> get reversed => List.of(this).reversed;
 

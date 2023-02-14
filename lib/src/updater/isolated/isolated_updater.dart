@@ -445,34 +445,6 @@ class IsolatedUpdater extends Updater {
       );
 
   @override
-  Future<RequestUpdate<MemberTimeline>?> loadMembers({
-    RoomId? roomId,
-    int count = 10,
-    Room? room,
-  }) async =>
-      execute(
-        LoadMembersInstruction(
-          roomId: roomId,
-          count: count,
-          room: room,
-          instructionId: await _getNextInstructionNumber(),
-        ),
-      );
-
-  @override
-  Future<RequestUpdate<Rooms>?> loadRoomsByIDs(
-    Iterable<RoomId> roomIds,
-    int timelineLimit,
-  ) async =>
-      execute(
-        LoadRoomsByIDsInstruction(
-          roomIds: roomIds.toList(),
-          timelineLimit: timelineLimit,
-          instructionId: await _getNextInstructionNumber(),
-        ),
-      );
-
-  @override
   Future<RequestUpdate<Rooms>?> loadRooms(
     int limit,
     int offset,
@@ -659,17 +631,6 @@ class IsolatedUpdater extends Updater {
   Future<RequestUpdate<Room>?> leaveRoom(RoomId id) async => execute(
         LeaveRoomInstruction(
           id: id,
-          instructionId: await _getNextInstructionNumber(),
-        ),
-      );
-
-  @override
-  Future<RequestUpdate<MyUser>?> setDisplayName({
-    required String name,
-  }) async =>
-      execute(
-        SetNameInstruction(
-          name: name,
           instructionId: await _getNextInstructionNumber(),
         ),
       );

@@ -252,27 +252,6 @@ class Updater {
     });
   }
 
-  Future<RequestUpdate<MyUser>?> setDisplayName({
-    required String name,
-  }) async {
-    await _networkService.putProfileDisplayName(
-      accessToken: _user.accessToken!,
-      userId: _user.id.value,
-      value: name,
-    );
-
-    return _createUpdate(
-      _user.delta(name: name),
-      (user, delta) => RequestUpdate(
-        user,
-        delta,
-        data: user,
-        deltaData: delta,
-        type: RequestType.setName,
-      ),
-    );
-  }
-
   Future<RequestUpdate<MemberTimeline>?> kick(
     UserId id, {
     required RoomId from,
@@ -746,29 +725,6 @@ class Updater {
     await _updatesSubject.close();
   }
 
-  Future<RequestUpdate<Rooms>?> loadRoomsByIDs(
-    Iterable<RoomId> roomIds,
-    int timelineLimit,
-  ) async {
-    final rooms = await _syncStorage.getRoomsByIds(
-      roomIds,
-      timelineLimit: timelineLimit,
-      context: _user.context!,
-      memberIds: [_user.id],
-    );
-
-    return _createUpdate(
-      _user.delta(rooms: rooms),
-      (user, delta) => RequestUpdate(
-        user,
-        delta,
-        data: user.rooms!,
-        deltaData: delta.rooms!,
-        type: RequestType.loadRooms,
-      ),
-    );
-  }
-
   Future<RequestUpdate<Rooms>?> loadRooms(
     int limit,
     int offset,
@@ -857,66 +813,6 @@ class Updater {
 
   Future<bool> deleteFakeEvent(String transactionId) {
     return _syncStorage.deleteFakeEvent(transactionId);
-  }
-
-  Future<RequestUpdate<MemberTimeline>?> loadMembers({
-    required RoomId roomId,
-    int count = 10,
-    Room? room,
-  }) async {
-    final Room? currentRoom = room ??=
-        _user.rooms?.firstWhereOrNull((element) => element.id == roomId);
-
-    if (currentRoom == null) {
-      return Future.value(null);
-    }
-
-    final members = await _syncStorage.getMembers(
-      roomId,
-      fromTime: currentRoom.memberTimeline?.last.since,
-      count: count,
-    );
-
-    var memberTimeline = MemberTimeline(
-      members,
-      context: currentRoom.context,
-    );
-
-    if (members.length < count) {
-      count -= members.length;
-
-      final body = await _networkService.getRoomMembers(
-        accessToken: _user.accessToken ?? '',
-        roomId: roomId.toString(),
-        at: currentRoom.timeline?.previousBatch ?? '',
-      );
-
-      final events = (body['chunk'] as List<dynamic>)
-          .cast<Map<String, dynamic>>()
-          .map((e) => RoomEvent.fromJson(e, roomId: roomId))
-          .whereNotNull();
-
-      memberTimeline = memberTimeline.merge(
-        MemberTimeline.fromEvents(events),
-      );
-    }
-
-    final newRoom = Room(
-      context: _user.context!,
-      id: roomId,
-      memberTimeline: memberTimeline,
-    );
-
-    return _createUpdate(
-      _user.delta(rooms: [newRoom]),
-      (user, delta) => RequestUpdate(
-        user,
-        delta,
-        data: user.rooms?[newRoom.id]?.memberTimeline,
-        deltaData: user.rooms?[newRoom.id]?.memberTimeline,
-        type: RequestType.loadMembers,
-      ),
-    );
   }
 
   Future<RequestUpdate<EphemeralEventFull>?> setIsTyping({

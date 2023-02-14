@@ -200,34 +200,13 @@ class DeleteFakeRoomEventInstruction extends Instruction<IsolateRespose<bool>> {
   });
 }
 
-class LoadMembersInstruction extends RequestInstruction<MemberTimeline> {
-  final RoomId? roomId;
-  final int count;
-  final Room? room;
-
-  LoadMembersInstruction({
-    this.roomId,
-    required this.count,
-    this.room,
-    required super.instructionId,
-  });
-}
-
-class LoadRoomsByIDsInstruction extends RequestInstruction<Rooms> {
-  final List<RoomId> roomIds;
-  final int timelineLimit;
-
-  LoadRoomsByIDsInstruction({
-    required this.roomIds,
-    required this.timelineLimit,
-    required super.instructionId,
-  });
-}
-
 class LoadRoomsInstruction extends RequestInstruction<Rooms> {
   final int timelineLimit;
   final int limit;
   final int offset;
+
+  @override
+  final bool basedOnUpdate = true;
 
   LoadRoomsInstruction({
     required this.limit,
@@ -347,15 +326,6 @@ class LeaveRoomInstruction extends RequestInstruction<Room> {
 
   @override
   final bool basedOnUpdate = true;
-}
-
-class SetNameInstruction extends RequestInstruction<MyUser> {
-  final String name;
-
-  SetNameInstruction({
-    required this.name,
-    required super.instructionId,
-  });
 }
 
 class SetPusherInstruction extends Instruction<IsolateRespose<RoomEvent>> {
