@@ -121,6 +121,13 @@ abstract class IsolateRunner {
             );
             sendPort.send(makeResponseData(instruction, data));
             return;
+          } else if (instruction is LoadRoomsInstruction) {
+            final data = await updater?.loadRooms(
+              instruction.limit,
+              instruction.offset,
+              instruction.timelineLimit,
+            );
+            sendPort.send(makeResponseData(instruction, data));
           } else if (instruction is LoadFakeRoomEventsInstruction) {
             final data = await updater?.getAllFakeMessages();
             sendPort.send(makeResponseData(instruction, data));
@@ -176,13 +183,8 @@ abstract class IsolateRunner {
             count: instruction.count,
             room: instruction.room,
           );
-    } else if (instruction is LoadRoomsInstruction) {
-      operation = () => updater.loadRooms(
-            instruction.limit,
-            instruction.offset,
-            instruction.timelineLimit,
-          );
-    } else if (instruction is LogoutInstruction) {
+    }
+    else if (instruction is LogoutInstruction) {
       operation = () => updater.logout();
     } else if (instruction is MarkReadInstruction) {
       operation = () => updater.markRead(
