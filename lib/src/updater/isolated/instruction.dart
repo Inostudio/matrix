@@ -199,7 +199,7 @@ class DeleteFakeRoomEventInstruction extends Instruction<IsolateRespose<bool>> {
   });
 }
 
-class LoadRoomsInstruction extends Instruction<IsolateRespose<List<String?>>> {
+class LoadRoomsInstruction extends Instruction<IsolateRespose<List<Room>>> {
   final int timelineLimit;
   final int limit;
   final int offset;
