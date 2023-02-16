@@ -13,7 +13,6 @@ import '../../model/models.dart';
 import '../../model/sync_token.dart';
 import '../../room/member/member_timeline.dart';
 import '../../room/room.dart';
-import '../../room/rooms.dart';
 import '../../room/timeline.dart';
 
 class IsolateRespose<T> {
@@ -27,7 +26,7 @@ class IsolateRespose<T> {
 
   @override
   String toString() {
-    return 'ResponseDataInstructionId{dataInstructionId: $dataInstructionId, data: $data}';
+    return 'IsolateRespose{dataInstructionId: $dataInstructionId, data: $data}';
   }
 }
 
@@ -200,13 +199,10 @@ class DeleteFakeRoomEventInstruction extends Instruction<IsolateRespose<bool>> {
   });
 }
 
-class LoadRoomsInstruction extends RequestInstruction<Rooms> {
+class LoadRoomsInstruction extends Instruction<IsolateRespose<List<Room>>> {
   final int timelineLimit;
   final int limit;
   final int offset;
-
-  @override
-  final bool basedOnUpdate = true;
 
   LoadRoomsInstruction({
     required this.limit,
