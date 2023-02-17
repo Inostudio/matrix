@@ -59,6 +59,7 @@ class Updater {
 
   MyUser _user;
   String? _currentSyncToken;
+  final int timelineLimit;
 
   late final Syncer _syncer = Syncer(this);
 
@@ -99,6 +100,7 @@ class Updater {
     this.homeServer,
     StoreLocation storeLocation, {
     this.initSyncStorage = false,
+    required this.timelineLimit,
   }) {
     Updater.register(_user.id, this);
     _initHomeServer();
@@ -114,7 +116,7 @@ class Updater {
   }
 
   void _initSyncStorage() {
-    _syncStorage.myUserStorageSync().listen(
+    _syncStorage.myUserStorageSync(timelineLimit: timelineLimit).listen(
           (storeUpdate) => _notifyWithUpdate(
             storeUpdate,
             SyncUpdate.new,
