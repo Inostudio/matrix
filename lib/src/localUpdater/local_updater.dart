@@ -16,10 +16,12 @@ import 'instruction.dart';
 class LocalUpdater {
   final StoreLocation storeLocation;
   final bool isIsolated;
+  final int timelineLimit;
 
   LocalUpdater({
     required this.storeLocation,
     this.isIsolated = true,
+    required this.timelineLimit,
   });
 
   BaseSyncStorage? _syncStorage;
@@ -85,6 +87,7 @@ class LocalUpdater {
   }
 
   Completer<Iterable<RoomEvent>>? _getRoomEventsCompleter;
+
   Future<Iterable<RoomEvent>> getAllFakeMessages() async {
     if (isIsolated) {
       await _sendPortReadyCompleter.future;
@@ -199,7 +202,12 @@ class LocalUpdater {
       //first isolate answer
       if (message is SendPort) {
         _sendPort = message;
-        _sendPort!.send(IsoStorageUpdaterArgs(storeLocation: storeLocation));
+        _sendPort!.send(
+          IsoStorageUpdaterArgs(
+            storeLocation: storeLocation,
+            timelineLimit: timelineLimit,
+          ),
+        );
         _sendPortReadyCompleter.complete();
         //on isolate ready to start sync
       } else if (message is IsolateStorageSyncerInitialized) {
@@ -239,12 +247,13 @@ class LocalUpdater {
   }
 
   void initSyncStorage() {
-    _userSubscription = _syncStorage?.myUserStorageSync().listen(
-          (storeUpdate) => _notifyWithUpdate(
-            storeUpdate,
-            SyncUpdate.new,
-          ),
-        );
+    _userSubscription =
+        _syncStorage?.myUserStorageSync(timelineLimit: timelineLimit).listen(
+              (storeUpdate) => _notifyWithUpdate(
+                storeUpdate,
+                SyncUpdate.new,
+              ),
+            );
   }
 
   Future<void> _notifyWithUpdate<U extends Update>(

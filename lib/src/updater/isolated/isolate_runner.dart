@@ -38,6 +38,7 @@ abstract class IsolateRunner {
               Homeserver(message.homeserverUrl),
               message.storeLocation,
               initSyncStorage: false, //Not create updater updater sync
+              timelineLimit: message.timelineLimit,
             );
             updaterAvailable.complete();
             subscription?.cancel();
@@ -183,8 +184,7 @@ abstract class IsolateRunner {
             count: instruction.count,
             room: instruction.room,
           );
-    }
-    else if (instruction is LogoutInstruction) {
+    } else if (instruction is LogoutInstruction) {
       operation = () => updater.logout();
     } else if (instruction is MarkReadInstruction) {
       operation = () => updater.markRead(
@@ -254,12 +254,14 @@ class UpdaterArgs {
   final Uri homeserverUrl;
   final StoreLocation storeLocation;
   final bool saveMyUserToStore;
+  final int timelineLimit;
 
   UpdaterArgs({
     required this.myUser,
     required this.homeserverUrl,
     required this.storeLocation,
     required this.saveMyUserToStore,
+    required this.timelineLimit,
   });
 }
 

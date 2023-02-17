@@ -3,7 +3,7 @@ import 'package:matrix_sdk/matrix_sdk.dart';
 import '../../model/context.dart';
 
 abstract class BaseSyncStorage {
-  Stream<MyUser> myUserStorageSync();
+  Stream<MyUser> myUserStorageSync({required int timelineLimit});
 
   Stream<Room> roomStorageSync({
     required String selectedRoomId,

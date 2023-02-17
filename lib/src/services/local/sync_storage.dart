@@ -14,8 +14,8 @@ class SyncStorage implements BaseSyncStorage {
   }
 
   @override
-  Stream<MyUser> myUserStorageSync() =>
-      store.myUserStorageSync(timelineLimit: 1);
+  Stream<MyUser> myUserStorageSync({required int timelineLimit}) =>
+      store.myUserStorageSync(timelineLimit: timelineLimit);
 
   @override
   Stream<Room> roomStorageSync({
