@@ -10,6 +10,7 @@ import 'localUpdater/local_updater.dart';
 import 'model/sync_token.dart';
 
 class MatrixClient {
+  final int timelineLimit;
   final bool isIsolated;
   final bool withDebugLog;
   Uri? serverUri;
@@ -39,6 +40,7 @@ class MatrixClient {
 
   MatrixClient({
     this.isIsolated = true,
+    this.timelineLimit = 20,
     this.withDebugLog = false,
     this.serverUri,
     required StoreLocation storeLocation,
@@ -84,6 +86,7 @@ class MatrixClient {
     _localUpdater = LocalUpdater(
       storeLocation: _storeLocation,
       isIsolated: isIsolated,
+      timelineLimit: timelineLimit,
     );
     await _localUpdater?.init();
 
@@ -125,18 +128,11 @@ class MatrixClient {
 
     if (isIsolated) {
       _updater = await IsolatedUpdater.create(
-        myUser,
-        _homeServer!,
-        _storeLocation,
-        saveMyUserToStore: isIsolated,
-      );
+          myUser, _homeServer!, _storeLocation,
+          saveMyUserToStore: isIsolated, timelineLimit: timelineLimit);
     } else {
-      _updater = Updater(
-        myUser,
-        _homeServer!,
-        _storeLocation,
-        initSyncStorage: !isIsolated,
-      );
+      _updater = Updater(myUser, _homeServer!, _storeLocation,
+          initSyncStorage: !isIsolated, timelineLimit: timelineLimit);
     }
 
     //Make sync
@@ -175,6 +171,7 @@ class MatrixClient {
         _homeServer!,
         _storeLocation,
         saveMyUserToStore: isIsolated,
+        timelineLimit: timelineLimit,
       );
     } else {
       _updater = Updater(
@@ -182,6 +179,7 @@ class MatrixClient {
         _homeServer!,
         _storeLocation,
         initSyncStorage: !isIsolated,
+        timelineLimit: timelineLimit,
       );
     }
 

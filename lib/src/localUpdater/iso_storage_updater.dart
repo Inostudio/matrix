@@ -36,6 +36,7 @@ abstract class IsolateStorageUpdater {
             updater = LocalUpdater(
               storeLocation: message.storeLocation,
               isIsolated: false,
+              timelineLimit: message.timelineLimit,
             );
             await updater.init();
             await updater.ensureReady();
@@ -111,9 +112,11 @@ abstract class IsolateStorageUpdater {
 
 class IsoStorageUpdaterArgs {
   final StoreLocation storeLocation;
+  final int timelineLimit;
 
   const IsoStorageUpdaterArgs({
     required this.storeLocation,
+    required this.timelineLimit,
   });
 }
 

@@ -37,12 +37,14 @@ class IsolatedUpdater extends Updater {
     Homeserver homeServer,
     StoreLocation storeLocation, {
     bool saveMyUserToStore = false,
+    required int timelineLimit,
   }) async {
     final updater = IsolatedUpdater._(
       myUser,
       homeServer,
       storeLocation,
       saveMyUserToStore: saveMyUserToStore,
+      timelineLimit: timelineLimit,
     );
 
     await updater._spawnSyncRunner();
@@ -60,7 +62,13 @@ class IsolatedUpdater extends Updater {
     this._homeServer,
     StoreLocation storeLocation, {
     bool saveMyUserToStore = false,
-  }) : super(_user, _homeServer, storeLocation) {
+    required int timelineLimit,
+  }) : super(
+          _user,
+          _homeServer,
+          storeLocation,
+          timelineLimit: timelineLimit,
+        ) {
     Updater.register(_user.id, this);
 
     _syncMessageStream.listen((m) async {
@@ -91,6 +99,7 @@ class IsolatedUpdater extends Updater {
             homeserverUrl: _homeServer.url,
             storeLocation: storeLocation,
             saveMyUserToStore: true,
+            timelineLimit: timelineLimit,
           ),
         );
       }
@@ -134,6 +143,7 @@ class IsolatedUpdater extends Updater {
             homeserverUrl: _homeServer.url,
             storeLocation: storeLocation,
             saveMyUserToStore: saveMyUserToStore,
+            timelineLimit: timelineLimit,
           ),
         );
       }

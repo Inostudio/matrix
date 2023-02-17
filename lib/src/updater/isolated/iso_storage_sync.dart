@@ -34,6 +34,7 @@ abstract class IsolateStorageSyncRunner {
               Homeserver(message.homeserverUrl),
               message.storeLocation,
               initSyncStorage: true, //Create sync with store
+              timelineLimit: message.timelineLimit,
             );
             updaterAvailable.complete();
             subscription?.cancel();
