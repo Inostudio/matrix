@@ -138,38 +138,36 @@ class Timeline extends DelegatingIterable<RoomEvent>
       return this;
     }
 
-    final currSet = toSet();
-    final otherSet = other.toSet();
+    final currList = toList();
 
-    final differenceCurr = currSet.difference(otherSet).toList();
+    final Set<String> otherIdsSet =
+        other.map((e) => e.transactionId).whereNotNull().toSet();
+    final Set<String> currIdsSet =
+        currList.map((e) => e.transactionId).whereNotNull().toSet();
+    final List<String> currWithoutOtherIds =
+        currIdsSet.difference(otherIdsSet).toList();
 
-    //Create lists of trans ids
-    final diffTransIdsSet =
-        differenceCurr.map((e) => e.transactionId).whereNotNull().toSet();
-    final otherTramsIdsSet =
-        otherSet.map((e) => e.transactionId).whereNotNull().toSet();
-
-    //find intersection in transaction ids
-    final transIdsIntersection = otherTramsIdsSet.intersection(diffTransIdsSet);
-
-    //difference Map transactionId -> index
-    final Map<String, int> diffTransIdsToIndexMap = {};
-    for (int i = 0; i < differenceCurr.length; i++) {
-      if (differenceCurr[i].transactionId != null) {
-        diffTransIdsToIndexMap[differenceCurr[i].transactionId!] = i;
+    //Curr transactionId to index
+    final Map<String, int> currIdToIndexMap = {};
+    for (int i = 0; i < currList.length; i++) {
+      final currId = currList[i].transactionId;
+      if (currId != null) {
+        currIdToIndexMap[currId] = i;
       }
     }
 
-    //remove intersected ids from resulted merge list
-    for (final id in transIdsIntersection) {
-      final index = diffTransIdsToIndexMap[id];
+    //Make curr event list without other event
+    final List<RoomEvent> currWithoutOther = [];
+    for (final id in currWithoutOtherIds) {
+      final index = currIdToIndexMap[id];
       if (index != null) {
-        differenceCurr.removeAt(index);
+        final value = currList[index];
+        currWithoutOther.add(value);
       }
     }
 
     final result = List<RoomEvent>.from(
-      differenceCurr..addAll(other),
+      currWithoutOther..addAll(other),
       growable: true,
     ).sorted((first, second) {
       if (first.time == null || second.time == null) {
