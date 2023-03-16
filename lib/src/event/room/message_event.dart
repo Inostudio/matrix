@@ -6,6 +6,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 import 'package:quiver/core.dart';
 
@@ -229,12 +230,15 @@ class TextMessage extends MessageEventContent {
   @override
   final EventId? inReplacementToId;
 
+  final List<Attachment>? attachments;
+
   TextMessage({
     required this.body,
     this.format,
     this.formattedBody,
     this.inReplyToId,
     this.inReplacementToId,
+    this.attachments,
   });
 
   @override
@@ -242,14 +246,26 @@ class TextMessage extends MessageEventContent {
       other is TextMessage &&
       super == other &&
       body == other.body &&
-      formattedBody == other.formattedBody;
+      formattedBody == other.formattedBody &&
+      DeepCollectionEquality.unordered(DefaultEquality<Attachment>())
+          .equals(attachments, other.attachments);
 
   @override
   int get hashCode => hashObjects([super.hashCode, body, formattedBody]);
 
   @override
-  Map<String, dynamic> toJson() =>
-      super.toJson()..addAll({'body': body, 'formatted_body': formattedBody});
+  Map<String, dynamic> toJson() {
+    final result = super.toJson()
+      ..addAll({'body': body, 'formatted_body': formattedBody});
+    if (attachments != null) {
+      final attachMap = <String, dynamic>{};
+      attachments?.forEach((element) {
+        attachMap.addAll(element.toJson());
+      });
+      result["attachments"] = attachMap;
+    }
+    return result;
+  }
 }
 
 class TextMessageEvent extends MessageEvent {
@@ -350,6 +366,38 @@ class ImageMessage extends MessageEventContent {
 
     return json;
   }
+}
+
+class Attachment {
+  final String imgURL;
+  final ImageInfo? info;
+
+  Attachment({required this.imgURL, this.info});
+
+  Map<String, dynamic> toJson() {
+    final json = <String, dynamic>{
+      'url': imgURL.toString(),
+    };
+
+    if (info != null) {
+      final infoMap = <String, dynamic>{};
+      json['info'] = infoMap;
+
+      if (info?.width != null) {
+        infoMap['w'] = info!.width;
+      }
+
+      if (info?.height != null) {
+        infoMap['h'] = info!.height;
+      }
+    }
+
+    return json;
+  }
+
+  @override
+  bool operator ==(dynamic other) =>
+      other is Attachment && super == other && imgURL == other.imgURL;
 }
 
 class ImageInfo {

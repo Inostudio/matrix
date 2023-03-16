@@ -553,7 +553,12 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
     ).last;
   }
 
-
+  Future<Uri?> uploadFile(String fileURI) {
+    if (context?.updater == null) {
+      return Future.value(null);
+    }
+    return context!.updater!.uploadFile(fileURI);
+  }
 
   //Same as [makeTimeLineFromSend] but return Stream<RoomEvent>
   //Made to extends control fake message logic fom matrix side

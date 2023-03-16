@@ -496,6 +496,21 @@ class Updater {
     }
   }
 
+  Future<Uri?> uploadFile(String fileURI) async {
+    final uri = Uri.parse(fileURI);
+    final file = File(
+      uri.toFilePath(windows: Platform.isWindows),
+    );
+    final fileName = file.path.split(Platform.pathSeparator).last;
+    return _networkService.uploadImage(
+      as: _user,
+      bytes: file.openRead(),
+      length: await file.length(),
+      contentType: lookupMimeType(file.path) ?? '',
+      fileName: fileName,
+    );
+  }
+
   Future<RoomEvent?> _handleSendFile(
     RoomEvent roomEvent,
     RoomEventArgs args,
