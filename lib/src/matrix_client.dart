@@ -314,6 +314,13 @@ class MatrixClient {
     }
   }
 
+  Future<Uri?> uploadFile(String fileURI) {
+    if (_updater == null) {
+      return Future.value(null);
+    }
+    return _updater!.uploadFile(fileURI);
+  }
+
   Future<List<Room>> getRooms({
     int limit = 50,
     int offset = 0,
