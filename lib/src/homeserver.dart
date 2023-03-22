@@ -13,7 +13,6 @@ import 'package:http/http.dart' as http;
 import 'api/media.dart';
 import 'model/authentication_session.dart';
 import 'model/identifier.dart';
-import 'store/store.dart';
 import 'api/api.dart' show Api;
 import 'model/device.dart';
 import 'model/my_user.dart';

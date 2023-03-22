@@ -7,29 +7,26 @@
 
 import 'package:quiver/core.dart';
 
+import '../../model/identifier.dart';
+import '../../util/map.dart';
 import '../event.dart';
 import 'message_event.dart';
+import 'raw_room_event.dart';
 import 'redaction_event.dart';
-
-import 'state/room_avatar_change_event.dart';
-import 'state/member_change_event.dart';
-import 'state/room_name_change_event.dart';
-import 'state/room_creation_event.dart';
+import 'state/canonical_alias_change_event.dart';
 import 'state/join_rules_change_event.dart';
+import 'state/member_change_event.dart';
 import 'state/power_levels_change_event.dart';
+import 'state/room_avatar_change_event.dart';
+import 'state/room_creation_event.dart';
+import 'state/room_name_change_event.dart';
 import 'state/room_upgrade_event.dart';
 import 'state/topic_change_event.dart';
-import 'state/canonical_alias_change_event.dart';
-
-import 'raw_room_event.dart';
-
-import '../../model/identifier.dart';
-
-import '../../util/map.dart';
 
 abstract class RoomEvent extends Event with Identifiable<EventId> {
   @override
   final EventId id;
+  final String networkId;
 
   final RoomId? roomId;
   final UserId senderId;
@@ -42,6 +39,7 @@ abstract class RoomEvent extends Event with Identifiable<EventId> {
   RoomEvent(RoomEventArgs args)
       : id = args.id,
         roomId = args.roomId,
+        networkId = args.networkId,
         senderId = args.senderId,
         time = args.time,
         sentState = args.sentState,
@@ -52,6 +50,7 @@ abstract class RoomEvent extends Event with Identifiable<EventId> {
       other is RoomEvent &&
       super == other &&
       roomId == other.roomId &&
+      networkId == other.networkId &&
       senderId == other.senderId &&
       time == other.time &&
       transactionId == other.transactionId;
@@ -61,6 +60,7 @@ abstract class RoomEvent extends Event with Identifiable<EventId> {
         super.hashCode,
         roomId,
         senderId,
+        networkId,
         time,
         transactionId,
       ]);
@@ -69,6 +69,7 @@ abstract class RoomEvent extends Event with Identifiable<EventId> {
   Map<String, dynamic> toJson() => super.toJson()
     ..addAll({
       'event_id': id.toJson(),
+      'networkId': networkId,
       'sender': senderId.toString(),
       'origin_server_ts': time?.millisecondsSinceEpoch,
       'unsigned': transactionId != null ? {'transaction_id': transactionId} : {}
@@ -81,9 +82,11 @@ abstract class RoomEvent extends Event with Identifiable<EventId> {
     if (!json.containsKey('event_id') || json["event_id"] == null) {
       return null;
     }
+    final transactionId = json["unsigned"]["transaction_id"];
 
     final args = RoomEventArgs.fromJson(json).copyWith(
       roomId: roomId,
+      transactionId: transactionId,
     );
 
     RoomEvent? event;
@@ -256,12 +259,14 @@ class RoomEventArgs {
   final EventId id;
   final RoomId? roomId;
   final UserId senderId;
+  final String networkId;
   final DateTime? time;
   final SentState? sentState;
   final String? transactionId;
 
   RoomEventArgs({
     required this.id,
+    required this.networkId,
     this.roomId,
     required this.senderId,
     this.time,
@@ -273,6 +278,7 @@ class RoomEventArgs {
     return RoomEventArgs(
       id: event.id,
       roomId: event.roomId,
+      networkId: event.networkId,
       senderId: event.senderId,
       time: event.time,
       transactionId: event.transactionId,
@@ -306,6 +312,7 @@ class RoomEventArgs {
 
     return RoomEventArgs(
       id: id,
+      networkId: id is EventId ? id.value : id,
       senderId: senderId,
       time: time,
       transactionId: transactionId,
@@ -319,9 +326,11 @@ class RoomEventArgs {
     DateTime? time,
     SentState? sentState,
     String? transactionId,
+    String? networkId,
   }) {
     return RoomEventArgs(
       id: id ?? this.id,
+      networkId: networkId ?? this.networkId,
       roomId: roomId ?? this.roomId,
       senderId: senderId ?? this.senderId,
       time: time ?? this.time,
@@ -344,4 +353,10 @@ class RoomEventArgs {
       transactionId: other.transactionId,
     );
   }
+
+  @override
+  String toString() {
+    return 'RoomEventArgs{id: $id, roomId: $roomId, senderId: $senderId, networkId: $networkId, time: $time, sentState: $sentState, transactionId: $transactionId}';
+  }
+
 }

@@ -106,21 +106,22 @@ abstract class Change<T> {
                   ),
                 ),
           );
+    return null;
   }
 
   static List<Change<T>> list<T>(List<T>? previous, List<T> current) {
     if (previous == null || previous.isEmpty) {
-      return current.map((e) => Added(e)).toList(growable: false);
+      return current.map(Added.new).toList(growable: false);
     }
 
     final removals =
-        previous.where((e) => !current.contains(e)).map((e) => Removed(e));
+        previous.where((e) => !current.contains(e)).map(Removed.new);
 
     final additions =
-        current.where((e) => !previous.contains(e)).map((e) => Added(e));
+        current.where((e) => !previous.contains(e)).map(Added.new);
 
     final unchanged =
-        previous.where((e) => current.contains(e)).map((e) => Unchanged(e));
+        previous.where((e) => current.contains(e)).map(Unchanged.new);
 
     return [...unchanged, ...additions, ...removals];
   }

@@ -7,9 +7,9 @@
 import 'package:meta/meta.dart';
 
 import '../../../model/identifier.dart';
+import '../../event.dart';
 import '../room_event.dart';
 import 'state_event.dart';
-import '../../event.dart';
 
 class CanonicalAliasChangeEvent extends StateEvent {
   static const matrixType = 'm.room.canonical_alias';
@@ -53,13 +53,13 @@ class CanonicalAliasChange extends EventContent {
     }
 
     final String? canonAlias = content['alias'];
-    final List<dynamic>? altAliases = content['alt_aliases'];
+    final List<String>? altAliases = content['alt_aliases'];
 
     return CanonicalAliasChange(
       canonicalAlias: canonAlias != null ? RoomAlias(canonAlias) : null,
-      alternativeAliases: altAliases != null && altAliases is List<dynamic>
-          ? altAliases.map((a) => RoomAlias(a)).toList(growable: false)
-          : null,
+      alternativeAliases: altAliases?.map(RoomAlias.new).toList(
+            growable: false,
+          ),
     );
   }
 

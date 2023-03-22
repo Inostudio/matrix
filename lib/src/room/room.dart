@@ -10,7 +10,6 @@ import 'package:matrix_sdk/src/model/request_update.dart';
 import 'package:matrix_sdk/src/model/update.dart';
 import 'package:meta/meta.dart';
 
-import '../event/ephemeral/ephemeral.dart';
 import '../event/ephemeral/ephemeral_event.dart';
 import '../event/ephemeral/receipt_event.dart';
 import '../event/event.dart';
@@ -47,7 +46,7 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
   @override
   final RoomId id;
 
-  int lastMessageTimeInterval;
+  final int lastMessageTimeInterval;
 
   /// Events timeline.
   final Timeline? timeline;
@@ -109,17 +108,13 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
   /// The [RoomId] of the room that replaced this room.
   RoomId? get replacementId => stateEvents?.upgrade?.content?.replacementRoomId;
 
-  final Ephemeral? ephemeral;
+  final EphemeralEventFull? ephemeral;
 
   Iterable<UserId> get typingUserIds =>
-      ephemeral?.typingEvent?.content?.typerIds ?? [];
+      ephemeral?.typingEvents.content?.typerIds ?? [];
 
-  // TODO: Make not-lazy?
   ReadReceipts get readReceipts => ReadReceipts(
-        ephemeral?.receiptEvent?.content?.receipts.whereReceiptType(
-              ReceiptType.read,
-            ) ??
-            [],
+        ephemeral?.receiptEvents.content?.receipts ?? [],
         context: context,
       );
 
@@ -178,7 +173,7 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
           directUserId: null,
           highlightedUnreadNotificationCount: 0,
           totalUnreadNotificationCount: 0,
-          ephemeral: Ephemeral([]),
+          ephemeral: null,
         );
 
   /// Create a room (delta) from json, specifically from a sync's response.
@@ -238,9 +233,10 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
     }
 
     final ephemeral = body['ephemeral'] != null
-        ? Ephemeral.fromJson(
-            body['ephemeral'],
+        ? EphemeralEventFull.fromMap(
+            map: body['ephemeral'],
             context: context,
+            roomId: context.roomId,
           )
         : null;
 
@@ -281,7 +277,7 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
     UserId? directUserId,
     int? highlightedUnreadNotificationCount,
     int? totalUnreadNotificationCount,
-    Ephemeral? ephemeral,
+    EphemeralEventFull? ephemeral,
   }) {
     id ??= this.id;
     timeline ??= this.timeline;
@@ -550,11 +546,32 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
       stateEvents!.powerLevelsChange!.content!.userLevels ?? {},
     );
     userLevels[id] = to;
-    return send(
+    return makeTimeLineFromSend(
       stateEvents!.powerLevelsChange!.content!.copyWith(
         userLevels: userLevels,
       ),
     ).last;
+  }
+
+  //Same as [makeTimeLineFromSend] but return Stream<RoomEvent>
+  //Made to extends control fake message logic fom matrix side
+  Stream<RoomEvent?> send(
+      EventContent content, {
+        String? transactionId,
+        String stateKey = '',
+        String type = '',
+      }) {
+    if (context?.updater == null) {
+      return Future.value(null).asStream();
+    }
+    return context!.updater!.send(
+      id,
+      content,
+      transactionId: transactionId,
+      stateKey: stateKey,
+      type: type,
+      room: this,
+    );
   }
 
   /// Send an [Event] to the [Room]. Can be any [RoomEvent]
@@ -572,7 +589,7 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
   ///
   /// If a [RawEventContent] is being send, [type] must not be null. Unused
   /// otherwise.
-  Stream<RequestUpdate<Timeline>?> send(
+  Stream<RequestUpdate<Timeline>?> makeTimeLineFromSend(
     EventContent content, {
     String? transactionId,
     String stateKey = '',
@@ -581,7 +598,7 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
     if (context?.updater == null) {
       return Future.value(null).asStream();
     }
-    return context!.updater!.send(
+    return context!.updater!.makeTimeLineFromSend(
       id,
       content,
       transactionId: transactionId,
@@ -616,19 +633,19 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
     return result ?? Future.value(null);
   }
 
-  Future<Update?> setName(String name) => send(RoomNameChange(name: name)).last;
+  Future<Update?> setName(String name) => makeTimeLineFromSend(RoomNameChange(name: name)).last;
 
   Future<Update?> setAvatarUri(Uri avatarUrl) =>
-      send(RoomAvatarChange(url: avatarUrl)).last;
+      makeTimeLineFromSend(RoomAvatarChange(url: avatarUrl)).last;
 
   Future<Update?> setTopic(String topic) =>
-      send(TopicChange(topic: topic)).last;
+      makeTimeLineFromSend(TopicChange(topic: topic)).last;
 
   Future<Update?> upgrade({
     required RoomId replacementRoomId,
     required String message,
   }) =>
-      send(RoomUpgrade(
+      makeTimeLineFromSend(RoomUpgrade(
         replacementRoomId: replacementRoomId,
         body: message,
       )).last;
@@ -638,7 +655,7 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
   /// If [isTyping] is true, a [timeout] can be specified
   /// to notify how long the server should assume that the user is
   /// typing.
-  Future<RequestUpdate<Ephemeral>?> setIsTyping(
+  Future<RequestUpdate<EphemeralEventFull>?> setIsTyping(
     // ignore: avoid_positional_boolean_parameters
     bool isTyping, {
     Duration timeout = const Duration(seconds: 30),
@@ -662,6 +679,7 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
   Future<RequestUpdate<ReadReceipts>?> markRead({
     required EventId until,
     bool receipt = true,
+    bool fullyRead = true,
   }) {
     if (context?.updater == null) {
       return Future.value(null);
@@ -671,6 +689,7 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
       until: until,
       receipt: receipt,
       room: this,
+      fullyRead: fullyRead,
     );
   }
 
@@ -989,14 +1008,4 @@ class RoomContext extends Context {
     Context context, {
     required this.roomId,
   }) : super(myId: context.myId);
-}
-
-extension _MapMerge<K, V> on Map<K, V> {
-  Map<K, V> merge(Map<K, V>? other) {
-    if (other == null) {
-      return this;
-    }
-
-    return {...this, ...other};
-  }
 }

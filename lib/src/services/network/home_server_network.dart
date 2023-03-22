@@ -183,7 +183,7 @@ class HomeServerNetworking implements BaseNetwork {
   Future<void> setRoomsReadMarkers({
     required String accessToken,
     required String roomId,
-    required String fullyRead,
+    String? fullyRead,
     String? read,
   }) async =>
       _homeServer.api.rooms.readMarkers(
@@ -200,11 +200,12 @@ class HomeServerNetworking implements BaseNetwork {
     required int length,
     required String contentType,
     String fileName = '',
-  }) async => _homeServer.upload(
-      as: as,
-      bytes: bytes,
-      length: length,
-      contentType: contentType,
-      fileName: fileName,
-    );
+  }) async =>
+      _homeServer.upload(
+        as: as,
+        bytes: bytes,
+        length: length,
+        contentType: contentType,
+        fileName: fileName,
+      );
 }

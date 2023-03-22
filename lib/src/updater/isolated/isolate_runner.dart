@@ -8,6 +8,7 @@ import 'dart:async';
 import 'dart:isolate';
 
 import 'package:matrix_sdk/src/model/models.dart';
+import 'package:matrix_sdk/src/updater/isolated/utils.dart';
 import 'package:matrix_sdk/src/util/logger.dart';
 import 'package:meta/meta.dart';
 
@@ -16,18 +17,8 @@ import '../../store/store.dart';
 import '../updater.dart';
 import 'instruction.dart';
 
-class IsolateRunnerTransferModel {
-  final dynamic message;
-  final LoggerVariant loggerVariant;
-
-  const IsolateRunnerTransferModel({
-    required this.message,
-    required this.loggerVariant,
-  });
-}
-
 abstract class IsolateRunner {
-  static Future<void> run(IsolateRunnerTransferModel transferModel) async {
+  static Future<void> run(IsolateTransferModel transferModel) async {
     final message = transferModel.message;
     Log.setLogger(transferModel.loggerVariant);
     final receivePort = ReceivePort();
@@ -46,55 +37,114 @@ abstract class IsolateRunner {
               message.myUser,
               Homeserver(message.homeserverUrl),
               message.storeLocation,
-              initSinkStorage: false, //Not create updater updater sink
+              initSyncStorage: false, //Not create updater updater sync
+              timelineLimit: message.timelineLimit,
             );
             updaterAvailable.complete();
             subscription?.cancel();
           }
         });
 
-        sendPort.send(receivePort.sendPort);
+        sendPort.send(
+          makeResponseData(null, receivePort.sendPort),
+        );
 
         await updaterAvailable.future;
         await updater?.ensureReady();
 
-        // Send updates back to main isolate
-        updater?.updates.listen((u) => sendPort.send(u.minimize()));
+        updater?.outApiCallStatistics.listen(
+          (e) => sendPort.send(makeResponseData(null, e)),
+        );
 
-        updater?.outApiCallStatistics.listen(sendPort.send);
-
-        sendPort.send(IsolateInitialized());
+        sendPort.send(
+          makeResponseData(null, RunnerInitialized()),
+        );
 
         StreamSubscription instructionSubscription;
 
         instructionSubscription = messageStream.listen((message) async {
           final instruction = message as Instruction;
 
-          if (instruction is StartSyncInstruction) {
-            await updater?.startSync(
-              maxRetryAfter: instruction.maxRetryAfter,
-              timelineLimit: instruction.timelineLimit,
-              syncToken: instruction.syncToken,
-            );
-          }
-
           if (instruction is StopSyncInstruction) {
             await updater?.syncer.stop();
-            sendPort.send(null);
+            sendPort.send(
+              makeResponseData(instruction, null),
+            );
           }
 
           if (instruction is GetRoomIDsInstruction) {
             final result = await updater?.getRoomIDs();
-            sendPort.send(result);
+            sendPort.send(
+              makeResponseData(instruction, result),
+            );
           }
 
           if (instruction is SaveRoomToDBInstruction) {
             await updater?.saveRoomToDB(instruction.room);
-            sendPort.send(null);
+            sendPort.send(
+              makeResponseData(instruction, null),
+            );
+          }
+          if (instruction is GetRoomInstruction) {
+            final result = await updater?.fetchRoomFromDB(
+              instruction.roomId,
+              context: instruction.context,
+              memberIds: instruction.memberIds,
+            );
+            sendPort.send(
+              makeResponseData(instruction, result),
+            );
           }
 
           if (instruction is RequestInstruction) {
             await _executeRequest(updater, sendPort, instruction);
+          } else if (instruction is SendInstruction) {
+            await updater
+                ?.send(
+                  instruction.roomId,
+                  instruction.content,
+                  transactionId: instruction.transactionId,
+                  stateKey: instruction.stateKey,
+                  type: instruction.type,
+                  room: instruction.room,
+                )
+                .forEach(
+                  (update) => sendPort.send(
+                    makeResponseData(instruction, update),
+                  ),
+                );
+
+            return;
+          } else if (instruction is SendReadyInstruction) {
+            final data = await updater?.sendReadyEvent(
+              instruction.roomEvent,
+              isState: instruction.isState,
+            );
+            sendPort.send(makeResponseData(instruction, data));
+            return;
+          } else if (instruction is LoadRoomsInstruction) {
+            final data = await updater?.loadRooms(
+              instruction.limit,
+              instruction.offset,
+              instruction.timelineLimit,
+            );
+            sendPort.send(makeResponseData(instruction, data));
+          } else if (instruction is LoadFakeRoomEventsInstruction) {
+            final data = await updater?.getAllFakeMessages();
+            sendPort.send(makeResponseData(instruction, data));
+            return;
+          } else if (instruction is DeleteFakeRoomEventInstruction) {
+            final data = await updater?.deleteFakeEvent(
+              instruction.transactionId,
+            );
+            sendPort.send(makeResponseData(instruction, data));
+            return;
+          } else if (instruction is SetPusherInstruction) {
+            final data = await updater?.setPusher(
+              instruction.pusher,
+            );
+            sendPort.send(makeResponseData(instruction, data));
+            return;
           }
         });
 
@@ -103,9 +153,12 @@ abstract class IsolateRunner {
       },
       (error, stackTrace) {
         sendPort.send(
-          ErrorWithStackTraceString(
-            error.toString(),
-            stackTrace.toString(),
+          makeResponseData(
+            null,
+            ErrorWithStackTraceString(
+              error.toString(),
+              stackTrace.toString(),
+            ),
           ),
         );
       },
@@ -131,23 +184,6 @@ abstract class IsolateRunner {
             count: instruction.count,
             room: instruction.room,
           );
-    } else if (instruction is LoadMembersInstruction) {
-      operation = () => updater.loadMembers(
-            roomId: instruction.roomId!,
-            count: instruction.count,
-            room: instruction.room,
-          );
-    } else if (instruction is LoadRoomsByIDsInstruction) {
-      operation = () => updater.loadRoomsByIDs(
-            instruction.roomIds,
-            instruction.timelineLimit,
-          );
-    } else if (instruction is LoadRoomsInstruction) {
-      operation = () => updater.loadRooms(
-            instruction.limit,
-            instruction.offset,
-            instruction.timelineLimit,
-          );
     } else if (instruction is LogoutInstruction) {
       operation = () => updater.logout();
     } else if (instruction is MarkReadInstruction) {
@@ -156,22 +192,8 @@ abstract class IsolateRunner {
             until: instruction.until,
             receipt: instruction.receipt,
             room: instruction.room,
+            fullyRead: instruction.fullyRead,
           );
-    } else if (instruction is SendInstruction) {
-      await updater
-          .send(
-            instruction.roomId,
-            instruction.content,
-            transactionId: instruction.transactionId,
-            stateKey: instruction.stateKey,
-            type: instruction.type,
-            room: instruction.room,
-          )
-          .forEach(
-            (update) => sendPort.send(update?.minimize()),
-          );
-
-      return;
     } else if (instruction is SetIsTypingInstruction) {
       operation = () => updater.setIsTyping(
             roomId: instruction.roomId!,
@@ -186,10 +208,6 @@ abstract class IsolateRunner {
           );
     } else if (instruction is LeaveRoomInstruction) {
       operation = () => updater.leaveRoom(instruction.id);
-    } else if (instruction is SetNameInstruction) {
-      operation = () => updater.setDisplayName(name: instruction.name);
-    } else if (instruction is SetPusherInstruction) {
-      operation = () => updater.setPusher(instruction.pusher);
     } else if (instruction is EditTextEventInstruction) {
       operation = () => updater.edit(
             instruction.roomId,
@@ -206,8 +224,6 @@ abstract class IsolateRunner {
             reason: instruction.reason,
             room: instruction.room,
           );
-    } else if (instruction is RunSyncOnceInstruction) {
-      operation = () => updater.syncer.runSyncOnce(filter: instruction.filter);
     } else {
       throw UnsupportedError(
         'Unsupported instruction: ${instruction.runtimeType}',
@@ -217,12 +233,17 @@ abstract class IsolateRunner {
     final result = await operation();
 
     if (instruction is RunSyncOnceInstruction) {
-      sendPort.send(result);
+      sendPort.send(makeResponseData(instruction, result));
       return;
     }
 
     if (result != null && (result is! Update || instruction.basedOnUpdate)) {
-      sendPort.send(result is RequestUpdate ? result.minimize() : result);
+      sendPort.send(
+        makeResponseData(
+          instruction,
+          result is RequestUpdate ? result.minimize() : result,
+        ),
+      );
     }
   }
 }
@@ -233,14 +254,16 @@ class UpdaterArgs {
   final Uri homeserverUrl;
   final StoreLocation storeLocation;
   final bool saveMyUserToStore;
+  final int timelineLimit;
 
   UpdaterArgs({
     required this.myUser,
     required this.homeserverUrl,
     required this.storeLocation,
     required this.saveMyUserToStore,
+    required this.timelineLimit,
   });
 }
 
 @immutable
-class IsolateInitialized {}
+class RunnerInitialized {}

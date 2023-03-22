@@ -15,12 +15,12 @@ class Pushers {
 
   bool get isReady => _context.updater?.isReady ?? false;
 
-  Future<void> _set(Map<String, dynamic> pusherJson) {
-    return _context.updater?.setPusher(pusherJson) ?? Future.value();
+  Future<bool> _set(Map<String, dynamic> pusherJson) async {
+    return await _context.updater?.setPusher(pusherJson) ?? false;
   }
 
   /// Set a pusher for this [MyUser]. Returns true if successfully set.
-  Future<void> set(Pusher pusher) => _set(pusher.toJson());
+  Future<bool> set(Pusher pusher) => _set(pusher.toJson());
 
   Future<void> add(Pusher pusher) => _set(pusher.toJson()
     ..addAll({

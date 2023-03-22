@@ -1,12 +1,12 @@
 import 'package:matrix_sdk/src/model/context.dart';
-import 'package:matrix_sdk/src/services/local/base_sink_storage.dart';
+import 'package:matrix_sdk/src/services/local/base_sync_storage.dart';
 
 import '../../../matrix_sdk.dart';
 
-class SinkStorage implements BaseSinkStorage {
+class SyncStorage implements BaseSyncStorage {
   late Store store;
 
-  SinkStorage({
+  SyncStorage({
     required StoreLocation storeLocation,
   }) {
     store = storeLocation.create();
@@ -14,18 +14,19 @@ class SinkStorage implements BaseSinkStorage {
   }
 
   @override
-  Stream<MyUser> myUserStorageSink(String userId) =>
-      store.myUserStorageSink(userId);
+  Stream<MyUser> myUserStorageSync({required int timelineLimit}) =>
+      store.myUserStorageSync(timelineLimit: timelineLimit);
 
   @override
-  Stream<Room> roomSinkStorageSink({
+  Stream<Room> roomStorageSync({
     required String selectedRoomId,
     required UserId userId,
     Context? context,
   }) =>
-      store.roomStorageSink(
+      store.roomStorageSync(
         selectedRoomId: selectedRoomId,
         userId: userId,
+        context: context,
       );
 
   @override
@@ -60,7 +61,7 @@ class SinkStorage implements BaseSinkStorage {
   Future<Room?> getRoom(
     RoomId id, {
     int timelineLimit = 15,
-    required Context context,
+    Context? context,
     required Iterable<UserId> memberIds,
   }) =>
       store.getRoom(
@@ -104,7 +105,17 @@ class SinkStorage implements BaseSinkStorage {
       );
 
   @override
-  Future<String?> getToken(String id) async => store.getToken(id);
+  Future<String?> getToken() async => store.getToken();
+
+  @override
+  Future<MyUser?> getMyUser({
+    List<RoomId>? roomIds,
+    int timelineLimit = 100,
+  }) async =>
+      store.getMyUser(
+        roomIds: roomIds,
+        timelineLimit: timelineLimit,
+      );
 
   @override
   bool isReady() => store.isOpen;
@@ -117,4 +128,16 @@ class SinkStorage implements BaseSinkStorage {
 
   @override
   Future<void> wipeAllData() => store.wipeAllData();
+
+  @override
+  Future<List<RoomEvent>> getAllFakeEvents() => store.getAllFakeEvents();
+
+  @override
+  Future<bool> addFakeEvent(RoomEvent fakeRoomEvent) =>
+      store.addFakeEvent(fakeRoomEvent);
+
+  @override
+  Future<bool> deleteFakeEvent(String transactionId) {
+    return store.deleteFakeMessage(transactionId);
+  }
 }

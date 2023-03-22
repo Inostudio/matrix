@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 class SyncFilter {
   final int timelineLimit;
   final bool fullState;

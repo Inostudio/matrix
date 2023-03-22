@@ -1,4 +1,7 @@
+import 'dart:developer';
+
 import 'package:async/async.dart';
+import 'package:collection/collection.dart';
 import 'package:matrix_sdk/matrix_sdk.dart';
 import 'package:matrix_sdk/src/model/sync_token.dart';
 
@@ -21,13 +24,24 @@ class Syncer {
   CancelableOperation<Map<String, dynamic>>? _cancelableSyncOnceResponse;
 
   String? _syncToken;
+  String? _syncOnceToken;
+
+  late Iterable<RoomEvent> _initialFakes;
+
+  Future<void> _getInitialFakes() async {
+    while (!(await _updater.ensureReady())) {
+      await Future.delayed(Duration(milliseconds: 500));
+    }
+    _initialFakes = await _updater.getAllFakeMessages();
+  }
 
   /// Syncs data with the user's [_homeserver].
-  void start({
+  Future<void> start({
     Duration maxRetryAfter = const Duration(seconds: 30),
     int timelineLimit = 30,
     String? syncToken,
-  }) {
+    bool withLoadFakes = false,
+  }) async {
     if (_user.isLoggedOut ?? false) {
       throw StateError('The user can not be logged out');
     }
@@ -37,6 +51,9 @@ class Syncer {
     }
     _syncToken = syncToken;
 
+    if (withLoadFakes) {
+      await _getInitialFakes();
+    }
     _syncFuture = _startSync(
       maxRetryAfter: maxRetryAfter,
       timelineLimit: timelineLimit,
@@ -81,8 +98,19 @@ class Syncer {
             retryAfter = maxRetryAfter.inMilliseconds;
           }
         } else {
-          _syncToken = body['next_batch'];
-          await _updater.processSync(body);
+          // on sync once was triggered - start syncing from syncOnceToken
+          if (_syncOnceToken != null && _syncOnceToken!.isNotEmpty) {
+            _syncToken = _syncOnceToken;
+            _syncOnceToken = null;
+          }
+          //standard sync token incrementing
+          else {
+            _syncToken = body['next_batch'];
+          }
+          final update = await _updater.processSync(body);
+          if (update != null) {
+            await _tryToDeleteFake(update);
+          }
 
           // Reset exponential backoff.
           retryAfter = 1000;
@@ -90,14 +118,33 @@ class Syncer {
           await Future.delayed(Duration(milliseconds: retryAfter));
         }
       }
-    } catch (e) {
-      Log.writer.log(e);
+    } catch (e, s) {
+      Log.writer.log("$e $s");
+      log("Sync Error :$e $s");
       await Future.delayed(Duration(seconds: 5));
-      start(
+      await start(
         maxRetryAfter: maxRetryAfter,
         timelineLimit: timelineLimit,
         syncToken: _syncToken,
       );
+    }
+  }
+
+  Future<void> _tryToDeleteFake(SyncUpdate update) async {
+    if (_initialFakes.isNotEmpty) {
+      for (final f in _initialFakes) {
+        final room = update.user.rooms
+            ?.toList()
+            .firstWhereOrNull((r) => r.id == f.roomId);
+        if (room != null) {
+          final timeLine = room.timeline;
+          if (timeLine != null &&
+              f.transactionId != null &&
+              timeLine.any((e) => e.transactionId == f.transactionId)) {
+            await _updater.deleteFakeEvent(f.transactionId!);
+          }
+        }
+      }
     }
   }
 
@@ -144,13 +191,13 @@ class Syncer {
         return null;
       }
 
-      if (_shouldStopSync) {
+      if (_shouldStopSync == true) {
         return null;
       }
 
       return body;
-    } on Exception catch (e) {
-      Log.writer.log(e);
+    } on Exception catch (e, st) {
+      Log.writer.log("error $e\nStack: $st");
       _updater.inError.add(ErrorWithStackTraceString(
         e.toString(),
         StackTrace.current.toString(),
@@ -183,34 +230,31 @@ class Syncer {
       );
 
       _cancelableSyncOnceResponse = cancelable;
-      // final initStopwatch = Stopwatch();
-      // initStopwatch.start();
       final body = await cancelable.valueOrCancellation();
-      // final time = initStopwatch.elapsedMilliseconds;
-      // print("Stopwatch SYNC : $time");
-      // initStopwatch.stop();
 
       // We're cancelled
       if (body == null) {
         return null;
       }
 
-      if (_shouldStopSync) {
+      if (_shouldStopSync == true) {
         return null;
       }
 
+      _syncOnceToken = body['next_batch'];
       await _updater.processSync(body);
       return SyncToken(body['next_batch']);
-    } catch (error) {
-      if (error is MatrixException) {
-        final statusCode = error.body["status_code"];
+    } catch (e, st) {
+      Log.writer.log("error$e\nStack: $st");
+      if (e is MatrixException) {
+        final statusCode = e.body["status_code"];
         if (statusCode is int && statusCode >= 500) {
           return Future.delayed(const Duration(milliseconds: 500),
               () => runSyncOnce(filter: filter));
         }
       } else {
         _updater.inError.add(ErrorWithStackTraceString(
-          error.toString(),
+          e.toString(),
           StackTrace.current.toString(),
         ));
       }

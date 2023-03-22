@@ -10,19 +10,19 @@ import 'dart:io';
 import 'package:collection/collection.dart';
 import 'package:image/image.dart';
 import 'package:matrix_sdk/src/model/sync_token.dart';
-import 'package:matrix_sdk/src/services/local/sink_storage.dart';
+import 'package:matrix_sdk/src/services/local/sync_storage.dart';
 import 'package:matrix_sdk/src/services/network/base_network.dart';
 import 'package:matrix_sdk/src/updater/syncer.dart';
+import 'package:matrix_sdk/src/util/logger.dart';
+import 'package:matrix_sdk/src/util/subscription.dart';
 import 'package:mime/mime.dart';
 import 'package:synchronized/synchronized.dart';
 
-import '../event/ephemeral/ephemeral.dart';
-import '../event/ephemeral/typing_event.dart';
+import '../event/ephemeral/ephemeral_event.dart';
 import '../event/event.dart';
 import '../event/room/message_event.dart';
 import '../event/room/redaction_event.dart';
 import '../event/room/room_event.dart';
-import '../event/room/state/room_creation_event.dart';
 import '../event/room/state/state_event.dart';
 import '../homeserver.dart';
 import '../model/models.dart';
@@ -31,7 +31,7 @@ import '../room/member/membership.dart';
 import '../room/room.dart';
 import '../room/rooms.dart';
 import '../room/timeline.dart';
-import '../services/local/base_sink_storage.dart';
+import '../services/local/base_sync_storage.dart';
 import '../services/network/home_server_network.dart';
 import '../store/store.dart';
 import '../util/random.dart';
@@ -52,13 +52,14 @@ class Updater {
   final Homeserver homeServer;
 
   late BaseNetwork _networkService;
-  late BaseSinkStorage _sinkStorage;
+  late BaseSyncStorage _syncStorage;
 
   /// Most up to date instance of our user.
   MyUser get user => _user;
 
   MyUser _user;
   String? _currentSyncToken;
+  final int timelineLimit;
 
   late final Syncer _syncer = Syncer(this);
 
@@ -66,16 +67,12 @@ class Updater {
 
   final _lock = Lock();
 
-  StreamSubscription? oneRoomSync;
+  Map<String, StreamSubscription<Room>> roomIdToSyncSubscription = {};
+  final Map<String, StreamController<Room>> _roomIdToSyncController = {};
 
   final _updatesSubject = StreamController<Update>.broadcast();
 
-  final StreamController<Room> _roomUpdatesSubject =
-      StreamController<Room>.broadcast();
-
   Stream<Update> get updates => _updatesSubject.stream;
-
-  Stream<Room> get roomUpdates => _roomUpdatesSubject.stream;
 
   final _errorSubject = StreamController<ErrorWithStackTraceString>.broadcast();
 
@@ -90,7 +87,9 @@ class Updater {
   Stream<ApiCallStatistics> get outApiCallStatistics =>
       homeServer.outApiCallStats;
 
-  bool get isReady => _sinkStorage.isReady() && !_updatesSubject.isClosed;
+  bool get isReady => _syncStorage.isReady() && !_updatesSubject.isClosed;
+
+  final bool initSyncStorage;
 
   /// Initializes the [myUser] with a valid [Context], and will also
   /// initialize it's properties that need the context, such as [Rooms].
@@ -100,14 +99,15 @@ class Updater {
     this._user,
     this.homeServer,
     StoreLocation storeLocation, {
-    bool initSinkStorage = false,
+    this.initSyncStorage = false,
+    required this.timelineLimit,
   }) {
     Updater.register(_user.id, this);
     _initHomeServer();
-    _sinkStorage = SinkStorage(storeLocation: storeLocation);
+    _syncStorage = SyncStorage(storeLocation: storeLocation);
 
-    if (initSinkStorage) {
-      _initSinkStorage(storeLocation);
+    if (initSyncStorage) {
+      _initSyncStorage();
     }
   }
 
@@ -115,33 +115,92 @@ class Updater {
     _networkService = HomeServerNetworking(homeServer: homeServer);
   }
 
-  void _initSinkStorage(StoreLocation storeLocation) {
-    _sinkStorage.myUserStorageSink(user.id.value).listen(
+  void _initSyncStorage() {
+    _syncStorage.myUserStorageSync(timelineLimit: timelineLimit).listen(
           (storeUpdate) => _notifyWithUpdate(
             storeUpdate,
-            (user, delta) => SyncUpdate(user, delta),
+            SyncUpdate.new,
           ),
         );
   }
 
-  Future<bool> ensureReady() => _sinkStorage.ensureOpen();
+  Future<bool> ensureReady() async {
+    return (await _syncStorage.ensureOpen()) && isReady;
+  }
 
-  Stream<Room> startRoomSink(String roomId) {
-    oneRoomSync = _sinkStorage
-        .roomSinkStorageSink(
+  Stream<Room> startRoomSync(String roomId) {
+    if (!_roomIdToSyncController.keys.contains(roomId)) {
+      _roomIdToSyncController[roomId] = StreamController<Room>.broadcast();
+    }
+
+    roomIdToSyncSubscription[roomId] = _syncStorage
+        .roomStorageSync(
           selectedRoomId: roomId,
           userId: user.id,
           context: user.context,
         )
-        .listen(_roomUpdatesSubject.add);
-    return roomUpdates;
+        .listen((room) => _updateOneRoomSync(roomId, room));
+    return _getOneRoomUpdates(roomId);
   }
 
-  Future<void> closeRoomSink() async => oneRoomSync?.cancel();
+  void _updateOneRoomSync(String roomId, Room room) {
+    if (!_roomIdToSyncController.keys.contains(roomId)) {
+      _roomIdToSyncController[roomId] = StreamController<Room>.broadcast();
+    }
+    _roomIdToSyncController[roomId]!.add(room);
+  }
 
-  Future<void> saveRoomToDB(Room room) => _sinkStorage.setRoom(room);
+  Stream<Room> _getOneRoomUpdates(String roomId) {
+    if (!_roomIdToSyncController.keys.contains(roomId)) {
+      _roomIdToSyncController[roomId] = StreamController<Room>.broadcast();
+    }
+    return _roomIdToSyncController[roomId]!.stream;
+  }
 
-  Future<List<String?>?> getRoomIDs() => _sinkStorage.getRoomIds();
+  Future<Room?> fetchRoomFromDB(
+    String roomId, {
+    Context? context,
+    List<UserId>? memberIds,
+  }) async {
+    return _syncStorage.getRoom(
+      RoomId(roomId),
+      context: context ?? user.context,
+      memberIds: memberIds ?? [user.id],
+    );
+  }
+
+  Future<bool> closeRoomSync(String roomId) async {
+    try {
+      final res = await closeOneSubInMap(roomIdToSyncSubscription, roomId);
+      roomIdToSyncSubscription.remove(roomId);
+      await _roomIdToSyncController[roomId]?.close();
+      _roomIdToSyncController.remove(roomId);
+      return res;
+    } catch (e) {
+      Log.writer.log("closeRoomSync", e.toString());
+      return false;
+    }
+  }
+
+  Future<bool> closeAllRoomSync() async {
+    try {
+      final res = await closeAllSubInMap(roomIdToSyncSubscription);
+      roomIdToSyncSubscription.clear();
+      await doAsyncAllSubInMap<String, StreamController<Room>>(
+        _roomIdToSyncController,
+        (e) => e.value.close(),
+      );
+      _roomIdToSyncController.clear();
+      return res;
+    } catch (e) {
+      Log.writer.log("closeAllRoomSync", e.toString());
+      return false;
+    }
+  }
+
+  Future<void> saveRoomToDB(Room room) => _syncStorage.setRoom(room);
+
+  Future<List<String?>?> getRoomIDs() => _syncStorage.getRoomIds();
 
   Future<void> startSync({
     Duration maxRetryAfter = const Duration(seconds: 30),
@@ -150,23 +209,25 @@ class Updater {
   }) async {
     String? token = syncToken ?? _currentSyncToken;
     if (token == null || token.isEmpty) {
-      token = await _sinkStorage.getToken(_user.id.value);
+      token = await _syncStorage.getToken();
     }
 
-    _syncer.start(
+    await _syncer.start(
       maxRetryAfter: maxRetryAfter,
       timelineLimit: timelineLimit,
       syncToken: token,
+      withLoadFakes: true,
     );
   }
 
   Future<void> stopSync() async => _syncer.stop();
 
-  Future<void> runSyncOnce(SyncFilter filter) async => _syncer.runSyncOnce(
+  Future<SyncToken?> runSyncOnce(SyncFilter filter) async =>
+      _syncer.runSyncOnce(
         filter: filter,
       );
 
-  ///Notify out sink with new update with data
+  ///Notify out sync with new update with data
   Future<void> _notifyWithUpdate<U extends Update>(
     MyUser delta,
     U Function(MyUser user, MyUser delta) createUpdate,
@@ -187,32 +248,10 @@ class Updater {
       _user = await runComputeMerge(_user, delta);
       if (withSaveInStore) {
         //TODO add comparing user with delta to avoid save duplicate
-        await _sinkStorage.setUserDelta(delta.copyWith(id: _user.id));
+        await _syncStorage.setUserDelta(delta.copyWith(id: _user.id));
       }
       return createUpdate(_user, delta);
     });
-  }
-
-  @Deprecated("unused, should be removed")
-  Future<RequestUpdate<MyUser>?> setDisplayName({
-    required String name,
-  }) async {
-    await _networkService.putProfileDisplayName(
-      accessToken: _user.accessToken!,
-      userId: _user.id.value,
-      value: name,
-    );
-
-    return _createUpdate(
-      _user.delta(name: name)!,
-      (user, delta) => RequestUpdate(
-        user,
-        delta,
-        data: user,
-        deltaData: delta,
-        type: RequestType.setName,
-      ),
-    );
   }
 
   Future<RequestUpdate<MemberTimeline>?> kick(
@@ -221,7 +260,7 @@ class Updater {
   }) async {
     if (_user.rooms?[from]?.members?[id]?.membership == Membership.kicked) {
       return RequestUpdate.fromUpdate(
-        await updates.first,
+        await _getRelevantUpdate(),
         data: (u) => u.rooms?[from]?.memberTimeline,
         deltaData: (u) => u.rooms?[from]?.memberTimeline,
         type: RequestType.kick,
@@ -235,8 +274,8 @@ class Updater {
     );
 
     return RequestUpdate.fromUpdate(
-      await updates.firstWhere(
-        (u) =>
+      await _getRelevantUpdate(
+        firstWhere: (u) =>
             u.delta.rooms?[from]?.members?.current.kicked.any(
               (m) => m.id == id,
             ) ??
@@ -248,7 +287,8 @@ class Updater {
     );
   }
 
-  Stream<RequestUpdate<Timeline>?> send(
+  //Perform [send] request and then mapping it's stream into Update
+  Stream<RequestUpdate<Timeline>?> makeTimeLineFromSend(
     RoomId roomId,
     EventContent content, {
     Room? room,
@@ -256,11 +296,127 @@ class Updater {
     String stateKey = '',
     String type = '',
   }) async* {
-    final Room? currentRoom = room ??= _user.rooms![roomId];
+    send(
+      roomId,
+      content,
+      room: room,
+      transactionId: transactionId,
+      stateKey: stateKey,
+      type: type,
+    ).map(
+      (event) async {
+        if (event == null) {
+          return null;
+        }
 
+        final Room? currentRoom = room ??= _user.rooms![roomId];
+
+        final timelineDelta = currentRoom?.timeline?.delta(
+          events: [event],
+        );
+        if (timelineDelta == null) {
+          return null;
+        }
+
+        final roomDelta = currentRoom?.delta(
+          timeline: timelineDelta,
+        );
+
+        if (roomDelta == null) {
+          return null;
+        }
+
+        return _createUpdate(
+          _user.delta(rooms: [roomDelta]),
+          (user, delta) => RequestUpdate(
+            user,
+            delta,
+            data: currentRoom?.timeline,
+            deltaData: currentRoom?.timeline,
+            type: RequestType.sendRoomEvent,
+          ),
+        );
+      },
+    );
+  }
+
+  Future<RoomEvent?> sendReadyEvent(
+    RoomEvent roomEvent, {
+    required bool isState,
+  }) async {
+    if (roomEvent.content != null ||
+        roomEvent.transactionId == null ||
+        roomEvent.roomId == null) {
+      return null;
+    } else {
+      try {
+        final eventArgs = RoomEventArgs(
+          networkId: roomEvent.transactionId!,
+          id: EventId(roomEvent.transactionId!),
+          roomId: roomEvent.roomId,
+          time: DateTime.now(),
+          senderId: _user.id,
+          sentState: SentState.unsent,
+          transactionId: roomEvent.transactionId,
+        );
+
+        final fileEvent = await _handleSendFile(roomEvent, eventArgs);
+        if (fileEvent != null) {
+          roomEvent = fileEvent;
+        }
+
+        final Map<String, dynamic> body =
+            await _sendRoomNetwork(roomEvent, roomEvent.roomId!);
+        final eventId = EventId(body['event_id']);
+
+        final sentEvent = RoomEvent.fromContent(
+          roomEvent.content!,
+          eventArgs.copyWith(
+            id: eventId,
+            sentState: SentState.sent,
+          ),
+          type: roomEvent.type,
+          isState: isState,
+        );
+
+        return sentEvent;
+      } catch (e) {
+        final eventArgs = RoomEventArgs(
+          networkId: roomEvent.transactionId!,
+          id: EventId(roomEvent.transactionId!),
+          roomId: roomEvent.roomId,
+          time: DateTime.now(),
+          senderId: _user.id,
+          sentState: SentState.unsent,
+          transactionId: roomEvent.transactionId,
+        );
+
+        final errorEvent = RoomEvent.fromContent(
+          roomEvent.content!,
+          eventArgs.copyWith(
+            id: EventId(roomEvent.transactionId!),
+            sentState: SentState.sent,
+          ),
+          type: roomEvent.type,
+          isState: isState,
+        );
+        return errorEvent;
+      }
+    }
+  }
+
+  Stream<RoomEvent?> send(
+    RoomId roomId,
+    EventContent content, {
+    Room? room,
+    String? transactionId,
+    String stateKey = '',
+    String type = '',
+  }) async* {
     transactionId ??= randomString();
 
     final eventArgs = RoomEventArgs(
+      networkId: transactionId,
       id: EventId(transactionId),
       roomId: roomId,
       time: DateTime.now(),
@@ -269,49 +425,102 @@ class Updater {
       transactionId: transactionId,
     );
 
-    var event = RoomEvent.fromContent(
+    var fakeEvent = RoomEvent.fromContent(
       content,
       eventArgs,
       type: type,
       isState: stateKey.isNotEmpty,
     );
 
-    if (event == null) {
+    yield fakeEvent;
+
+    if (fakeEvent != null) {
+      await _syncStorage.addFakeEvent(fakeEvent);
+    }
+
+    if (fakeEvent != null) {
+      final fileEvent = await _handleSendFile(fakeEvent, eventArgs);
+      if (fileEvent != null) {
+        fakeEvent = fileEvent;
+      }
+    }
+
+    if (fakeEvent == null) {
       return;
     }
 
-    if (event is RoomCreationEvent) {
-      throw ArgumentError('This event type cannot be send.');
+    try {
+      final Map<String, dynamic> body =
+          await _sendRoomNetwork(fakeEvent, roomId);
+      final eventId = EventId(body['event_id']);
+
+      final sentEvent = RoomEvent.fromContent(
+        content,
+        eventArgs.copyWith(
+          id: eventId,
+          networkId: eventId.value,
+          sentState: SentState.sent,
+          transactionId: transactionId,
+        ),
+        type: type,
+        isState: stateKey.isNotEmpty,
+      );
+
+      yield sentEvent;
+
+      if (fakeEvent.transactionId != null) {
+        await _syncStorage.deleteFakeEvent(fakeEvent.transactionId!);
+      }
+    } catch (e) {
+      final eventArgs = RoomEventArgs(
+        networkId: transactionId,
+        id: EventId(transactionId),
+        roomId: roomId,
+        time: DateTime.now(),
+        senderId: _user.id,
+        sentState: SentState.sentError,
+        transactionId: transactionId,
+      );
+
+      final errorEvent = RoomEvent.fromContent(
+        content,
+        eventArgs,
+        type: type,
+        isState: stateKey.isNotEmpty,
+      );
+
+      yield errorEvent;
+      if (errorEvent != null) {
+        await _syncStorage.addFakeEvent(errorEvent);
+      }
     }
+  }
 
-    var timelineDelta = currentRoom?.timeline?.delta(events: [event]);
-
-    if (timelineDelta == null) {
-      return;
-    }
-
-    var roomDelta = currentRoom?.delta(timeline: timelineDelta);
-
-    if (roomDelta == null) {
-      return;
-    }
-
-    yield await _createUpdate(
-      _user.delta(rooms: [roomDelta])!,
-      (user, delta) => RequestUpdate(
-        user,
-        delta,
-        data: currentRoom?.timeline,
-        deltaData: currentRoom?.timeline,
-        type: RequestType.sendRoomEvent,
-      ),
+  Future<Uri?> uploadFile(String fileURI) async {
+    final uri = Uri.parse(fileURI);
+    final file = File(
+      uri.toFilePath(windows: Platform.isWindows),
     );
+    final fileName = file.path.split(Platform.pathSeparator).last;
+    return _networkService.uploadImage(
+      as: _user,
+      bytes: file.openRead(),
+      length: await file.length(),
+      contentType: lookupMimeType(file.path) ?? '',
+      fileName: fileName,
+    );
+  }
 
+  Future<RoomEvent?> _handleSendFile(
+    RoomEvent roomEvent,
+    RoomEventArgs args,
+  ) async {
     // TODO: Support for web
     // Upload images from image message events that have a file uri
-    if (event is ImageMessageEvent && event.content?.url?.scheme == 'file') {
+    if (roomEvent is ImageMessageEvent &&
+        roomEvent.content?.url?.scheme == 'file') {
       final file = File(
-        event.content!.url!.toFilePath(windows: Platform.isWindows),
+        roomEvent.content!.url!.toFilePath(windows: Platform.isWindows),
       );
 
       final fileName = file.path.split(Platform.pathSeparator).last;
@@ -326,86 +535,47 @@ class Updater {
 
       final image = decodeImage(file.readAsBytesSync());
 
-      // TODO: Add copyWith
-      event = RoomEvent.fromContent(
+      return RoomEvent.fromContent(
         ImageMessage(
           url: matrixUrl!,
-          body: event.content!.body,
-          inReplyToId: event.content!.inReplyToId,
+          body: roomEvent.content!.body,
+          inReplyToId: roomEvent.content!.inReplyToId,
           info: ImageInfo(
             width: image?.width ?? 0,
             height: image?.height ?? 0,
           ),
         ),
-        eventArgs,
+        args,
         type: "",
       );
     }
+    return null;
+  }
 
-    if (event == null) {
-      return;
-    }
-
+  Future<Map<String, dynamic>> _sendRoomNetwork(
+    RoomEvent roomEvent,
+    RoomId roomId,
+  ) async {
     Map<String, dynamic> body;
-    if (event is StateEvent) {
+
+    if (roomEvent is StateEvent) {
       body = await _networkService.sendRoomsState(
         accessToken: _user.accessToken!,
         roomId: roomId.toString(),
-        eventType: event.type,
-        stateKey: stateKey,
-        content: event.content?.toJson() ?? {},
+        eventType: roomEvent.type,
+        stateKey: roomEvent.stateKey ?? "",
+        content: roomEvent.content?.toJson() ?? {},
       );
     } else {
       body = await _networkService.roomsSend(
         accessToken: _user.accessToken!,
         roomId: roomId.toString(),
-        eventType: event.type,
-        transactionId: transactionId,
-        content: event.content?.toJson() ?? {},
+        eventType: roomEvent.type,
+        transactionId: roomEvent.transactionId ?? "",
+        content: roomEvent.content?.toJson() ?? {},
       );
     }
-
-    final eventId = EventId(body['event_id']);
-
-    final sentEvent = RoomEvent.fromContent(
-      content,
-      eventArgs.copyWith(
-        id: eventId,
-        sentState: SentState.sent,
-      ),
-      type: type,
-      isState: stateKey.isNotEmpty,
-    );
-
-    if (sentEvent == null) {
-      return;
-    }
-
-    timelineDelta = currentRoom?.timeline?.delta(
-      events: [sentEvent],
-    );
-    if (timelineDelta == null) {
-      return;
-    }
-
-    roomDelta = currentRoom?.delta(
-      timeline: timelineDelta,
-    );
-
-    if (roomDelta == null) {
-      return;
-    }
-
-    yield await _createUpdate(
-      _user.delta(rooms: [roomDelta])!,
-      (user, delta) => RequestUpdate(
-        user,
-        delta,
-        data: currentRoom?.timeline,
-        deltaData: currentRoom?.timeline,
-        type: RequestType.sendRoomEvent,
-      ),
-    );
+    return body;
   }
 
   Future<RequestUpdate<Timeline>?> edit(
@@ -435,7 +605,7 @@ class Updater {
     final relevantUpdate = await updates.cast<Update?>().firstWhere(
             (update) => update?.delta.rooms?[roomId] != null,
             orElse: () => null) ??
-        await updates.first;
+        await _getRelevantUpdate();
 
     return _createUpdate(
       relevantUpdate.delta,
@@ -483,7 +653,7 @@ class Updater {
                   true,
               orElse: () => null,
             ) ??
-        await updates.first;
+        await _getRelevantUpdate();
 
     return _createUpdate(
       relevantUpdate.delta,
@@ -501,6 +671,7 @@ class Updater {
   Future<RequestUpdate<ReadReceipts>?> markRead({
     required RoomId roomId,
     required EventId until,
+    bool fullyRead = true,
     bool receipt = true,
     Room? room,
   }) async {
@@ -514,7 +685,7 @@ class Updater {
 
       if (isReadAlready) {
         return RequestUpdate.fromUpdate(
-          await updates.first,
+          await _getRelevantUpdate(),
           data: (u) => u.rooms?[roomId]?.readReceipts,
           deltaData: (u) => u.rooms?[roomId]?.readReceipts,
           type: RequestType.markRead,
@@ -525,26 +696,12 @@ class Updater {
     await _networkService.setRoomsReadMarkers(
       accessToken: _user.accessToken!,
       roomId: roomId.toString(),
-      fullyRead: until.toString(),
+      fullyRead: fullyRead ? until.toString() : null,
       read: receipt ? until.toString() : null,
     );
 
-    final relevantUpdate = await updates.first;
-
-    //TODO: firstWhere doesn't work good with streams :(
-    //Would be great to return this code in future, but let's remove it for now
-//    final relevantUpdate = receipt
-//        ? await updates.firstWhere(
-//          (update) =>
-//      update.delta.rooms?[roomId]?.readReceipts.any(
-//            (receipt) => receipt.eventId == until,
-//      ) ??
-//          false,
-//    )
-//        : await updates.first;
-
     return RequestUpdate.fromUpdate(
-      relevantUpdate,
+      await _getRelevantUpdate(),
       data: (u) => u.rooms?[roomId]?.readReceipts,
       deltaData: (u) => u.rooms?[roomId]?.readReceipts,
       type: RequestType.markRead,
@@ -556,7 +713,7 @@ class Updater {
     await _networkService.logout(accessToken: _user.accessToken!);
 
     final update = await _createUpdate(
-      _user.delta(isLoggedOut: true)!,
+      _user.delta(isLoggedOut: true),
       (user, delta) => RequestUpdate(
         user,
         delta,
@@ -567,34 +724,22 @@ class Updater {
       ),
     );
 
-    await _sinkStorage.wipeAllData();
+    await _syncStorage.wipeAllData();
 
-    await _sinkStorage.close();
+    await _syncStorage.close();
 
     return update;
   }
 
-  Future<RequestUpdate<Rooms>?> loadRoomsByIDs(
-    Iterable<RoomId> roomIds,
-    int timelineLimit,
-  ) async {
-    final rooms = await _sinkStorage.getRoomsByIds(
-      roomIds,
-      timelineLimit: timelineLimit,
-      context: _user.context!,
-      memberIds: [_user.id],
+  Future<void> close() async {
+    await doAsyncAllSubInMap<String, StreamController<Room>>(
+      _roomIdToSyncController,
+      (e) => e.value.close(),
     );
-
-    return _createUpdate(
-      _user.delta(rooms: rooms)!,
-      (user, delta) => RequestUpdate(
-        user,
-        delta,
-        data: user.rooms!,
-        deltaData: delta.rooms!,
-        type: RequestType.loadRooms,
-      ),
-    );
+    _roomIdToSyncController.clear();
+    await _errorSubject.close();
+    await _tokenSubject.close();
+    await _updatesSubject.close();
   }
 
   Future<RequestUpdate<Rooms>?> loadRooms(
@@ -602,7 +747,7 @@ class Updater {
     int offset,
     int timelineLimit,
   ) async {
-    final rooms = await _sinkStorage.getRooms(
+    final rooms = await _syncStorage.getRooms(
       timelineLimit: timelineLimit,
       context: _user.context!,
       memberIds: [_user.id],
@@ -612,7 +757,7 @@ class Updater {
 
     final update = RequestUpdate(
       _user,
-      _user.delta(rooms: rooms)!,
+      _user.delta(rooms: rooms),
       data: Rooms(rooms, context: _user.context),
       deltaData: Rooms(rooms, context: _user.context),
       type: RequestType.loadRooms,
@@ -635,55 +780,31 @@ class Updater {
       return Future.value(null);
     }
 
-    final messages = await _sinkStorage.getMessages(
-      roomId,
-      count: count,
-      fromTime: currentRoom?.timeline?.last.time,
+    final body = await _networkService.getRoomMessages(
+      accessToken: _user.accessToken ?? '',
+      roomId: roomId.toString(),
+      limit: count,
+      from: currentRoom?.timeline?.previousBatch ?? '',
+      filter: {
+        'lazy_load_members': true,
+      },
     );
 
-    var timeline = Timeline(
-      messages.events,
+    final timeline = Timeline.fromJson(
+      (body['chunk'] as List<dynamic>).cast(),
       context: currentRoom?.context,
+      previousBatch: body['end'],
+      startBatch: body['start'],
+      previousBatchSetBySync: false,
     );
 
-    var memberTimeline = MemberTimeline(
-      messages.state,
-      context: currentRoom?.context,
-    );
-
-    if (timeline.length < count) {
-      count -= timeline.length;
-
-      final body = await _networkService.getRoomMessages(
-        accessToken: _user.accessToken ?? '',
-        roomId: roomId.toString(),
-        limit: count,
-        from: currentRoom?.timeline?.previousBatch ?? '',
-        filter: {
-          'lazy_load_members': true,
-        },
-      );
-
-      timeline = timeline.merge(
-        Timeline.fromJson(
-          (body['chunk'] as List<dynamic>).cast(),
-          context: currentRoom?.context,
-          previousBatch: body['end'],
-          previousBatchSetBySync: false,
-        ),
-      )!;
-
-      if (body.containsKey('state')) {
-        memberTimeline = memberTimeline.merge(
-          MemberTimeline.fromEvents([
-            ...timeline,
-            ...(body['state'] as List<dynamic>)
-                .cast<Map<String, dynamic>>()
-                .map((e) => RoomEvent.fromJson(e, roomId: roomId)!),
-          ]),
-        );
-      }
-    }
+    final memberTimeline = MemberTimeline.fromEvents([
+      ...timeline,
+      if (body.containsKey('state'))
+        ...(body['state'] as List<dynamic>)
+            .cast<Map<String, dynamic>>()
+            .map((e) => RoomEvent.fromJson(e, roomId: roomId)!),
+    ]);
 
     final newRoom = Room(
       context: _user.context!,
@@ -693,7 +814,8 @@ class Updater {
     );
 
     return _createUpdate(
-      _user.delta(rooms: [newRoom])!,
+      _user.delta(rooms: [newRoom]),
+      withSaveInStore: true,
       (user, delta) => RequestUpdate(user, delta,
           data: user.rooms?[newRoom.id]?.timeline,
           deltaData: delta.rooms?[newRoom.id]?.timeline,
@@ -702,67 +824,15 @@ class Updater {
     );
   }
 
-  Future<RequestUpdate<MemberTimeline>?> loadMembers({
-    required RoomId roomId,
-    int count = 10,
-    Room? room,
-  }) async {
-    final Room? currentRoom = room ??=
-        _user.rooms?.firstWhereOrNull((element) => element.id == roomId);
-
-    if (currentRoom == null) {
-      return Future.value(null);
-    }
-
-    final members = await _sinkStorage.getMembers(
-      roomId,
-      fromTime: currentRoom.memberTimeline?.last.since,
-      count: count,
-    );
-
-    var memberTimeline = MemberTimeline(
-      members,
-      context: currentRoom.context,
-    );
-
-    if (members.length < count) {
-      count -= members.length;
-
-      final body = await _networkService.getRoomMembers(
-        accessToken: _user.accessToken ?? '',
-        roomId: roomId.toString(),
-        at: currentRoom.timeline?.previousBatch ?? '',
-      );
-
-      final events = (body['chunk'] as List<dynamic>)
-          .cast<Map<String, dynamic>>()
-          .map((e) => RoomEvent.fromJson(e, roomId: roomId))
-          .whereNotNull();
-
-      memberTimeline = memberTimeline.merge(
-        MemberTimeline.fromEvents(events),
-      );
-    }
-
-    final newRoom = Room(
-      context: _user.context!,
-      id: roomId,
-      memberTimeline: memberTimeline,
-    );
-
-    return _createUpdate(
-      _user.delta(rooms: [newRoom])!,
-      (user, delta) => RequestUpdate(
-        user,
-        delta,
-        data: user.rooms?[newRoom.id]?.memberTimeline,
-        deltaData: user.rooms?[newRoom.id]?.memberTimeline,
-        type: RequestType.loadMembers,
-      ),
-    );
+  Future<Iterable<RoomEvent>> getAllFakeMessages() {
+    return _syncStorage.getAllFakeEvents();
   }
 
-  Future<RequestUpdate<Ephemeral>?> setIsTyping({
+  Future<bool> deleteFakeEvent(String transactionId) {
+    return _syncStorage.deleteFakeEvent(transactionId);
+  }
+
+  Future<RequestUpdate<EphemeralEventFull>?> setIsTyping({
     required RoomId roomId,
     required bool isTyping,
     Duration timeout = const Duration(seconds: 30),
@@ -781,19 +851,19 @@ class Updater {
       return null;
     } else {
       return RequestUpdate.fromUpdate(
-        await updates.firstWhere((u) {
-          final containsMe = u.delta.rooms?[roomId]?.ephemeral
-              ?.get<TypingEvent>()
-              .content
-              ?.typerIds
-              .contains(_user.id);
-
-          return containsMe == null
-              ? false
-              : isTyping
-                  ? containsMe
-                  : !containsMe;
-        }),
+        await _getRelevantUpdate(
+          firstWhere: (u) {
+            final containsMe = u
+                .delta.rooms?[roomId]?.ephemeral?.typingEvents.content?.typerIds
+                .whereNotNull()
+                .contains(_user.id);
+            return containsMe == null
+                ? false
+                : isTyping
+                    ? containsMe
+                    : !containsMe;
+          },
+        ),
         data: (u) => u.rooms?[roomId]?.ephemeral!,
         deltaData: (u) => u.rooms?[roomId]?.ephemeral,
         type: RequestType.setIsTyping,
@@ -815,8 +885,9 @@ class Updater {
     final roomId = RoomId(body['room_id']);
 
     return RequestUpdate.fromUpdate(
-      await updates.firstWhere(
-        (u) => u.user.rooms?[roomId]?.me?.membership == Membership.joined,
+      await _getRelevantUpdate(
+        firstWhere: (u) =>
+            u.user.rooms?[roomId]?.me?.membership == Membership.joined,
       ),
       data: (u) => u.rooms?[roomId],
       deltaData: (u) => u.rooms?[roomId],
@@ -831,8 +902,8 @@ class Updater {
     );
 
     return RequestUpdate.fromUpdate(
-      await updates.firstWhere(
-        (u) => u.delta.rooms?[id]?.me?.hasLeft ?? false,
+      await _getRelevantUpdate(
+        firstWhere: (u) => u.delta.rooms?[id]?.me?.hasLeft ?? false,
       ),
       data: (u) => u.rooms?[id],
       deltaData: (u) => u.rooms?[id],
@@ -841,14 +912,16 @@ class Updater {
   }
 
   /// Note: Will return RequestUpdate<Pushers> in the future.
-  Future<void> setPusher(Map<String, dynamic> pusher) {
-    return _networkService.setPusher(
+  Future<bool?> setPusher(Map<String, dynamic> pusher) async {
+    final pusherIsSet = await _networkService.setPusher(
       accessToken: _user.accessToken ?? '',
       body: pusher,
     );
+
+    return pusherIsSet;
   }
 
-  Future<void> processSync(Map<String, dynamic> body) async {
+  Future<SyncUpdate?> processSync(Map<String, dynamic> body) async {
     final roomDeltas = await _processRooms(body);
 
     String? syncToken;
@@ -864,14 +937,41 @@ class Updater {
             syncToken != _currentSyncToken)) {
       _currentSyncToken = syncToken;
 
-      await _createUpdate(
+      return _createUpdate(
         _user.delta(
           syncToken: body['next_batch'],
           rooms: roomDeltas,
           hasSynced: !(_user.hasSynced ?? false) ? true : null,
-        )!,
-        (user, delta) => SyncUpdate(user, delta),
+        ),
+        SyncUpdate.new,
         withSaveInStore: true,
+      );
+    }
+    return null;
+  }
+
+  ///Get last update
+  ///if store is synchronized return last from [update]
+  ///else - perform request to db
+  Future<Update> _getRelevantUpdate({
+    Function(Update)? firstWhere,
+  }) async {
+    if (initSyncStorage) {
+      return firstWhere == null
+          ? updates.first
+          : updates.firstWhere((e) => firstWhere(e));
+    } else {
+      final update = await _syncStorage.getMyUser();
+      return _createUpdate(
+        update ?? user,
+        (user, delta) => RequestUpdate(
+          user,
+          delta,
+          data: user,
+          deltaData: delta,
+          type: RequestType.logout,
+          basedOnUpdate: true,
+        ),
       );
     }
   }
@@ -902,7 +1002,7 @@ class Updater {
           if (currentRoom == null) {
             isNewRoom = true;
             currentRoom = user.rooms?[roomId] ??
-                await _sinkStorage.getRoom(
+                await _syncStorage.getRoom(
                   roomId,
                   context: _user.context!,
                   memberIds: [_user.id],

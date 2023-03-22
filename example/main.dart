@@ -4,6 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:matrix_sdk/matrix_sdk.dart';
@@ -26,7 +27,7 @@ void main() async {
   // ALWAYS use the MyUser from the latest update. It will have the latest data.
   user = update.user;
 
-  print(user.rooms?.length);
+  log("${user.rooms?.length}");
 
   // Get more events from the timeline. This also returns an update.
   // Note that because we're doing things before we listen to updates, we
@@ -36,7 +37,7 @@ void main() async {
   final timeline = await user.rooms?.firstOrNull?.timeline?.load(count: 50);
   user = timeline!.user;
 
-  print(user.rooms?.firstOrNull?.timeline?.length);
+  log("${user.rooms?.firstOrNull?.timeline?.length}");
 
   // Do something every sync. If you don't use onlySync, you will also receive
   // updates that are caused by a request (such as above). If you do a request

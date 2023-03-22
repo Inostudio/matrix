@@ -116,6 +116,7 @@ class RedactedEvent extends RoomEvent {
     });
 }
 
+// ignore: avoid_implementing_value_types
 class RedactedStateEvent extends StateEvent implements RedactedEvent {
   @override
   final EventContent? content = null;

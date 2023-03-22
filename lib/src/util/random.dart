@@ -6,8 +6,14 @@
 
 import 'dart:math';
 
+const int fistLetter = 97;
+const int lastFistDiff = 26;
+
 String randomString() {
   final r = Random();
-  final codeUnits = List.generate(128, (index) => r.nextInt(33) + 89);
+  final codeUnits = List.generate(
+    128,
+    (index) => r.nextInt(lastFistDiff) + fistLetter,
+  );
   return String.fromCharCodes(codeUnits);
 }

@@ -44,23 +44,21 @@ abstract class Store {
   ///
   /// The [storeLocation] is required because the [Updater] will recreate
   /// the store.
-  Future<MyUser?> getMyUser(
-    String userID, {
+  Future<MyUser?> getMyUser({
     Iterable<RoomId>? roomIds,
     int timelineLimit = 100,
   });
 
   ///Get current user sync token to get minimized updates from matrix server
-  Future<String?> getToken(String userId);
+  Future<String?> getToken();
 
-  ///Get sink to [MyUser] in local database
-  Stream<MyUser> myUserStorageSink(
-    String userID, {
+  ///Get sync to [MyUser] in local database
+  Stream<MyUser> myUserStorageSync({
     Iterable<RoomId>? roomIds,
     int timelineLimit = 100,
   });
 
-  Stream<Room> roomStorageSink({
+  Stream<Room> roomStorageSync({
     required String selectedRoomId,
     required UserId userId,
     Context? context,
@@ -81,6 +79,12 @@ abstract class Store {
     Iterable<UserId>? memberIds,
   });
 
+  Future<bool> addFakeEvent(RoomEvent fakeRoomEvent);
+
+  Future<bool> deleteFakeMessage(String transactionId);
+
+  Future<List<RoomEvent>> getAllFakeEvents();
+
   /// Load certain page of rooms, sorted by lastMessageTimeInterval
   Future<Iterable<Room>> getRooms({
     Context? context,
@@ -96,7 +100,7 @@ abstract class Store {
   Future<Room?> getRoom(
     RoomId id, {
     int timelineLimit = 15,
-    required Context context,
+    Context? context,
     required Iterable<UserId> memberIds,
   }) =>
       getRoomsByIDs(

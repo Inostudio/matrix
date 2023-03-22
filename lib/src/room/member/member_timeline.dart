@@ -5,15 +5,15 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import 'package:collection/collection.dart';
-import 'package:matrix_sdk/src/model/request_update.dart';
-import '../../model/my_user.dart';
-import '../../model/context.dart';
+
 import '../../event/room/room_event.dart';
 import '../../event/room/state/member_change_event.dart';
+import '../../model/context.dart';
 import '../../model/identifier.dart';
+import '../../model/my_user.dart';
+import '../room.dart';
 import 'member.dart';
 import 'membership.dart';
-import '../room.dart';
 
 /// Collection of present or past user states ([Member]s) of a room.
 class MemberTimeline extends DelegatingIterable<Member>
@@ -44,9 +44,7 @@ class MemberTimeline extends DelegatingIterable<Member>
     final members = events
         .whereType<MemberChangeEvent>()
         .where((e) => e.content != null)
-        .map(
-          (e) => Member.fromEvent(e),
-        )
+        .map(Member.fromEvent)
         .toList(growable: false);
 
     return MemberTimeline(
@@ -60,17 +58,6 @@ class MemberTimeline extends DelegatingIterable<Member>
 
   /// Load more members, returning the [Update] where [MyUser] has a room
   /// with a member timeline containing more members.
-  Future<RequestUpdate<MemberTimeline>?> load({
-    int count = 20,
-    Room? room,
-  }) async {
-    final result = context?.updater?.loadMembers(
-      roomId: context!.roomId,
-      count: count,
-      room: room,
-    );
-    return result ?? Future.value(null);
-  }
 
   Iterable<Member> get reversed => List.of(this).reversed;
 

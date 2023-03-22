@@ -6,9 +6,9 @@
 
 import 'package:meta/meta.dart';
 
-import 'ephemeral_event.dart';
 import '../../model/identifier.dart';
 import '../event.dart';
+import 'ephemeral_event.dart';
 
 class TypingEvent extends EphemeralEvent {
   static const matrixType = 'm.typing';
@@ -19,10 +19,22 @@ class TypingEvent extends EphemeralEvent {
   TypingEvent({
     RoomId? roomId,
     this.content,
-  }) : super(roomId);
+  }) : super(roomId: roomId);
 
   @override
   final Typers? content;
+
+  TypingEvent merge(TypingEvent? other) {
+    if (other == null) {
+      return this;
+    }
+
+
+    return TypingEvent(
+      roomId: roomId,
+      content: content?.merge(other.content) ?? other.content,
+    );
+  }
 }
 
 @immutable
@@ -45,14 +57,30 @@ class Typers extends EventContent {
       return null;
     }
 
-    final rawIds = content['user_ids'] as List<dynamic>;
-    final typerIds = rawIds.map((r) => UserId(r)).toList(growable: false);
+    final rawIds = content['user_ids'] as List<String>;
+    final typerIds = rawIds.map<UserId>(UserId.new).toList(growable: false);
 
     return Typers(typerIds: typerIds);
+  }
+
+  static Typers? fromList(List<String> data) {
+    if (data.isEmpty) {
+      return null;
+    }
+    return Typers(typerIds: data.map(UserId.new).toList());
   }
 
   @override
   Map<String, dynamic> toJson() => {
         'user_ids': [...typerIds.map((id) => id.toString())],
       };
+
+  Typers? merge(Typers? other) {
+    if (other == null) {
+      return this;
+    }
+
+    final union = typerIds.toSet().union(other.typerIds.toSet());
+    return Typers(typerIds: union.toList());
+  }
 }

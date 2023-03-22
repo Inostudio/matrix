@@ -33,7 +33,7 @@ class MyUser extends MatrixUser implements Contextual<MyUser> {
 
   final String? accessToken;
 
-  String? syncToken;
+  final String? syncToken;
 
   final Device? currentDevice;
 
@@ -95,8 +95,7 @@ class MyUser extends MatrixUser implements Contextual<MyUser> {
   /// If [isolated] is true, sync and other requests are processed in a
   /// different [Isolate].
   static Future<MyUser?> fromStore(
-    StoreLocation storeLocation,
-    String userID, {
+    StoreLocation storeLocation, {
     Iterable<RoomId>? roomIds,
     int timelineLimit = 15,
   }) async {
@@ -105,7 +104,6 @@ class MyUser extends MatrixUser implements Contextual<MyUser> {
     await store.open();
 
     final result = await store.getMyUser(
-      userID,
       roomIds: roomIds,
       timelineLimit: timelineLimit,
     );
@@ -154,7 +152,7 @@ class MyUser extends MatrixUser implements Contextual<MyUser> {
       id: other.id,
       name: other.name,
       avatarUrl: other.avatarUrl,
-      accessToken: other.accessToken,
+      accessToken: other.accessToken ?? accessToken,
       syncToken: other.syncToken,
       currentDevice:
           currentDevice?.merge(other.currentDevice) ?? other.currentDevice,
@@ -165,7 +163,7 @@ class MyUser extends MatrixUser implements Contextual<MyUser> {
   }
 
   @override
-  MyUser? delta({
+  MyUser delta({
     String? name,
     Uri? avatarUrl,
     String? accessToken,

@@ -5,12 +5,15 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 import 'package:quiver/core.dart';
 
+import 'ephemeral/receipt_event.dart';
+import 'ephemeral/typing_event.dart';
 import 'room/message_event.dart';
-
 import 'room/redaction_event.dart';
+import 'room/state/canonical_alias_change_event.dart';
 import 'room/state/join_rules_change_event.dart';
 import 'room/state/member_change_event.dart';
 import 'room/state/power_levels_change_event.dart';
@@ -19,11 +22,6 @@ import 'room/state/room_creation_event.dart';
 import 'room/state/room_name_change_event.dart';
 import 'room/state/room_upgrade_event.dart';
 import 'room/state/topic_change_event.dart';
-import 'room/state/canonical_alias_change_event.dart';
-
-import 'ephemeral/receipt_event.dart';
-import 'ephemeral/typing_event.dart';
-import 'package:collection/collection.dart';
 
 @immutable
 abstract class Event {
@@ -79,7 +77,11 @@ abstract class Event {
   }
 }
 
-enum SentState { unsent, sent }
+enum SentState {
+  unsent,
+  sent,
+  sentError,
+}
 
 @immutable
 abstract class EventContent {

@@ -51,8 +51,8 @@ class PublicRooms extends DelegatingIterable<RoomResult> {
         );
 
   factory PublicRooms._fromJson(Map<String, dynamic> json) {
-    final rooms = (json['chunk'] as List<dynamic>)
-        .map((r) => RoomResult.fromJson(r))
+    final rooms = (json['chunk'] as List<Map<String, dynamic>>)
+        .map(RoomResult.fromJson)
         .toList();
 
     return PublicRooms._(
@@ -172,7 +172,7 @@ class RoomResult with Identifiable<RoomId> {
         : null;
 
     final aliases = json['aliases'] != null
-        ? (json['aliases'] as List<dynamic>).map((alias) => RoomAlias(alias))
+        ? (json['aliases'] as List<String>).map(RoomAlias.new)
         : <RoomAlias>[];
 
     final avatarUrl =

@@ -7,13 +7,15 @@
 import 'dart:async';
 import 'dart:isolate';
 
+import 'package:matrix_sdk/src/event/ephemeral/ephemeral_event.dart';
 import 'package:matrix_sdk/src/event/room/message_event.dart';
 import 'package:matrix_sdk/src/model/sync_token.dart';
-import 'package:matrix_sdk/src/updater/isolated/iso_storage_sink.dart';
-import 'package:matrix_sdk/src/updater/isolated/isolated_one_room_sink.dart';
+import 'package:matrix_sdk/src/updater/isolated/iso_storage_sync.dart';
+import 'package:matrix_sdk/src/util/subscription.dart';
+import 'package:synchronized/synchronized.dart';
 
-import '../../event/ephemeral/ephemeral.dart';
 import '../../event/event.dart';
+import '../../event/room/room_event.dart';
 import '../../homeserver.dart';
 import '../../model/models.dart';
 import '../../room/member/member_timeline.dart';
@@ -26,6 +28,7 @@ import '../updater.dart';
 import 'instruction.dart';
 import 'iso_merge.dart';
 import 'isolate_runner.dart';
+import 'utils.dart';
 
 /// Manages updates to [MyUser] in a different [Isolate].
 class IsolatedUpdater extends Updater {
@@ -34,17 +37,21 @@ class IsolatedUpdater extends Updater {
     Homeserver homeServer,
     StoreLocation storeLocation, {
     bool saveMyUserToStore = false,
+    required int timelineLimit,
   }) async {
     final updater = IsolatedUpdater._(
       myUser,
       homeServer,
       storeLocation,
       saveMyUserToStore: saveMyUserToStore,
+      timelineLimit: timelineLimit,
     );
 
-    await updater._initialized;
+    await updater._spawnSyncRunner();
+    await updater._spawnRunner();
+
     await updater._syncInitialized;
-    await updater._oneRoomSyncInitialized;
+    await updater._initialized;
 
     await updater.ensureReady();
     return updater;
@@ -55,29 +62,36 @@ class IsolatedUpdater extends Updater {
     this._homeServer,
     StoreLocation storeLocation, {
     bool saveMyUserToStore = false,
-  }) : super(_user, _homeServer, storeLocation) {
+    required int timelineLimit,
+  }) : super(
+          _user,
+          _homeServer,
+          storeLocation,
+          timelineLimit: timelineLimit,
+        ) {
     Updater.register(_user.id, this);
 
-    _syncMessageStream.listen((message) async {
-      if (message is Room) {
-        _roomUpdatesController.add(message);
-        return;
-      }
-      if (message is MinimizedUpdate) {
-        final minimizedUpdate = message;
+    _syncMessageStream.listen((m) async {
+      final message = m as IsolateRespose;
+
+      //On user update
+      if (message.data is MinimizedUpdate) {
+        final minimizedUpdate = message.data as MinimizedUpdate;
         _user = await runComputeMerge(_user, minimizedUpdate.delta);
         final update = minimizedUpdate.deminimize(_user);
 
-        if (update is RequestUpdate && update.basedOnUpdate) {
-          _requestUpdatesBasedOnOthers.add(update);
-        } else {
-          _controller.add(update);
-        }
+        _updaterController.add(
+          makeResponseData(
+            null,
+            update,
+            instructionId: message.dataInstructionId,
+          ),
+        );
         return;
       }
-
-      if (message is SendPort) {
-        _syncSendPort = message;
+      // on Isolate created
+      else if (message is IsolateRespose<SendPort>) {
+        _syncSendPort = message.data;
 
         _syncSendPort?.send(
           UpdaterArgs(
@@ -85,53 +99,43 @@ class IsolatedUpdater extends Updater {
             homeserverUrl: _homeServer.url,
             storeLocation: storeLocation,
             saveMyUserToStore: true,
+            timelineLimit: timelineLimit,
           ),
         );
       }
-      if (message is SyncerInitialized) {
+      //on Isolate inited
+      else if (message is IsolateRespose<SyncerInitialized>) {
         _syncerCompleter.complete();
       }
-    });
-    _oneRoomSyncMessageStream.listen((message) async {
-      if (message is Room) {
-        _roomUpdatesController.add(message);
-        return;
+      // on Room update
+      else if (message is IsolateRespose<Room>) {
+        final roomId = message.data.id.value;
+        _updateOneRoomSync(roomId, message);
       }
-      if (message is SendPort) {
-        _oneRoomSyncSendPort = message;
 
-        _oneRoomSyncSendPort?.send(
-          UpdaterArgs(
-            myUser: _user,
-            homeserverUrl: _homeServer.url,
-            storeLocation: storeLocation,
-            saveMyUserToStore: true,
+      if (message is IsolateRespose<ApiCallStatistics>) {
+        _apiCallStatsSubject.add(message.data);
+      }
+    });
+
+    _instructionStream.listen((m) async {
+      final message = m as IsolateRespose;
+      if (message.data is MinimizedUpdate) {
+        final minimizedUpdate = message.data as MinimizedUpdate;
+        _user = await runComputeMerge(_user, minimizedUpdate.delta);
+        final update = minimizedUpdate.deminimize(_user);
+        _updaterController.add(
+          makeResponseData(
+            null,
+            update,
+            instructionId: message.dataInstructionId,
           ),
         );
-      }
-      if (message is OneRoomSyncerInitialized) {
-        _oneRoomSyncerCompleter.complete();
-      }
-    });
-
-    _messageStream.listen((message) async {
-      if (message is MinimizedUpdate) {
-        final minimizedUpdate = message;
-        _user = _user.merge(minimizedUpdate.delta);
-
-        final update = minimizedUpdate.deminimize(_user);
-
-        if (update is RequestUpdate && update.basedOnUpdate) {
-          _requestUpdatesBasedOnOthers.add(update);
-        } else {
-          _controller.add(update);
-        }
-
         return;
       }
 
-      if (message is SendPort) {
-        _sendPort = message;
+      if (message is IsolateRespose<SendPort>) {
+        _sendPort = message.data;
 
         _sendPort?.send(
           UpdaterArgs(
@@ -139,73 +143,74 @@ class IsolatedUpdater extends Updater {
             homeserverUrl: _homeServer.url,
             storeLocation: storeLocation,
             saveMyUserToStore: saveMyUserToStore,
+            timelineLimit: timelineLimit,
           ),
         );
       }
 
-      if (message is IsolateInitialized) {
+      if (message is IsolateRespose<RunnerInitialized>) {
         _initializedCompleter.complete();
       }
 
-      if (message is ApiCallStatistics) {
-        _apiCallStatsSubject.add(message);
+      if (message is IsolateRespose<ApiCallStatistics>) {
+        _apiCallStatsSubject.add(message.data);
       }
 
-      if (message is ErrorWithStackTraceString) {
-        _errorSubject.add(message);
+      if (message is IsolateRespose<ErrorWithStackTraceString>) {
+        _errorSubject.add(message.data);
       }
 
-      if (message is SyncToken) {
-        _tokenSubject.add(message);
+      if (message is IsolateRespose<SyncToken>) {
+        _tokenSubject.add(message.data);
       }
     });
+  }
 
-    Isolate.spawn<IsolateRunnerTransferModel>(
-      IsolateStorageSinkRunner.run,
-      IsolateRunnerTransferModel(
+  Future<void> _spawnSyncRunner() async {
+    await Isolate.spawn<IsolateTransferModel>(
+      IsolateStorageSyncRunner.run,
+      IsolateTransferModel(
         message: _syncReceivePort.sendPort,
         loggerVariant: Log.variant,
       ),
-    );
-    Isolate.spawn<IsolateRunnerTransferModel>(
-      IsolateOneRoomSinkRunner.run,
-      IsolateRunnerTransferModel(
-        message: _oneRoomSyncReceivePort.sendPort,
-        loggerVariant: Log.variant,
-      ),
-    );
-
-    Isolate.spawn<IsolateRunnerTransferModel>(
-      IsolateRunner.run,
-      IsolateRunnerTransferModel(
-        message: _receivePort.sendPort,
-        loggerVariant: Log.variant,
-      ),
+      errorsAreFatal: false,
     );
   }
 
-  SendPort? _oneRoomSyncSendPort;
+  Future<void> _spawnRunner() async {
+    await Isolate.spawn<IsolateTransferModel>(
+      IsolateRunner.run,
+      IsolateTransferModel(
+        message: _instructionPort.sendPort,
+        loggerVariant: Log.variant,
+      ),
+      errorsAreFatal: false,
+    );
+  }
+
   SendPort? _syncSendPort;
   SendPort? _sendPort;
 
   @override
   bool get isReady => _sendPort != null;
 
-  final _receivePort = ReceivePort();
-  final _syncReceivePort = ReceivePort();
-  final _oneRoomSyncReceivePort = ReceivePort();
+  //Instruction port
+  final _instructionPort = ReceivePort();
 
-  late final Stream<dynamic> __oneRoomSyncMessageStream =
-      _oneRoomSyncReceivePort.asBroadcastStream();
+  //Update for user and room port
+  final _syncReceivePort = ReceivePort();
+
+  //Instruction stream
   late final Stream<dynamic> __syncMessageStream =
       _syncReceivePort.asBroadcastStream();
-  late final Stream<dynamic> __messageStream = _receivePort.asBroadcastStream();
 
-  Stream<dynamic> get _messageStream => __messageStream;
+  //Update stream
+  late final Stream<dynamic> __instructionStream =
+      _instructionPort.asBroadcastStream();
+
+  Stream<dynamic> get _instructionStream => __instructionStream;
 
   Stream<dynamic> get _syncMessageStream => __syncMessageStream;
-
-  Stream<dynamic> get _oneRoomSyncMessageStream => __oneRoomSyncMessageStream;
 
   final _errorSubject = StreamController<ErrorWithStackTraceString>.broadcast();
 
@@ -224,18 +229,12 @@ class IsolatedUpdater extends Updater {
   Stream<ApiCallStatistics> get outApiCallStatistics =>
       _apiCallStatsSubject.stream;
 
-  final _requestUpdatesBasedOnOthers =
-      StreamController<RequestUpdate>.broadcast();
-
   final _initializedCompleter = Completer<void>();
   final _syncerCompleter = Completer<void>();
-  final _oneRoomSyncerCompleter = Completer<void>();
 
   Future<void> get _initialized => _initializedCompleter.future;
 
   Future<void> get _syncInitialized => _syncerCompleter.future;
-
-  Future<void> get _oneRoomSyncInitialized => _oneRoomSyncerCompleter.future;
 
   MyUser _user;
 
@@ -248,95 +247,139 @@ class IsolatedUpdater extends Updater {
   Homeserver get homeServer => _homeServer;
 
   // ignore: close_sinks
-  late final StreamController<Update> __controller =
-      StreamController<Update>.broadcast();
+  late final StreamController<IsolateRespose<Update>> __updaterController =
+      StreamController<IsolateRespose<Update>>.broadcast();
 
-  // ignore: close_sinks
-  late final StreamController<Room> __roomUpdatesController =
-      StreamController<Room>.broadcast();
-
-  StreamController<Update> get _controller => __controller;
-
-  StreamController<Room> get _roomUpdatesController => __roomUpdatesController;
+  //Sync with updater
+  StreamController<IsolateRespose<Update>> get _updaterController =>
+      __updaterController;
 
   @override
-  Stream<Update> get updates => _controller.stream;
+  Stream<Update> get updates =>
+      _updaterController.stream.map((event) => event.data);
 
-  Stream<Room> get roomUpdates => _roomUpdatesController.stream;
+  final Map<String, StreamController<IsolateRespose<Room>>>
+      _roomIdToSyncController = {};
 
   /// Sends an instruction to the isolate, possibly with a return value.
   Future<T?> execute<T>(
-    Instruction<T> instruction, {
+    Instruction instruction, {
     SendPort? port,
   }) async {
-    final portToSent = port ?? _sendPort;
-    portToSent?.send(instruction);
+    try {
+      final portToSent = port ?? _sendPort;
+      portToSent?.send(instruction);
 
-    if (instruction.expectsReturnValue) {
-      late Stream stream;
+      if (instruction.expectsReturnValue) {
+        final stream = _streamSelector(instruction);
 
-      if (instruction is RequestInstruction) {
-        if ((instruction as RequestInstruction).basedOnUpdate) {
-          stream = _requestUpdatesBasedOnOthers.stream;
-        } else {
-          stream = updates;
-        }
-      } else {
-        if (instruction is OneRoomSinkInstruction) {
-          stream = roomUpdates;
-        } else {
-          stream = _messageStream;
-        }
+        final streamRes = await stream
+            .where((msg) => msg is IsolateRespose && msg.data is T)
+            .firstWhere((event) => _checkResponse(event, instruction));
+        return streamRes.data;
       }
 
-      return await stream.firstWhere(
-        (event) => event is T?,
-      ) as T?;
+      return null;
+    } catch (e, st) {
+      Log.writer.log(
+        "execute Instruction: $instruction\nInstructionID ${instruction.instructionId}\nerror:$e\nStackTrace: $st",
+      );
+      rethrow;
     }
-
-    return null;
   }
 
   Stream<T> _executeStream<T>(
-    Instruction<T> instruction, {
+    Instruction instruction, {
     int? updateCount,
     SendPort? port,
   }) {
-    final portToSent = port ?? _sendPort;
-    portToSent?.send(instruction);
+    try {
+      final portToSent = port ?? _sendPort;
+      portToSent?.send(instruction);
 
-    late Stream stream;
+      final Stream stream = _streamSelector(instruction);
 
-    if (instruction is RequestInstruction) {
-      if ((instruction as RequestInstruction).basedOnUpdate) {
-        stream = _requestUpdatesBasedOnOthers.stream;
+      final streamToReturn = stream
+          .where((msg) => msg is IsolateRespose && msg.data is T)
+          .where((msg) => _checkResponse(msg, instruction));
+
+      if (updateCount == null) {
+        return streamToReturn.map<T>((event) => event.data);
       } else {
-        stream = updates;
+        return streamToReturn.take(updateCount).map<T>((event) => event.data);
       }
-    } else {
-      if (instruction is OneRoomSinkInstruction) {
-        stream = roomUpdates;
-      } else {
-        stream = _messageStream;
-      }
-    }
-
-    final streamToReturn =
-        stream.where((msg) => msg is T).map((msg) => msg as T);
-
-    if (updateCount == null) {
-      return streamToReturn;
-    } else {
-      return streamToReturn.take(updateCount);
+    } catch (e, st) {
+      Log.writer.log(
+        "execute Instruction: $instruction\nInstructionID ${instruction.instructionId}\nerror:$e\nStackTrace: $st",
+      );
+      rethrow;
     }
   }
 
-  @override
-  Future<List<String?>?> getRoomIDs() => execute(GetRoomIDsInstruction());
+  //If any instruction id is null - false
+  //If instruction id equal response instruction id - true; else - false
+  bool _checkResponse(
+    IsolateRespose event,
+    Instruction<dynamic> instruction,
+  ) {
+    if (event.dataInstructionId == null || event.dataInstructionId == null) {
+      return false;
+    } else {
+      return instruction.instructionId == event.dataInstructionId;
+    }
+  }
+
+  Stream _streamSelector(
+    Instruction instruction,
+  ) {
+    if (instruction is StorageSyncInstruction) {
+      return _syncMessageStream;
+    } else if (instruction is RequestInstruction) {
+      return _updaterController.stream;
+    } else if (instruction is OneRoomSyncInstruction) {
+      return _getOneRoomUpdates(instruction.roomId);
+    } else {
+      return _instructionStream;
+    }
+  }
+
+  void _updateOneRoomSync(String roomId, IsolateRespose<Room> room) {
+    if (!_roomIdToSyncController.keys.contains(roomId)) {
+      _roomIdToSyncController[roomId] =
+          StreamController<IsolateRespose<Room>>.broadcast();
+    }
+    _roomIdToSyncController[roomId]!.add(room);
+  }
+
+  Stream<IsolateRespose<Room>> _getOneRoomUpdates(String roomId) {
+    if (!_roomIdToSyncController.keys.contains(roomId)) {
+      _roomIdToSyncController[roomId] =
+          StreamController<IsolateRespose<Room>>.broadcast();
+    }
+    return _roomIdToSyncController[roomId]!.stream;
+  }
+
+  int instructionNumber = 1;
+  final instructionNumberLock = Lock();
+
+  Future<int> _getNextInstructionNumber() async {
+    return instructionNumberLock.synchronized(() => instructionNumber++);
+  }
 
   @override
-  Future<void> saveRoomToDB(Room room) =>
-      execute(SaveRoomToDBInstruction(room));
+  Future<List<String?>?> getRoomIDs() async => execute(
+        GetRoomIDsInstruction(
+          instructionId: await _getNextInstructionNumber(),
+        ),
+      );
+
+  @override
+  Future<void> saveRoomToDB(Room room) async => execute(
+        SaveRoomToDBInstruction(
+          room: room,
+          instructionId: await _getNextInstructionNumber(),
+        ),
+      );
 
   @override
   Future<void> startSync({
@@ -345,58 +388,100 @@ class IsolatedUpdater extends Updater {
     String? syncToken,
   }) async =>
       _syncSendPort?.send(
-        StartSyncInstruction(maxRetryAfter, timelineLimit, syncToken),
+        StartSyncInstruction(
+          maxRetryAfter: maxRetryAfter,
+          timelineLimit: timelineLimit,
+          syncToken: syncToken,
+          instructionId: await _getNextInstructionNumber(),
+        ),
       );
 
   @override
-  Future<void> stopSync() async => _syncSendPort?.send(StopSyncInstruction());
+  Future<void> stopSync() async => _syncSendPort?.send(
+        StopSyncInstruction(
+          instructionId: await _getNextInstructionNumber(),
+        ),
+      );
 
   @override
-  Future<void> runSyncOnce(SyncFilter filter) async =>
-      _syncSendPort?.send(RunSyncOnceInstruction(filter));
+  Future<SyncToken?> runSyncOnce(SyncFilter filter) async => execute(
+      RunSyncOnceInstruction(
+        filter: filter,
+        instructionId: await _getNextInstructionNumber(),
+      ),
+      port: _syncSendPort);
 
   @override
   Future<RequestUpdate<MemberTimeline>?> kick(
     UserId id, {
     RoomId? from,
-  }) =>
-      execute(KickInstruction(id, from));
+  }) async =>
+      execute(
+        KickInstruction(
+          id: id,
+          from: from,
+          instructionId: await _getNextInstructionNumber(),
+        ),
+      );
 
   @override
   Future<RequestUpdate<Timeline>?> loadRoomEvents({
     RoomId? roomId,
     int count = 20,
     Room? room,
-  }) =>
-      execute(LoadRoomEventsInstruction(roomId, count, room));
+  }) async =>
+      execute(
+        LoadRoomEventsInstruction(
+          roomId: roomId,
+          count: count,
+          room: room,
+          instructionId: await _getNextInstructionNumber(),
+        ),
+      );
 
   @override
-  Future<RequestUpdate<MemberTimeline>?> loadMembers({
-    RoomId? roomId,
-    int count = 10,
-    Room? room,
-  }) =>
-      execute(LoadMembersInstruction(roomId, count, room));
+  Future<Iterable<RoomEvent>> getAllFakeMessages() async => await execute(
+        LoadFakeRoomEventsInstruction(
+          instructionId: await _getNextInstructionNumber(),
+        ),
+      );
 
   @override
-  Future<RequestUpdate<Rooms>?> loadRoomsByIDs(
-    Iterable<RoomId> roomIds,
-    int timelineLimit,
-  ) =>
-      execute(LoadRoomsByIDsInstruction(roomIds.toList(), timelineLimit));
+  Future<bool> deleteFakeEvent(String transactionId) async => await execute(
+        DeleteFakeRoomEventInstruction(
+          transactionId: transactionId,
+          instructionId: await _getNextInstructionNumber(),
+        ),
+      );
 
   @override
   Future<RequestUpdate<Rooms>?> loadRooms(
     int limit,
     int offset,
     int timelineLimit,
-  ) =>
-      execute(LoadRoomsInstruction(limit, offset, timelineLimit));
+  ) async =>
+      execute(
+        LoadRoomsInstruction(
+          limit: limit,
+          offset: offset,
+          timelineLimit: timelineLimit,
+          instructionId: await _getNextInstructionNumber(),
+        ),
+      );
 
   @override
   Future<RequestUpdate<MyUser>?> logout() async {
-    final result = await execute(LogoutInstruction());
-    _syncSendPort?.send(LogoutInstruction());
+    final result = await execute(
+      LogoutInstruction(
+        instructionId: await _getNextInstructionNumber(),
+      ),
+    );
+    _syncSendPort?.send(
+      LogoutInstruction(
+        instructionId: await _getNextInstructionNumber(),
+      ),
+    );
+    await __updaterController.close();
     return result;
   }
 
@@ -404,78 +489,169 @@ class IsolatedUpdater extends Updater {
   Future<RequestUpdate<ReadReceipts>?> markRead({
     required RoomId roomId,
     required EventId until,
+    bool fullyRead = true,
     bool receipt = true,
     Room? room,
-  }) =>
-      execute(MarkReadInstruction(roomId, until, receipt, room));
+  }) async =>
+      execute(
+        MarkReadInstruction(
+          roomId: roomId,
+          until: until,
+          receipt: receipt,
+          room: room,
+          fullyRead: fullyRead,
+          instructionId: await _getNextInstructionNumber(),
+        ),
+      );
 
   @override
-  Stream<RequestUpdate<Timeline>?> send(
+  Future<RoomEvent?> sendReadyEvent(
+    RoomEvent roomEvent, {
+    required bool isState,
+  }) async {
+    return execute(
+      SendReadyInstruction(
+        isState: isState,
+        roomEvent: roomEvent,
+        instructionId: await _getNextInstructionNumber(),
+      ),
+      // 2 updates are sent, one for local echo and one for being sent.
+    );
+  }
+
+  @override
+  Stream<RoomEvent?> send(
     RoomId roomId,
     EventContent content, {
     Room? room,
     String? transactionId,
     String stateKey = '',
     String type = '',
-  }) =>
-      _executeStream(
-        SendInstruction(
-          roomId,
-          content,
-          transactionId,
-          stateKey,
-          type,
-          room,
-        ),
-        // 2 updates are sent, one for local echo and one for being sent.
-        updateCount: 2,
-      );
+  }) async* {
+    yield* _executeStream(
+      SendInstruction(
+        roomId: roomId,
+        content: content,
+        transactionId: transactionId,
+        stateKey: stateKey,
+        type: type,
+        room: room,
+        instructionId: await _getNextInstructionNumber(),
+      ),
+      // 2 updates are sent, one for local echo and one for being sent.
+      updateCount: 2,
+    );
+  }
 
   @override
-  Stream<Room> startRoomSink(String roomId) => _executeStream(
-        OneRoomSinkInstruction(
+  Stream<Room> startRoomSync(String roomId) async* {
+    if (!_roomIdToSyncController.keys.contains(roomId)) {
+      _roomIdToSyncController[roomId] =
+          StreamController<IsolateRespose<Room>>.broadcast();
+    }
+    yield* _executeStream(
+      OneRoomSyncInstruction(
+        roomId: roomId,
+        context: user.context,
+        userId: user.id,
+        instructionId: await _getNextInstructionNumber(),
+      ),
+      port: _syncSendPort,
+    );
+  }
+
+  @override
+  Future<Room?> fetchRoomFromDB(
+    String roomId, {
+    Context? context,
+    List<UserId>? memberIds,
+  }) async =>
+      execute(
+        GetRoomInstruction(
           roomId: roomId,
-          context: user.context,
-          userId: user.id,
+          context: context ?? user.context,
+          memberIds: memberIds ?? [user.id],
+          instructionId: await _getNextInstructionNumber(),
         ),
-        port: _oneRoomSyncSendPort,
       );
 
   @override
-  Future<void> closeRoomSink() => execute(
-        CloseRoomSink(),
-        port: _oneRoomSyncSendPort,
-      );
+  Future<bool> closeRoomSync(String roomId) async {
+    final result = (await execute(
+          CloseRoomSync(
+            roomId: roomId,
+            instructionId: await _getNextInstructionNumber(),
+          ),
+          port: _syncSendPort,
+        )) ??
+        false;
+    await _roomIdToSyncController[roomId]?.close();
+    _roomIdToSyncController.remove(roomId);
+    return result;
+  }
 
   @override
-  Future<RequestUpdate<Ephemeral>?> setIsTyping({
+  Future<bool> closeAllRoomSync() async {
+    final result = (await execute(
+          CloseAllRoomsSync(
+            instructionId: await _getNextInstructionNumber(),
+          ),
+          port: _syncSendPort,
+        )) ??
+        false;
+    await doAsyncAllSubInMap<String, StreamController<IsolateRespose<Room>>>(
+      _roomIdToSyncController,
+      (e) => e.value.close(),
+    );
+    _roomIdToSyncController.clear();
+    return result;
+  }
+
+  @override
+  Future<RequestUpdate<EphemeralEventFull>?> setIsTyping({
     required RoomId roomId,
     bool isTyping = false,
     Duration timeout = const Duration(seconds: 30),
-  }) =>
-      execute(SetIsTypingInstruction(roomId, isTyping, timeout));
+  }) async =>
+      execute(
+        SetIsTypingInstruction(
+          roomId: roomId,
+          isTyping: isTyping,
+          timeout: timeout,
+          instructionId: await _getNextInstructionNumber(),
+        ),
+      );
 
   @override
   Future<RequestUpdate<Room>?> joinRoom({
     RoomId? id,
     RoomAlias? alias,
     required Uri serverUrl,
-  }) =>
-      execute(JoinRoomInstruction(id, alias, serverUrl));
+  }) async =>
+      execute(
+        JoinRoomInstruction(
+          id: id,
+          alias: alias,
+          serverUrl: serverUrl,
+          instructionId: await _getNextInstructionNumber(),
+        ),
+      );
 
   @override
-  Future<RequestUpdate<Room>?> leaveRoom(RoomId id) =>
-      execute(LeaveRoomInstruction(id));
+  Future<RequestUpdate<Room>?> leaveRoom(RoomId id) async => execute(
+        LeaveRoomInstruction(
+          id: id,
+          instructionId: await _getNextInstructionNumber(),
+        ),
+      );
 
   @override
-  Future<RequestUpdate<MyUser>?> setDisplayName({
-    required String name,
-  }) =>
-      execute(SetNameInstruction(name));
-
-  @override
-  Future<void> setPusher(Map<String, dynamic> pusher) =>
-      execute(SetPusherInstruction(pusher));
+  Future<bool?> setPusher(Map<String, dynamic> pusher) async => execute(
+        SetPusherInstruction(
+          pusher: pusher,
+          instructionId: await _getNextInstructionNumber(),
+        ),
+      );
 
   @override
   Future<RequestUpdate<Timeline>?> edit(
@@ -485,9 +661,16 @@ class IsolatedUpdater extends Updater {
     Room? room,
     String? transactionId,
   }) async {
-    return execute(EditTextEventInstruction(
-        roomId, event, newContent, transactionId,
-        room: room));
+    return execute(
+      EditTextEventInstruction(
+        roomId: roomId,
+        event: event,
+        newContent: newContent,
+        transactionId: transactionId,
+        room: room,
+        instructionId: await _getNextInstructionNumber(),
+      ),
+    );
   }
 
   @override
@@ -499,6 +682,14 @@ class IsolatedUpdater extends Updater {
     Room? room,
   }) async {
     return execute(
-        DeleteEventInstruction(roomId, eventId, transactionId, reason, room));
+      DeleteEventInstruction(
+        roomId: roomId,
+        eventId: eventId,
+        transactionId: transactionId,
+        reason: reason,
+        room: room,
+        instructionId: await _getNextInstructionNumber(),
+      ),
+    );
   }
 }

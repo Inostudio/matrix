@@ -4,35 +4,34 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import 'package:matrix_sdk/src/event/ephemeral/ephemeral_event.dart';
 import 'package:matrix_sdk/src/event/room/message_event.dart';
+import 'package:matrix_sdk/src/event/room/room_event.dart';
 
-import '../../event/ephemeral/ephemeral.dart';
 import '../../event/event.dart';
-import '../../room/room.dart';
-import '../../room/rooms.dart';
-import '../../room/member/member_timeline.dart';
-import '../../room/timeline.dart';
 import '../../model/models.dart';
+import '../../model/sync_token.dart';
+import '../../room/member/member_timeline.dart';
+import '../../room/room.dart';
+import '../../room/timeline.dart';
 
-class StartSyncInstruction extends Instruction<void> {
+class IsolateRespose<T> {
+  final int? dataInstructionId;
+  final T data;
+
+  const IsolateRespose({
+    required this.dataInstructionId,
+    required this.data,
+  });
+
   @override
-  bool get expectsReturnValue => false;
-
-  final Duration maxRetryAfter;
-  final int timelineLimit;
-  final String? syncToken;
-
-  StartSyncInstruction(this.maxRetryAfter, this.timelineLimit, this.syncToken);
+  String toString() {
+    return 'IsolateRespose{dataInstructionId: $dataInstructionId, data: $data}';
+  }
 }
 
-class StopSyncInstruction extends Instruction<void> {}
-
-class GetRoomIDsInstruction extends Instruction<List<String?>> {}
-
-class SaveRoomToDBInstruction extends Instruction<void> {
-  final Room room;
-
-  SaveRoomToDBInstruction(this.room);
+abstract class StorageSyncInstruction<T> extends Instruction<T> {
+  StorageSyncInstruction({required super.instructionId});
 }
 
 abstract class RequestInstruction<T extends Contextual<T>>
@@ -40,13 +39,131 @@ abstract class RequestInstruction<T extends Contextual<T>>
   /// Some [RequestUpdate]s are wrapped [SyncUpdate]s, we should not send
   /// those through the `updates` `Stream`.
   final bool basedOnUpdate = false;
+
+  RequestInstruction({required super.instructionId});
+}
+
+class SendInstruction extends Instruction<IsolateRespose<RoomEvent>> {
+  final RoomId roomId;
+  final EventContent content;
+  final String? transactionId;
+  final String stateKey;
+  final String type;
+  final Room? room;
+
+  SendInstruction({
+    required this.roomId,
+    required this.content,
+    this.transactionId,
+    required this.stateKey,
+    required this.type,
+    this.room,
+    required super.instructionId,
+  });
+}
+
+class SendReadyInstruction extends Instruction<IsolateRespose<RoomEvent>> {
+  final RoomEvent roomEvent;
+  final bool isState;
+
+  SendReadyInstruction({
+    required this.roomEvent,
+    required this.isState,
+    required super.instructionId,
+  });
+}
+
+class GetRoomIDsInstruction extends Instruction<IsolateRespose<List<String?>>> {
+  GetRoomIDsInstruction({required super.instructionId});
+}
+
+class GetRoomInstruction extends Instruction<IsolateRespose<Room>> {
+  final String roomId;
+  final Context? context;
+  final List<UserId> memberIds;
+
+  GetRoomInstruction({
+    required this.roomId,
+    required this.context,
+    required this.memberIds,
+    required super.instructionId,
+  });
+}
+
+class SaveRoomToDBInstruction extends Instruction<IsolateRespose> {
+  final Room room;
+
+  SaveRoomToDBInstruction({
+    required this.room,
+    required super.instructionId,
+  });
+}
+
+class OneRoomSyncInstruction extends Instruction<IsolateRespose<Room>> {
+  final String roomId;
+  final Context? context;
+  final UserId? userId;
+
+  OneRoomSyncInstruction({
+    required this.roomId,
+    this.context,
+    this.userId,
+    required super.instructionId,
+  });
+}
+
+class StartSyncInstruction extends StorageSyncInstruction<IsolateRespose> {
+  @override
+  bool get expectsReturnValue => false;
+
+  final Duration maxRetryAfter;
+  final int timelineLimit;
+  final String? syncToken;
+
+  StartSyncInstruction({
+    required this.maxRetryAfter,
+    required this.timelineLimit,
+    this.syncToken,
+    required super.instructionId,
+  });
+}
+
+class RunSyncOnceInstruction
+    extends StorageSyncInstruction<IsolateRespose<SyncToken>> {
+  final SyncFilter filter;
+
+  RunSyncOnceInstruction({
+    required this.filter,
+    required super.instructionId,
+  });
+}
+
+class StopSyncInstruction extends StorageSyncInstruction<IsolateRespose> {
+  StopSyncInstruction({required super.instructionId});
+}
+
+class CloseRoomSync extends StorageSyncInstruction<IsolateRespose<bool>> {
+  final String roomId;
+
+  CloseRoomSync({
+    required this.roomId,
+    required super.instructionId,
+  });
+}
+
+class CloseAllRoomsSync extends StorageSyncInstruction<IsolateRespose<bool>> {
+  CloseAllRoomsSync({required super.instructionId});
 }
 
 class KickInstruction extends RequestInstruction<MemberTimeline> {
   final UserId id;
   final RoomId? from;
 
-  KickInstruction(this.id, this.from);
+  KickInstruction({
+    required this.id,
+    this.from,
+    required super.instructionId,
+  });
 
   @override
   final bool basedOnUpdate = true;
@@ -60,81 +177,67 @@ class LoadRoomEventsInstruction extends RequestInstruction<Timeline> {
   @override
   final bool basedOnUpdate = true;
 
-  LoadRoomEventsInstruction(this.roomId, this.count, this.room);
+  LoadRoomEventsInstruction({
+    this.roomId,
+    required this.count,
+    this.room,
+    required super.instructionId,
+  });
 }
 
-class LoadMembersInstruction extends RequestInstruction<MemberTimeline> {
-  final RoomId? roomId;
-  final int count;
-  final Room? room;
-
-  LoadMembersInstruction(this.roomId, this.count, this.room);
+class LoadFakeRoomEventsInstruction
+    extends Instruction<IsolateRespose<RoomEvent>> {
+  LoadFakeRoomEventsInstruction({required super.instructionId});
 }
 
-class LoadRoomsByIDsInstruction extends RequestInstruction<Rooms> {
-  final List<RoomId> roomIds;
-  final int timelineLimit;
+class DeleteFakeRoomEventInstruction extends Instruction<IsolateRespose<bool>> {
+  final String transactionId;
 
-  LoadRoomsByIDsInstruction(this.roomIds, this.timelineLimit);
+  DeleteFakeRoomEventInstruction({
+    required this.transactionId,
+    required super.instructionId,
+  });
 }
 
-class LoadRoomsInstruction extends RequestInstruction<Rooms> {
+class LoadRoomsInstruction extends Instruction<IsolateRespose<List<Room>>> {
   final int timelineLimit;
   final int limit;
   final int offset;
 
-  LoadRoomsInstruction(this.limit, this.offset, this.timelineLimit);
+  LoadRoomsInstruction({
+    required this.limit,
+    required this.offset,
+    required this.timelineLimit,
+    required super.instructionId,
+  });
 }
 
 class LogoutInstruction extends RequestInstruction<MyUser> {
   @override
   final bool basedOnUpdate = true;
+
+  LogoutInstruction({required super.instructionId});
 }
 
 class MarkReadInstruction extends RequestInstruction<ReadReceipts> {
   final RoomId roomId;
   final EventId until;
   final bool receipt;
+  final bool fullyRead;
   final Room? room;
-
-  // ignore: avoid_positional_boolean_parameters
-  MarkReadInstruction(this.roomId, this.until, this.receipt, this.room);
 
   @override
   final bool basedOnUpdate = true;
-}
 
-class SendInstruction extends RequestInstruction<Timeline> {
-  final RoomId roomId;
-  final EventContent content;
-  final String? transactionId;
-  final String stateKey;
-  final String type;
-  final Room? room;
-
-  SendInstruction(
-    this.roomId,
-    this.content,
-    this.transactionId,
-    this.stateKey,
-    this.type,
-    this.room,
-  );
-}
-
-class OneRoomSinkInstruction extends Instruction<Room> {
-  final String roomId;
-  final Context? context;
-  final UserId? userId;
-
-  OneRoomSinkInstruction({
+  MarkReadInstruction({
     required this.roomId,
-    this.context,
-    this.userId,
+    required this.until,
+    required this.receipt,
+    required this.fullyRead,
+    this.room,
+    required super.instructionId,
   });
 }
-
-class CloseRoomSink extends Instruction<Room> {}
 
 class EditTextEventInstruction extends RequestInstruction<Timeline> {
   final RoomId roomId;
@@ -143,12 +246,13 @@ class EditTextEventInstruction extends RequestInstruction<Timeline> {
   final String newContent;
   final Room? room;
 
-  EditTextEventInstruction(
-    this.roomId,
-    this.event,
-    this.newContent,
-    this.transactionId, {
+  EditTextEventInstruction({
+    required this.roomId,
+    required this.event,
+    required this.newContent,
+    this.transactionId,
     this.room,
+    required super.instructionId,
   });
 
   @override
@@ -162,20 +266,31 @@ class DeleteEventInstruction extends RequestInstruction<Timeline> {
   final String? reason;
   final Room? room;
 
-  DeleteEventInstruction(
-      this.roomId, this.eventId, this.transactionId, this.reason, this.room);
+  DeleteEventInstruction({
+    required this.roomId,
+    required this.eventId,
+    this.transactionId,
+    this.reason,
+    this.room,
+    required super.instructionId,
+  });
 
   @override
   final bool basedOnUpdate = true;
 }
 
-class SetIsTypingInstruction extends RequestInstruction<Ephemeral> {
+class SetIsTypingInstruction extends RequestInstruction<EphemeralEventFull> {
   final RoomId? roomId;
   final bool isTyping;
   final Duration timeout;
 
   // ignore: avoid_positional_boolean_parameters
-  SetIsTypingInstruction(this.roomId, this.isTyping, this.timeout);
+  SetIsTypingInstruction({
+    this.roomId,
+    required this.isTyping,
+    required this.timeout,
+    required super.instructionId,
+  });
 
   @override
   final bool basedOnUpdate = true;
@@ -186,7 +301,12 @@ class JoinRoomInstruction extends RequestInstruction<Room> {
   final RoomAlias? alias;
   final Uri serverUrl;
 
-  JoinRoomInstruction(this.id, this.alias, this.serverUrl);
+  JoinRoomInstruction({
+    this.id,
+    this.alias,
+    required this.serverUrl,
+    required super.instructionId,
+  });
 
   @override
   final bool basedOnUpdate = true;
@@ -195,32 +315,20 @@ class JoinRoomInstruction extends RequestInstruction<Room> {
 class LeaveRoomInstruction extends RequestInstruction<Room> {
   final RoomId id;
 
-  LeaveRoomInstruction(this.id);
+  LeaveRoomInstruction({
+    required this.id,
+    required super.instructionId,
+  });
 
   @override
   final bool basedOnUpdate = true;
 }
 
-class SetNameInstruction extends RequestInstruction<MyUser> {
-  final String name;
-
-  SetNameInstruction(this.name);
-}
-
-class SetPusherInstruction extends RequestInstruction<MyUser> {
+class SetPusherInstruction extends Instruction<IsolateRespose<RoomEvent>> {
   final Map<String, dynamic> pusher;
 
-  SetPusherInstruction(this.pusher);
-
-  @override
-  final bool basedOnUpdate = true;
-}
-
-class RunSyncOnceInstruction extends RequestInstruction<MyUser> {
-  final SyncFilter filter;
-
-  RunSyncOnceInstruction(this.filter);
-
-  @override
-  final bool basedOnUpdate = true;
+  SetPusherInstruction({
+    required this.pusher,
+    required super.instructionId,
+  });
 }
