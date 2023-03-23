@@ -2,11 +2,11 @@ import 'package:matrix_sdk/src/event/room/room_event.dart';
 
 class SearchResponse {
   final int count;
-  final Map<String, dynamic> groups;
+  final Map<String, dynamic>? groups;
   final List<String> highlights;
-  final String nextBatch;
+  final String? nextBatch;
   final List<SearchResult> results;
-  final Map<String, dynamic> state;
+  final Map<String, dynamic>? state;
 
   const SearchResponse({
     required this.count,
@@ -21,14 +21,21 @@ class SearchResponse {
     if (content == null) {
       return null;
     }
-    return SearchResponse(
-      count: content['count'],
-      groups: content['groups'],
-      highlights: content['highlights'],
-      nextBatch: content['next_batch'],
-      results: content['results'].map(SearchResult.fromJson).toList(),
-      state: content['state'],
-    );
+    final categories = content["search_categories"] as Map<String, dynamic>?;
+    if (categories != null) {
+      final events = categories["room_events"] as Map<String, dynamic>?;
+      if (events != null) {
+        return SearchResponse(
+          count: events['count'],
+          groups: events['groups'],
+          highlights: List<String>.from(events['highlights'] as List) ,
+          nextBatch: events['next_batch'],
+          results: List<Map<String, dynamic>>.from(events['results'] as List).map(SearchResult.fromJson).toList(),
+          state: events['state'],
+        );
+      }
+    }
+    return null;
   }
 }
 
@@ -41,9 +48,9 @@ class SearchResult {
     this.result,
   });
 
-  static SearchResult? fromJson(Map<String, dynamic>? content) {
+  factory SearchResult.fromJson(Map<String, dynamic>? content) {
     if (content == null) {
-      return null;
+      return SearchResult(rank: 0, result: null);
     }
     return SearchResult(
       rank: content['rank'],
