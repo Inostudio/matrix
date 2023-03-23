@@ -422,4 +422,16 @@ class MatrixClient {
   }
 
   Stream<SyncToken>? get outSyncToken => _updater?.outSyncToken;
+
+  Future<Map<String, dynamic>?> search({
+    required String roomID,
+    required String searchTerm,
+    String nextBatch = '',
+  }) async {
+    return await _homeServer?.api.search(
+        accessToken: _updater?.user.accessToken ?? '',
+        roomID: roomID,
+        searchTerm: searchTerm,
+        nextBatch: nextBatch);
+  }
 }

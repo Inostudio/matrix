@@ -13,6 +13,7 @@ import 'package:http/http.dart' as http;
 import 'package:matrix_sdk/src/event/room/message_event.dart';
 import 'package:matrix_sdk/src/homeserver.dart';
 import 'package:matrix_sdk/src/model/api_call_statistics.dart';
+import 'package:matrix_sdk/src/search/search_request.dart';
 import 'package:meta/meta.dart';
 
 import '../util/exception.dart';
@@ -238,6 +239,33 @@ class Api {
     stopWatch.stop();
     _inApiCallStats.sendApiCallStats(
       "$runtimeType.publicRooms",
+      stopWatch.elapsedMilliseconds,
+      response,
+    );
+
+    response.throwIfNeeded();
+
+    return json.decode(response.body);
+  }
+
+  Future<Map<String, dynamic>> search({
+    required String accessToken,
+    required String roomID,
+    required String searchTerm,
+    String nextBatch = '',
+  }) async {
+    final request =
+        SearchCategories.from(roomID: roomID, searchTerm: searchTerm);
+    final stopWatch = Stopwatch();
+    stopWatch.start();
+    final response = await _clientService.search(
+      authorization: accessToken.toHeader(),
+      nextBatch: nextBatch,
+      body: json.encode({'search_categories': request.toJson()}),
+    );
+    stopWatch.stop();
+    _inApiCallStats.sendApiCallStats(
+      "$runtimeType.search",
       stopWatch.elapsedMilliseconds,
       response,
     );
@@ -633,7 +661,6 @@ class Rooms {
     String? fullyRead,
     String? read,
   }) async {
-
     //fullyRead id is incorrect
     if (fullyRead != null && fullyRead.startsWith("\$") == false) {
       Log.writer.log("fullyRead id is incorrect $fullyRead");

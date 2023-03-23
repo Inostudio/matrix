@@ -881,37 +881,6 @@ class RoomEventRecord extends DataClass implements Insertable<RoomEventRecord> {
     );
   }
 
-
-  RoomFakeEventsCompanion toFakeCompanion(bool nullToAbsent) {
-    return RoomFakeEventsCompanion(
-      id: Value(id),
-      networkId: Value(networkId),
-      type: Value(type),
-      roomId: Value(roomId),
-      senderId: Value(senderId),
-      time: time == null && nullToAbsent ? const Value.absent() : Value(time),
-      content: content == null && nullToAbsent
-          ? const Value.absent()
-          : Value(content),
-      previousContent: previousContent == null && nullToAbsent
-          ? const Value.absent()
-          : Value(previousContent),
-      sentState: sentState == null && nullToAbsent
-          ? const Value.absent()
-          : Value(sentState),
-      transactionId: transactionId == null && nullToAbsent
-          ? const Value.absent()
-          : Value(transactionId),
-      stateKey: stateKey == null && nullToAbsent
-          ? const Value.absent()
-          : Value(stateKey),
-      redacts: redacts == null && nullToAbsent
-          ? const Value.absent()
-          : Value(redacts),
-      inTimeline: Value(inTimeline),
-    );
-  }
-
   factory RoomEventRecord.fromJson(Map<String, dynamic> json,
       {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;

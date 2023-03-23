@@ -18,19 +18,26 @@ class _$MediaService extends MediaService {
 
   @override
   Future<Response<Stream<List<int>>>> download(
-      String serverName, String mediaId) {
+    String serverName,
+    String mediaId,
+  ) {
     final $url = '/_matrix/media/r0/download/${serverName}/${mediaId}';
-    final $request = Request('GET', $url, client.baseUrl);
+    final $request = Request(
+      'GET',
+      $url,
+      client.baseUrl,
+    );
     return client.send<Stream<List<int>>, int>($request);
   }
 
   @override
   Future<Response<dynamic>> upload(
-      String authorization,
-      Stream<List<int>> byteStream,
-      String length,
-      String contentType,
-      String fileName) {
+    String authorization,
+    Stream<List<int>> byteStream,
+    String length,
+    String contentType,
+    String fileName,
+  ) {
     final $url = '/_matrix/media/r0/upload';
     final $params = <String, dynamic>{'filename': fileName};
     final $headers = {
@@ -40,21 +47,37 @@ class _$MediaService extends MediaService {
     };
 
     final $body = byteStream;
-    final $request = Request('POST', $url, client.baseUrl,
-        body: $body, parameters: $params, headers: $headers);
+    final $request = Request(
+      'POST',
+      $url,
+      client.baseUrl,
+      body: $body,
+      parameters: $params,
+      headers: $headers,
+    );
     return client.send<dynamic, dynamic>($request);
   }
 
   @override
   Future<Response<Stream<List<int>>>> thumbnail(
-      String serverName, String mediaId, int width, int height, String method) {
+    String serverName,
+    String mediaId,
+    int width,
+    int height,
+    String method,
+  ) {
     final $url = '/_matrix/media/r0/thumbnail/${serverName}/${mediaId}';
     final $params = <String, dynamic>{
       'width': width,
       'height': height,
-      'method': method
+      'method': method,
     };
-    final $request = Request('GET', $url, client.baseUrl, parameters: $params);
+    final $request = Request(
+      'GET',
+      $url,
+      client.baseUrl,
+      parameters: $params,
+    );
     return client.send<Stream<List<int>>, int>($request);
   }
 }
