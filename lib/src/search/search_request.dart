@@ -151,7 +151,7 @@ class Filter {
     this.containsURL,
     this.includeRedundantMembers = false,
     this.lazyLoadMembers = false,
-    this.limit = 100,
+    this.limit = 150,
     this.notRooms = const <String>[],
     this.notSenders = const <String>[],
     this.notTypes = const <String>[],

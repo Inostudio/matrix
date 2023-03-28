@@ -427,7 +427,7 @@ class MatrixClient {
   Future<SearchResponse?> search({
     required String roomID,
     required String searchTerm,
-    String nextBatch = '',
+    String? nextBatch,
   }) async {
     final result = await _homeServer?.api.search(
         accessToken: _updater?.user.accessToken ?? '',

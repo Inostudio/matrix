@@ -252,7 +252,7 @@ class Api {
     required String accessToken,
     required String roomID,
     required String searchTerm,
-    String nextBatch = '',
+    String? nextBatch,
   }) async {
     final request =
         SearchCategories.from(roomID: roomID, searchTerm: searchTerm);
@@ -260,7 +260,7 @@ class Api {
     stopWatch.start();
     final response = await _clientService.search(
       authorization: accessToken.toHeader(),
-      nextBatch: nextBatch,
+      nextBatch: nextBatch ?? "",
       body: json.encode({'search_categories': request.toJson()}),
     );
     stopWatch.stop();
