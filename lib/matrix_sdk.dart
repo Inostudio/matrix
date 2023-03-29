@@ -62,3 +62,5 @@ export 'src/util/update_extension.dart';
 export 'src/model/api_call_statistics.dart';
 
 export 'src/matrix_client.dart';
+
+export 'src/search/search_result.dart';

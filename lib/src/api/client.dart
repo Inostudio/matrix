@@ -158,4 +158,11 @@ abstract class ClientService extends ChopperService {
     @Query('server') required String server,
     @Body() required String body,
   });
+
+  @Post(path: 'search')
+  Future<Response> search({
+    @Header('Authorization') required String authorization,
+    @Query('next_batch') required String nextBatch,
+    @Body() required String body,
+  });
 }

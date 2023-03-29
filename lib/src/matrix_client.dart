@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:matrix_sdk/matrix_sdk.dart';
+import 'package:matrix_sdk/src/search/search_result.dart';
 import 'package:matrix_sdk/src/services/local/base_sync_storage.dart';
 import 'package:matrix_sdk/src/services/local/sync_storage.dart';
 import 'package:matrix_sdk/src/updater/isolated/isolated_updater.dart';
@@ -422,4 +423,17 @@ class MatrixClient {
   }
 
   Stream<SyncToken>? get outSyncToken => _updater?.outSyncToken;
+
+  Future<SearchResponse?> search({
+    required String roomID,
+    required String searchTerm,
+    String? nextBatch,
+  }) async {
+    final result = await _homeServer?.api.search(
+        accessToken: _updater?.user.accessToken ?? '',
+        roomID: roomID,
+        searchTerm: searchTerm,
+        nextBatch: nextBatch);
+    return SearchResponse.fromJson(result);
+  }
 }
