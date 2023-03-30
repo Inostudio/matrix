@@ -157,6 +157,24 @@ abstract class MessageEventContent extends EventContent {
         final body = content['body'] ?? '';
         final formattedBody = content['formatted_body'];
         final format = content['format'];
+        var attachmentsVal = content['attachments'];
+        final attachments = <Attachment>[];
+        if (attachmentsVal != null) {
+          if (attachmentsVal is Map) {
+            attachmentsVal = [attachmentsVal];
+          }
+          final att = (attachmentsVal as List)
+              .map((item) => item as Map<String, dynamic>)
+              .toList();
+          if (att.isNotEmpty) {
+            att.forEach((element) {
+              final a = Attachment.fromJSON(element);
+              if (a.imgURL.isNotEmpty) {
+                attachments.add(a);
+              }
+            });
+          }
+        }
 
         if (msgtype == EmoteMessage.matrixMessageType) {
           return EmoteMessage(
@@ -173,6 +191,7 @@ abstract class MessageEventContent extends EventContent {
             formattedBody: formattedBody,
             inReplyToId: inReplyTo,
             inReplacementToId: inReplacementToId,
+            attachments: attachments,
           );
         }
     }
@@ -258,9 +277,9 @@ class TextMessage extends MessageEventContent {
     final result = super.toJson()
       ..addAll({'body': body, 'formatted_body': formattedBody});
     if (attachments != null) {
-      final attachMap = <String, dynamic>{};
+      final attachMap = <Map<String, dynamic>>[];
       attachments?.forEach((element) {
-        attachMap.addAll(element.toJson());
+        attachMap.add(element.toJson());
       });
       result["attachments"] = attachMap;
     }
@@ -374,6 +393,20 @@ class Attachment {
 
   Attachment({required this.imgURL, this.info});
 
+  factory Attachment.fromJSON(Map<String, dynamic> json) {
+    ImageInfo? info;
+
+    final infoMap = json['info'];
+    if (infoMap is Map<String, dynamic>) {
+      info = ImageInfo.fromJSON(infoMap);
+    }
+
+    return Attachment(
+      imgURL: json['url'],
+      info: info,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{
       'url': imgURL.toString(),
@@ -405,6 +438,13 @@ class ImageInfo {
   final int? height;
 
   ImageInfo({this.width, this.height});
+
+  factory ImageInfo.fromJSON(Map<String, dynamic> json) {
+    return ImageInfo(
+      width: json['w'],
+      height: json['h'],
+    );
+  }
 }
 
 class ImageMessageEvent extends MessageEvent {
