@@ -517,14 +517,22 @@ class Updater {
   ) async {
     // TODO: Support for web
     // Upload images from image message events that have a file uri
-    if (roomEvent is ImageMessageEvent &&
+    List<File> imgs = [];
+    final uploaded = <Uri, Image>{};
+
+    if (roomEvent is TextMessageEvent &&
+        (roomEvent.content.attachments?.isNotEmpty ?? false)) {
+      imgs.addAll(roomEvent.content.attachments!.map((e) => File(e.imgURL)));
+    } else if (roomEvent is ImageMessageEvent &&
         roomEvent.content?.url?.scheme == 'file') {
       final file = File(
         roomEvent.content!.url!.toFilePath(windows: Platform.isWindows),
       );
+      imgs = [file];
+    }
 
+    for (final file in imgs) {
       final fileName = file.path.split(Platform.pathSeparator).last;
-
       final matrixUrl = await _networkService.uploadImage(
         as: _user,
         bytes: file.openRead(),
@@ -532,12 +540,42 @@ class Updater {
         contentType: lookupMimeType(file.path) ?? '',
         fileName: fileName,
       );
-
       final image = decodeImage(file.readAsBytesSync());
+      if (matrixUrl != null && image != null) {
+        uploaded[matrixUrl] = image;
+      }
+    }
 
+    if (uploaded.isEmpty) {
+      return null;
+    }
+
+    if (uploaded.isNotEmpty && roomEvent is TextMessageEvent) {
+      final a = <Attachment>[];
+      uploaded.forEach((key, value) {
+        a.add(Attachment(
+            imgURL: key.toString(),
+            info: ImageInfo(
+              width: value.width,
+              height: value.height,
+            )));
+      });
+      return RoomEvent.fromContent(
+        TextMessage(
+          body: roomEvent.content.body,
+          formattedBody: roomEvent.content.formattedBody,
+          inReplyToId: roomEvent.content.inReplyToId,
+          inReplacementToId: roomEvent.content.inReplacementToId,
+          attachments: a,
+        ),
+        args,
+      );
+    } else if (roomEvent is ImageMessageEvent) {
+      final url = uploaded.keys.first;
+      final image = uploaded[url];
       return RoomEvent.fromContent(
         ImageMessage(
-          url: matrixUrl!,
+          url: url,
           body: roomEvent.content!.body,
           inReplyToId: roomEvent.content!.inReplyToId,
           info: ImageInfo(
