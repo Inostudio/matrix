@@ -10,9 +10,9 @@ import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 import 'package:quiver/core.dart';
 
+import '../../model/identifier.dart';
 import '../event.dart';
 import 'room_event.dart';
-import '../../model/identifier.dart';
 
 class MessageEvent extends RoomEvent {
   static const matrixType = 'm.room.message';
@@ -429,8 +429,16 @@ class Attachment {
   }
 
   @override
+  int get hashCode => imgURL.hashCode ^ info.hashCode;
+
+  @override
   bool operator ==(dynamic other) =>
       other is Attachment && super == other && imgURL == other.imgURL;
+
+  @override
+  String toString() {
+    return 'Attachment{imgURL: $imgURL, info: $info}';
+  }
 }
 
 class ImageInfo {
@@ -444,6 +452,11 @@ class ImageInfo {
       width: json['w'],
       height: json['h'],
     );
+  }
+
+  @override
+  String toString() {
+    return 'ImageInfo{width: $width, height: $height}';
   }
 }
 

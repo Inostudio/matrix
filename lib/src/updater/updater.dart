@@ -161,11 +161,13 @@ class Updater {
     String roomId, {
     Context? context,
     List<UserId>? memberIds,
+    int? limit,
   }) async {
     return _syncStorage.getRoom(
       RoomId(roomId),
       context: context ?? user.context,
       memberIds: memberIds ?? [user.id],
+      timelineLimit: limit ?? 15,
     );
   }
 
