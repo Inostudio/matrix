@@ -569,6 +569,7 @@ class Updater {
           inReplyToId: roomEvent.content.inReplyToId,
           inReplacementToId: roomEvent.content.inReplacementToId,
           attachments: a,
+          replyAttachments: roomEvent.content.replyAttachments,
         ),
         args,
       );
