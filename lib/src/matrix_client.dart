@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:matrix_sdk/matrix_sdk.dart';
-import 'package:matrix_sdk/src/search/search_result.dart';
 import 'package:matrix_sdk/src/services/local/base_sync_storage.dart';
 import 'package:matrix_sdk/src/services/local/sync_storage.dart';
 import 'package:matrix_sdk/src/updater/isolated/isolated_updater.dart';
@@ -365,7 +364,7 @@ class MatrixClient {
     if (_updater == null) {
       return Future.value(null);
     }
-    return _updater!.fetchRoomFromDB(roomID);
+    return _updater!.fetchRoomFromDB(roomID, limit: limit);
   }
 
   Future<Room?> getRoomFromNetwork({

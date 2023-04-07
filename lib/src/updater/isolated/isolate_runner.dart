@@ -90,6 +90,7 @@ abstract class IsolateRunner {
               instruction.roomId,
               context: instruction.context,
               memberIds: instruction.memberIds,
+              limit: instruction.timelineLimit
             );
             sendPort.send(
               makeResponseData(instruction, result),
