@@ -141,19 +141,17 @@ class Timeline extends DelegatingIterable<RoomEvent>
     final currList = toList();
 
     final Set<String> otherIdsSet =
-        other.map((e) => e.transactionId).whereNotNull().toSet();
+        other.map((e) => e.id.value).toSet();
     final Set<String> currIdsSet =
-        currList.map((e) => e.transactionId).whereNotNull().toSet();
+        currList.map((e) => e.id.value).toSet();
     final List<String> currWithoutOtherIds =
         currIdsSet.difference(otherIdsSet).toList();
 
     //Curr transactionId to index
     final Map<String, int> currIdToIndexMap = {};
     for (int i = 0; i < currList.length; i++) {
-      final currId = currList[i].transactionId;
-      if (currId != null) {
-        currIdToIndexMap[currId] = i;
-      }
+      final currId = currList[i].id.value;
+      currIdToIndexMap[currId] = i;
     }
 
     //Make curr event list without other event

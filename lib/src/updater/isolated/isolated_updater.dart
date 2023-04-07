@@ -565,6 +565,7 @@ class IsolatedUpdater extends Updater {
     String roomId, {
     Context? context,
     List<UserId>? memberIds,
+    int? limit,
   }) async =>
       execute(
         GetRoomInstruction(
@@ -572,6 +573,7 @@ class IsolatedUpdater extends Updater {
           context: context ?? user.context,
           memberIds: memberIds ?? [user.id],
           instructionId: await _getNextInstructionNumber(),
+          timelineLimit: limit ?? 15
         ),
       );
 

@@ -81,11 +81,13 @@ class GetRoomInstruction extends Instruction<IsolateRespose<Room>> {
   final String roomId;
   final Context? context;
   final List<UserId> memberIds;
+  final int timelineLimit;
 
   GetRoomInstruction({
     required this.roomId,
     required this.context,
     required this.memberIds,
+    required this.timelineLimit,
     required super.instructionId,
   });
 }
