@@ -157,6 +157,13 @@ abstract class MessageEventContent extends EventContent {
         final body = content['body'] ?? '';
         final formattedBody = content['formatted_body'];
         final format = content['format'];
+        var replyAttachments = <String>[];
+        final replyAttachmentsVal = content['reply_attachments'];
+        if (replyAttachmentsVal != null ) {
+          replyAttachments = (replyAttachmentsVal as List)
+              .map((item) => item as String)
+              .toList();
+        }
         var attachmentsVal = content['attachments'];
         final attachments = <Attachment>[];
         if (attachmentsVal != null) {
@@ -183,6 +190,7 @@ abstract class MessageEventContent extends EventContent {
             formattedBody: formattedBody,
             inReplyToId: inReplyTo,
             inReplacementToId: inReplacementToId,
+            replyAttachments: replyAttachments,
           );
         } else {
           return TextMessage(
@@ -192,6 +200,7 @@ abstract class MessageEventContent extends EventContent {
             inReplyToId: inReplyTo,
             inReplacementToId: inReplacementToId,
             attachments: attachments,
+            replyAttachments: replyAttachments,
           );
         }
     }
@@ -251,6 +260,8 @@ class TextMessage extends MessageEventContent {
 
   final List<Attachment>? attachments;
 
+  final List<String>? replyAttachments;
+
   TextMessage({
     required this.body,
     this.format,
@@ -258,6 +269,7 @@ class TextMessage extends MessageEventContent {
     this.inReplyToId,
     this.inReplacementToId,
     this.attachments,
+    this.replyAttachments,
   });
 
   @override
@@ -267,7 +279,9 @@ class TextMessage extends MessageEventContent {
       body == other.body &&
       formattedBody == other.formattedBody &&
       DeepCollectionEquality.unordered(DefaultEquality<Attachment>())
-          .equals(attachments, other.attachments);
+          .equals(attachments, other.attachments) &&
+      DeepCollectionEquality.unordered(DefaultEquality<String>())
+          .equals(replyAttachments, other.replyAttachments);
 
   @override
   int get hashCode => hashObjects([super.hashCode, body, formattedBody]);
@@ -282,6 +296,9 @@ class TextMessage extends MessageEventContent {
         attachMap.add(element.toJson());
       });
       result["attachments"] = attachMap;
+    }
+    if (replyAttachments != null) {
+      result["reply_attachments"] = replyAttachments;
     }
     return result;
   }
@@ -309,12 +326,14 @@ class EmoteMessage extends TextMessage {
     String? formattedBody,
     EventId? inReplyToId,
     EventId? inReplacementToId,
+    List<String>? replyAttachments,
   }) : super(
           body: body,
           format: format,
           formattedBody: formattedBody,
           inReplyToId: inReplyToId,
           inReplacementToId: inReplacementToId,
+          replyAttachments: replyAttachments,
         );
 }
 
