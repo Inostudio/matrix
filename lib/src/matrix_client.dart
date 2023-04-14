@@ -345,6 +345,26 @@ class MatrixClient {
     }
   }
 
+  Stream<RoomEvent?> sendMessage({
+    required RoomId roomId,
+    required EventContent content,
+    String? transactionId,
+    String stateKey = "",
+    String type = "",
+  }) async* {
+    if (isLocal == false && _updater != null) {
+      yield* _updater!.send(
+        roomId,
+        content,
+        transactionId: transactionId,
+        stateKey: stateKey,
+        type: type,
+      );
+    } else {
+      throw Exception("Cant send message updater not ready isLocal: $isLocal, updater: $_updater");
+    }
+  }
+
   Future<bool> deleteFakeEvent(String transactionId) {
     if (isLocal == true && _localUpdater != null) {
       return _localUpdater!.deleteFakeEvent(transactionId);

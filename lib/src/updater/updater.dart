@@ -301,7 +301,6 @@ class Updater {
     send(
       roomId,
       content,
-      room: room,
       transactionId: transactionId,
       stateKey: stateKey,
       type: type,
@@ -410,7 +409,6 @@ class Updater {
   Stream<RoomEvent?> send(
     RoomId roomId,
     EventContent content, {
-    Room? room,
     String? transactionId,
     String stateKey = '',
     String type = '',

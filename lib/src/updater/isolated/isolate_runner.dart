@@ -107,7 +107,6 @@ abstract class IsolateRunner {
                   transactionId: instruction.transactionId,
                   stateKey: instruction.stateKey,
                   type: instruction.type,
-                  room: instruction.room,
                 )
                 .forEach(
                   (update) => sendPort.send(
