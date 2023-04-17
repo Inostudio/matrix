@@ -553,27 +553,6 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
     ).last;
   }
 
-  //Same as [makeTimeLineFromSend] but return Stream<RoomEvent>
-  //Made to extends control fake message logic fom matrix side
-  Stream<RoomEvent?> send(
-      EventContent content, {
-        String? transactionId,
-        String stateKey = '',
-        String type = '',
-      }) {
-    if (context?.updater == null) {
-      return Future.value(null).asStream();
-    }
-    return context!.updater!.send(
-      id,
-      content,
-      transactionId: transactionId,
-      stateKey: stateKey,
-      type: type,
-      room: this,
-    );
-  }
-
   /// Send an [Event] to the [Room]. Can be any [RoomEvent]
   /// including [StateEvent]s.
   ///

@@ -535,7 +535,6 @@ class IsolatedUpdater extends Updater {
         transactionId: transactionId,
         stateKey: stateKey,
         type: type,
-        room: room,
         instructionId: await _getNextInstructionNumber(),
       ),
       // 2 updates are sent, one for local echo and one for being sent.

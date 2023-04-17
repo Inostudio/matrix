@@ -49,7 +49,6 @@ class SendInstruction extends Instruction<IsolateRespose<RoomEvent>> {
   final String? transactionId;
   final String stateKey;
   final String type;
-  final Room? room;
 
   SendInstruction({
     required this.roomId,
@@ -57,7 +56,6 @@ class SendInstruction extends Instruction<IsolateRespose<RoomEvent>> {
     this.transactionId,
     required this.stateKey,
     required this.type,
-    this.room,
     required super.instructionId,
   });
 }
