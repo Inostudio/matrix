@@ -31,8 +31,6 @@ abstract class BaseSyncStorage {
 
   Future<void> setRoom(Room room);
 
-  Future<List<String?>?> getRoomIds();
-
   Future<Iterable<Room>> getRooms({
     Context? context,
     required int limit,

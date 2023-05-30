@@ -18,9 +18,9 @@ class _$ClientService extends ClientService {
 
   @override
   Future<Response<dynamic>> login(String body) {
-    final $url = '/_matrix/client/r0/login';
+    final Uri $url = Uri.parse('/_matrix/client/r0/login');
     final $body = body;
-    final $request = Request(
+    final Request $request = Request(
       'POST',
       $url,
       client.baseUrl,
@@ -34,12 +34,11 @@ class _$ClientService extends ClientService {
     required String authorization,
     required String userId,
   }) {
-    final $url = '/_matrix/client/r0/profile/${userId}';
-    final $headers = {
+    final Uri $url = Uri.parse('/_matrix/client/r0/profile/${userId}');
+    final Map<String, String> $headers = {
       'Authorization': authorization,
     };
-
-    final $request = Request(
+    final Request $request = Request(
       'GET',
       $url,
       client.baseUrl,
@@ -54,13 +53,13 @@ class _$ClientService extends ClientService {
     required String userId,
     required String body,
   }) {
-    final $url = '/_matrix/client/r0/profile/${userId}/displayname';
-    final $headers = {
+    final Uri $url =
+        Uri.parse('/_matrix/client/r0/profile/${userId}/displayname');
+    final Map<String, String> $headers = {
       'Authorization': authorization,
     };
-
     final $body = body;
-    final $request = Request(
+    final Request $request = Request(
       'PUT',
       $url,
       client.baseUrl,
@@ -75,13 +74,12 @@ class _$ClientService extends ClientService {
     required String authorization,
     required String body,
   }) {
-    final $url = '/_matrix/client/r0/pushers/set';
-    final $headers = {
+    final Uri $url = Uri.parse('/_matrix/client/r0/pushers/set');
+    final Map<String, String> $headers = {
       'Authorization': authorization,
     };
-
     final $body = body;
-    final $request = Request(
+    final Request $request = Request(
       'POST',
       $url,
       client.baseUrl,
@@ -96,10 +94,10 @@ class _$ClientService extends ClientService {
     required String kind,
     required String body,
   }) {
-    final $url = '/_matrix/client/r0/register';
-    final $params = <String, dynamic>{'kind': kind};
+    final Uri $url = Uri.parse('/_matrix/client/r0/register');
+    final Map<String, dynamic> $params = <String, dynamic>{'kind': kind};
     final $body = body;
-    final $request = Request(
+    final Request $request = Request(
       'POST',
       $url,
       client.baseUrl,
@@ -117,18 +115,17 @@ class _$ClientService extends ClientService {
     required String filter,
     int timeout = 0,
   }) {
-    final $url = '/_matrix/client/r0/sync';
-    final $params = <String, dynamic>{
+    final Uri $url = Uri.parse('/_matrix/client/r0/sync');
+    final Map<String, dynamic> $params = <String, dynamic>{
       'since': since,
       'full_state': fullState,
       'filter': filter,
       'timeout': timeout,
     };
-    final $headers = {
+    final Map<String, String> $headers = {
       'Authorization': authorization,
     };
-
-    final $request = Request(
+    final Request $request = Request(
       'GET',
       $url,
       client.baseUrl,
@@ -147,18 +144,17 @@ class _$ClientService extends ClientService {
     String dir = 'b',
     required String filter,
   }) {
-    final $url = '/_matrix/client/r0/rooms/${roomId}/messages';
-    final $params = <String, dynamic>{
+    final Uri $url = Uri.parse('/_matrix/client/r0/rooms/${roomId}/messages');
+    final Map<String, dynamic> $params = <String, dynamic>{
       'from': from,
       'limit': limit,
       'dir': dir,
       'filter': filter,
     };
-    final $headers = {
+    final Map<String, String> $headers = {
       'Authorization': authorization,
     };
-
-    final $request = Request(
+    final Request $request = Request(
       'GET',
       $url,
       client.baseUrl,
@@ -175,16 +171,15 @@ class _$ClientService extends ClientService {
     required String at,
     required String membership,
   }) {
-    final $url = '/_matrix/client/r0/rooms/${roomId}/members';
-    final $params = <String, dynamic>{
+    final Uri $url = Uri.parse('/_matrix/client/r0/rooms/${roomId}/members');
+    final Map<String, dynamic> $params = <String, dynamic>{
       'at': at,
       'membership': membership,
     };
-    final $headers = {
+    final Map<String, String> $headers = {
       'Authorization': authorization,
     };
-
-    final $request = Request(
+    final Request $request = Request(
       'GET',
       $url,
       client.baseUrl,
@@ -202,14 +197,13 @@ class _$ClientService extends ClientService {
     required String txnId,
     required String content,
   }) {
-    final $url =
-        '/_matrix/client/r0/rooms/${roomId}/send/${eventType}/${txnId}';
-    final $headers = {
+    final Uri $url = Uri.parse(
+        '/_matrix/client/r0/rooms/${roomId}/send/${eventType}/${txnId}');
+    final Map<String, String> $headers = {
       'Authorization': authorization,
     };
-
     final $body = content;
-    final $request = Request(
+    final Request $request = Request(
       'PUT',
       $url,
       client.baseUrl,
@@ -226,14 +220,13 @@ class _$ClientService extends ClientService {
     required String txnId,
     required String content,
   }) {
-    final $url =
-        '/_matrix/client/r0/rooms/${roomId}/send/m.room.message/${txnId}';
-    final $headers = {
+    final Uri $url = Uri.parse(
+        '/_matrix/client/r0/rooms/${roomId}/send/m.room.message/${txnId}');
+    final Map<String, String> $headers = {
       'Authorization': authorization,
     };
-
     final $body = content;
-    final $request = Request(
+    final Request $request = Request(
       'PUT',
       $url,
       client.baseUrl,
@@ -251,14 +244,13 @@ class _$ClientService extends ClientService {
     required String txnId,
     required String content,
   }) {
-    final $url =
-        '/_matrix/client/r0/rooms/${roomId}/redact/${eventId}/${txnId}';
-    final $headers = {
+    final Uri $url = Uri.parse(
+        '/_matrix/client/r0/rooms/${roomId}/redact/${eventId}/${txnId}');
+    final Map<String, String> $headers = {
       'Authorization': authorization,
     };
-
     final $body = content;
-    final $request = Request(
+    final Request $request = Request(
       'PUT',
       $url,
       client.baseUrl,
@@ -276,14 +268,13 @@ class _$ClientService extends ClientService {
     required String stateKey,
     required String content,
   }) {
-    final $url =
-        '/_matrix/client/r0/rooms/${roomId}/state/${eventType}/${stateKey}';
-    final $headers = {
+    final Uri $url = Uri.parse(
+        '/_matrix/client/r0/rooms/${roomId}/state/${eventType}/${stateKey}');
+    final Map<String, String> $headers = {
       'Authorization': authorization,
     };
-
     final $body = content;
-    final $request = Request(
+    final Request $request = Request(
       'PUT',
       $url,
       client.baseUrl,
@@ -300,13 +291,13 @@ class _$ClientService extends ClientService {
     required String userId,
     required String body,
   }) {
-    final $url = '/_matrix/client/r0/rooms/${roomId}/typing/${userId}';
-    final $headers = {
+    final Uri $url =
+        Uri.parse('/_matrix/client/r0/rooms/${roomId}/typing/${userId}');
+    final Map<String, String> $headers = {
       'Authorization': authorization,
     };
-
     final $body = body;
-    final $request = Request(
+    final Request $request = Request(
       'PUT',
       $url,
       client.baseUrl,
@@ -322,13 +313,13 @@ class _$ClientService extends ClientService {
     required String roomId,
     required String body,
   }) {
-    final $url = '/_matrix/client/r0/rooms/${roomId}/read_markers';
-    final $headers = {
+    final Uri $url =
+        Uri.parse('/_matrix/client/r0/rooms/${roomId}/read_markers');
+    final Map<String, String> $headers = {
       'Authorization': authorization,
     };
-
     final $body = body;
-    final $request = Request(
+    final Request $request = Request(
       'POST',
       $url,
       client.baseUrl,
@@ -344,13 +335,12 @@ class _$ClientService extends ClientService {
     required String roomId,
     required String body,
   }) {
-    final $url = '/_matrix/client/r0/rooms/${roomId}/kick';
-    final $headers = {
+    final Uri $url = Uri.parse('/_matrix/client/r0/rooms/${roomId}/kick');
+    final Map<String, String> $headers = {
       'Authorization': authorization,
     };
-
     final $body = body;
-    final $request = Request(
+    final Request $request = Request(
       'POST',
       $url,
       client.baseUrl,
@@ -365,12 +355,11 @@ class _$ClientService extends ClientService {
     required String authorization,
     required String roomId,
   }) {
-    final $url = '/_matrix/client/r0/rooms/${roomId}/leave';
-    final $headers = {
+    final Uri $url = Uri.parse('/_matrix/client/r0/rooms/${roomId}/leave');
+    final Map<String, String> $headers = {
       'Authorization': authorization,
     };
-
-    final $request = Request(
+    final Request $request = Request(
       'POST',
       $url,
       client.baseUrl,
@@ -384,13 +373,12 @@ class _$ClientService extends ClientService {
     required String authorization,
     required String body,
   }) {
-    final $url = '/_matrix/client/r0/createRoom';
-    final $headers = {
+    final Uri $url = Uri.parse('/_matrix/client/r0/createRoom');
+    final Map<String, String> $headers = {
       'Authorization': authorization,
     };
-
     final $body = body;
-    final $request = Request(
+    final Request $request = Request(
       'POST',
       $url,
       client.baseUrl,
@@ -406,13 +394,14 @@ class _$ClientService extends ClientService {
     required String roomIdOrAlias,
     required String serverName,
   }) {
-    final $url = '/_matrix/client/r0/join/${roomIdOrAlias}';
-    final $params = <String, dynamic>{'server_name': serverName};
-    final $headers = {
+    final Uri $url = Uri.parse('/_matrix/client/r0/join/${roomIdOrAlias}');
+    final Map<String, dynamic> $params = <String, dynamic>{
+      'server_name': serverName
+    };
+    final Map<String, String> $headers = {
       'Authorization': authorization,
     };
-
-    final $request = Request(
+    final Request $request = Request(
       'POST',
       $url,
       client.baseUrl,
@@ -424,12 +413,11 @@ class _$ClientService extends ClientService {
 
   @override
   Future<Response<dynamic>> logout({required String authorization}) {
-    final $url = '/_matrix/client/r0/logout';
-    final $headers = {
+    final Uri $url = Uri.parse('/_matrix/client/r0/logout');
+    final Map<String, String> $headers = {
       'Authorization': authorization,
     };
-
-    final $request = Request(
+    final Request $request = Request(
       'POST',
       $url,
       client.baseUrl,
@@ -444,14 +432,13 @@ class _$ClientService extends ClientService {
     required String server,
     required String body,
   }) {
-    final $url = '/_matrix/client/r0/publicRooms';
-    final $params = <String, dynamic>{'server': server};
-    final $headers = {
+    final Uri $url = Uri.parse('/_matrix/client/r0/publicRooms');
+    final Map<String, dynamic> $params = <String, dynamic>{'server': server};
+    final Map<String, String> $headers = {
       'Authorization': authorization,
     };
-
     final $body = body;
-    final $request = Request(
+    final Request $request = Request(
       'POST',
       $url,
       client.baseUrl,
@@ -468,14 +455,15 @@ class _$ClientService extends ClientService {
     required String nextBatch,
     required String body,
   }) {
-    final $url = '/_matrix/client/r0/search';
-    final $params = <String, dynamic>{'next_batch': nextBatch};
-    final $headers = {
+    final Uri $url = Uri.parse('/_matrix/client/r0/search');
+    final Map<String, dynamic> $params = <String, dynamic>{
+      'next_batch': nextBatch
+    };
+    final Map<String, String> $headers = {
       'Authorization': authorization,
     };
-
     final $body = body;
-    final $request = Request(
+    final Request $request = Request(
       'POST',
       $url,
       client.baseUrl,

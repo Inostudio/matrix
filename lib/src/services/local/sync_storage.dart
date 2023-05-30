@@ -72,9 +72,6 @@ class SyncStorage implements BaseSyncStorage {
       );
 
   @override
-  Future<List<String?>?> getRoomIds() => store.getRoomIDs();
-
-  @override
   Future<Iterable<Room>> getRooms({
     Context? context,
     required int limit,

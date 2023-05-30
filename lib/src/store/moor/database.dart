@@ -7,6 +7,7 @@
 
 import 'dart:async';
 
+import 'package:collection/collection.dart';
 import 'package:drift/backends.dart';
 import 'package:drift/drift.dart';
 import 'package:matrix_sdk/matrix_sdk.dart';
@@ -380,19 +381,6 @@ class Database extends _$Database {
         operationName: "getRoomRecordsByIDs",
       );
 
-  Future<List<String?>> getRoomIDs() async {
-    final roomIDs = rooms.id;
-    final query = selectOnly(rooms);
-    query.addColumns([rooms.id]);
-    final finQuery = query.map((row) => row.read(roomIDs));
-    final result = await runOperation(
-      operationName: "getRoomIDs",
-      onRun: finQuery.get,
-      onError: (error) => showError("getRoomIDs", error),
-    );
-    return result ?? [];
-  }
-
   Future<List<RoomRecordWithStateRecords>> getRoomRecords(
       int limit, int offset) async {
     final nameChangeAlias = alias(roomEvents, 'name_change');
@@ -443,10 +431,7 @@ class Database extends _$Database {
         upgradeAlias.id.equalsExp(rooms.upgradeEventId),
       ),
     ]);
-    query.orderBy([
-      OrderingTerm(
-          expression: rooms.lastMessageTimeInterval, mode: OrderingMode.desc)
-    ]);
+    query.orderBy([OrderingTerm.desc(rooms.lastMessageTimeInterval)]);
     query.limit(limit, offset: offset);
 
     final finQuery = query.map(
@@ -542,7 +527,7 @@ class Database extends _$Database {
     );
 
     final finQuery = query.map((row) {
-      return RoomEventRecord.fromData(row.data);
+      return RoomEventRecord.fromJson(row.data);
     });
 
     final result = await runOperation(
@@ -601,7 +586,7 @@ class Database extends _$Database {
         );
 
         final typingQuery = query.map((row) {
-          return EphemeralEventRecord.fromData(row.data);
+          return EphemeralEventRecord.fromJson(row.data);
         });
 
         final typing = await typingQuery.get();
@@ -684,7 +669,7 @@ class Database extends _$Database {
             (tbl) => tbl.id.isIn(
               records
                   .map((r) => r.transactionId)
-                  .where((txnId) => txnId != null),
+                  .where((txnId) => txnId != null).whereNotNull(),
             ),
           );
         }),
@@ -708,42 +693,43 @@ class Database extends _$Database {
 
   Future<bool> addOneFakeMessage(
     RoomFakeEventRecord record,
-  ) async => runOperation(
-      operationName: "addOneFakeMessage",
-      onRun: () {
-        batch(
-          (batch) => batch.insert(
-            roomFakeEvents,
-            record.toCompanion(true),
-            mode: InsertMode.insertOrReplace,
-          ),
-        );
-        return true;
-      },
-      onError: (error) {
-        showError("addOneFakeMessage", error);
-        return false;
-      },
-    );
+  ) async =>
+      runOperation(
+        operationName: "addOneFakeMessage",
+        onRun: () {
+          batch(
+            (batch) => batch.insert(
+              roomFakeEvents,
+              record.toCompanion(true),
+              mode: InsertMode.insertOrReplace,
+            ),
+          );
+          return true;
+        },
+        onError: (error) {
+          showError("addOneFakeMessage", error);
+          return false;
+        },
+      );
 
   Future<bool> deleteFakeMessage(String transactionId) async => runOperation(
-      operationName: "deleteFakeMessage",
-      onRun: () {
-        batch(
-          (batch) {
-            batch.deleteWhere<RoomFakeEvents, RoomFakeEventRecord>(
-              roomFakeEvents,
-              (tbl) => tbl.transactionId.equals(transactionId),
-            );
-          },
-        );
-        return true;
-      },
-      onError: (error) {
-        showError("deleteFakeMessage", error);
-        return false;
-      },
-    );
+        operationName: "deleteFakeMessage",
+        onRun: () {
+          batch(
+            (batch) {
+              batch.deleteWhere<RoomFakeEvents, RoomFakeEventRecord>(
+                roomFakeEvents,
+                (tbl) => tbl.transactionId.equals(transactionId),
+              );
+            },
+          );
+          return true;
+        },
+        onError: (error) {
+          showError("deleteFakeMessage", error);
+          return false;
+        },
+      );
 
   /// Get the MemberChangeEvents for each user.
   Future<Iterable<RoomEventRecord>> getMemberEventRecordsOfSenders(

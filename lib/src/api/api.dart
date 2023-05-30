@@ -60,7 +60,7 @@ class Api {
     http.Client? httpClient,
   }) : _chopper = ChopperClient(
           client: httpClient,
-          baseUrl: url.toString(),
+          baseUrl: url,
           services: [
             ClientService.create(),
             MediaService.create(),

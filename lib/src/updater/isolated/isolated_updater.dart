@@ -367,13 +367,6 @@ class IsolatedUpdater extends Updater {
   }
 
   @override
-  Future<List<String?>?> getRoomIDs() async => execute(
-        GetRoomIDsInstruction(
-          instructionId: await _getNextInstructionNumber(),
-        ),
-      );
-
-  @override
   Future<void> saveRoomToDB(Room room) async => execute(
         SaveRoomToDBInstruction(
           room: room,

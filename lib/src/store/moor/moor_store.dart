@@ -513,12 +513,6 @@ class MoorStore extends Store {
     return _processRoomRecords(roomRecords, timelineLimit, memberIds, context);
   }
 
-  @override
-  Future<List<String?>> getRoomIDs() async {
-    final result = await _db?.getRoomIDs();
-    return result ?? [];
-  }
-
   Map<String?, List<int>> _createMapIdToList(List<String> ids) {
     final Map<String?, List<int>> buf = {};
 
