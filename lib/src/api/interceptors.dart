@@ -12,7 +12,7 @@ class LogRequestInterceptor implements RequestInterceptor {
   @override
   FutureOr<Request> onRequest(Request request) {
     final url = request.url;
-    final baseUrl = request.baseUrl;
+    final baseUrl = request.baseUri;
     final method = request.method;
     final body = request.body;
     final params = request.parameters;

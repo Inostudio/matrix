@@ -72,13 +72,6 @@ abstract class IsolateRunner {
             );
           }
 
-          if (instruction is GetRoomIDsInstruction) {
-            final result = await updater?.getRoomIDs();
-            sendPort.send(
-              makeResponseData(instruction, result),
-            );
-          }
-
           if (instruction is SaveRoomToDBInstruction) {
             await updater?.saveRoomToDB(instruction.room);
             sendPort.send(

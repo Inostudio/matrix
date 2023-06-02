@@ -94,9 +94,6 @@ abstract class Store {
     Iterable<UserId>? memberIds,
   });
 
-  /// Load IDs of all rooms, currently stored in DB
-  Future<List<String?>> getRoomIDs();
-
   Future<Room?> getRoom(
     RoomId id, {
     int timelineLimit = 15,

@@ -21,8 +21,9 @@ class _$MediaService extends MediaService {
     String serverName,
     String mediaId,
   ) {
-    final $url = '/_matrix/media/r0/download/${serverName}/${mediaId}';
-    final $request = Request(
+    final Uri $url =
+        Uri.parse('/_matrix/media/r0/download/${serverName}/${mediaId}');
+    final Request $request = Request(
       'GET',
       $url,
       client.baseUrl,
@@ -38,16 +39,17 @@ class _$MediaService extends MediaService {
     String contentType,
     String fileName,
   ) {
-    final $url = '/_matrix/media/r0/upload';
-    final $params = <String, dynamic>{'filename': fileName};
-    final $headers = {
+    final Uri $url = Uri.parse('/_matrix/media/r0/upload');
+    final Map<String, dynamic> $params = <String, dynamic>{
+      'filename': fileName
+    };
+    final Map<String, String> $headers = {
       'Authorization': authorization,
       'Content-Length': length,
       'Content-Type': contentType,
     };
-
     final $body = byteStream;
-    final $request = Request(
+    final Request $request = Request(
       'POST',
       $url,
       client.baseUrl,
@@ -66,13 +68,14 @@ class _$MediaService extends MediaService {
     int height,
     String method,
   ) {
-    final $url = '/_matrix/media/r0/thumbnail/${serverName}/${mediaId}';
-    final $params = <String, dynamic>{
+    final Uri $url =
+        Uri.parse('/_matrix/media/r0/thumbnail/${serverName}/${mediaId}');
+    final Map<String, dynamic> $params = <String, dynamic>{
       'width': width,
       'height': height,
       'method': method,
     };
-    final $request = Request(
+    final Request $request = Request(
       'GET',
       $url,
       client.baseUrl,

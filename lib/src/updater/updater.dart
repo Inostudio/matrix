@@ -202,8 +202,6 @@ class Updater {
 
   Future<void> saveRoomToDB(Room room) => _syncStorage.setRoom(room);
 
-  Future<List<String?>?> getRoomIDs() => _syncStorage.getRoomIds();
-
   Future<void> startSync({
     Duration maxRetryAfter = const Duration(seconds: 30),
     int timelineLimit = 30,
