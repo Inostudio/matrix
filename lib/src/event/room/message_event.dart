@@ -42,6 +42,8 @@ class MessageEvent extends RoomEvent {
       return VideoMessageEvent(args, content: content);
     } else if (content is AudioMessage) {
       return AudioMessageEvent(args, content: content);
+    } else if (content is ReactionMessage) {
+      return ReactionMessageEvent(args, content: content);
     } else if (content == null) {
       return MessageEvent._(args, content: null);
     } else {
@@ -82,13 +84,25 @@ abstract class MessageEventContent extends EventContent {
       final Map<String, dynamic> infoMap = content['m.relates_to'];
 
       if (infoMap.containsKey('rel_type') &&
-          infoMap['rel_type'] == 'm.replace') {
+          ['m.replace', "m.annotation"].contains(infoMap['rel_type'])) {
         final replacement = infoMap['event_id'];
-        inReplacementToId = EventId(replacement);
+        inReplacementToId = replacement == null ? null : EventId(replacement);
       }
     }
 
     switch (msgtype) {
+      case ReactionMessage.matrixMessageType:
+        final body = content['body'] ?? "";
+        final formattedBody = content['formatted_body'] ?? "";
+        final Map<String, dynamic> relatesTo = content['m.relates_to'] ?? {};
+        final key = relatesTo['key'] ?? "";
+
+        return ReactionMessage(
+          body: body,
+          formattedBody: formattedBody,
+          inReplacementToId: inReplacementToId,
+          key: key,
+        );
       case ImageMessage.matrixMessageType:
         final body = content['body'];
 
@@ -159,7 +173,7 @@ abstract class MessageEventContent extends EventContent {
         final format = content['format'];
         var replyAttachments = <String>[];
         final replyAttachmentsVal = content['reply_attachments'];
-        if (replyAttachmentsVal != null ) {
+        if (replyAttachmentsVal != null) {
           replyAttachments = (replyAttachmentsVal as List)
               .map((item) => item as String)
               .toList();
@@ -768,4 +782,71 @@ class AudioMessageEvent extends MessageEvent {
     RoomEventArgs args, {
     required this.content,
   }) : super._(args, content: content);
+}
+
+class ReactionMessageEvent extends MessageEvent {
+  @override
+  final ReactionMessage content;
+
+  ReactionMessageEvent(
+    RoomEventArgs args, {
+    required this.content,
+  }) : super._(args, content: content);
+}
+
+class ReactionMessage extends MessageEventContent {
+  static const String matrixMessageType = 'm.reaction';
+
+  @override
+  final String type = matrixMessageType;
+
+  @override
+  final EventId? inReplacementToId;
+
+  final String body;
+  final String formattedBody;
+  final String key;
+
+  @override
+  final EventId? inReplyToId;
+
+  ReactionMessage({
+    required this.body,
+    required this.formattedBody,
+    required this.key,
+    this.inReplyToId,
+    this.inReplacementToId,
+  });
+
+  @override
+  bool operator ==(dynamic other) =>
+      other is ReactionMessage &&
+      super == other &&
+      body == other.body &&
+      formattedBody == other.formattedBody &&
+      key == other.key;
+
+  @override
+  int get hashCode => hashObjects([super.hashCode, body, formattedBody, key]);
+
+  @override
+  Map<String, dynamic> toJson() {
+    final json = <String, dynamic>{
+      "msgtype": "m.reaction",
+      'body': body,
+      'formatted_body': formattedBody,
+      "m.relates_to": {
+        "event_id": inReplacementToId,
+        "rel_type": "m.annotation",
+        "key": key
+      }
+    };
+
+    return json;
+  }
+
+  @override
+  String toString() {
+    return 'ReactionMessage{type: $type, inReplacementToId: $inReplacementToId, body: $body, formattedBody: $formattedBody, key: $key, inReplyToId: $inReplyToId}';
+  }
 }

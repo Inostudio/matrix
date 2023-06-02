@@ -600,7 +600,7 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
   Future<RequestUpdate<Timeline>?> delete(
     EventId eventId, {
     String? transactionId,
-    String? reason,
+    Map? reason,
   }) {
     final result = context?.updater?.delete(
       id,
@@ -612,7 +612,8 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
     return result ?? Future.value(null);
   }
 
-  Future<Update?> setName(String name) => makeTimeLineFromSend(RoomNameChange(name: name)).last;
+  Future<Update?> setName(String name) =>
+      makeTimeLineFromSend(RoomNameChange(name: name)).last;
 
   Future<Update?> setAvatarUri(Uri avatarUrl) =>
       makeTimeLineFromSend(RoomAvatarChange(url: avatarUrl)).last;

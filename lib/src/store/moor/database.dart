@@ -256,12 +256,12 @@ class Database extends _$Database {
 
   Future<String?> getUserSyncToken() async {
     final query = select(myUsers);
-    final user = await runOperation(
+    final user = await runOperation<MyUserRecord>(
       onRun: query.getSingleOrNull,
       onError: (error) => showError("getUserSyncToken", error),
       operationName: "getUserSyncToken",
     );
-    return user?.syncToken;
+    return user.syncToken;
   }
 
   Selectable<MyUserRecordWithDeviceRecord?> _selectUserWithDevice() {
@@ -708,42 +708,43 @@ class Database extends _$Database {
 
   Future<bool> addOneFakeMessage(
     RoomFakeEventRecord record,
-  ) async => runOperation(
-      operationName: "addOneFakeMessage",
-      onRun: () {
-        batch(
-          (batch) => batch.insert(
-            roomFakeEvents,
-            record.toCompanion(true),
-            mode: InsertMode.insertOrReplace,
-          ),
-        );
-        return true;
-      },
-      onError: (error) {
-        showError("addOneFakeMessage", error);
-        return false;
-      },
-    );
+  ) async =>
+      runOperation(
+        operationName: "addOneFakeMessage",
+        onRun: () {
+          batch(
+            (batch) => batch.insert(
+              roomFakeEvents,
+              record.toCompanion(true),
+              mode: InsertMode.insertOrReplace,
+            ),
+          );
+          return true;
+        },
+        onError: (error) {
+          showError("addOneFakeMessage", error);
+          return false;
+        },
+      );
 
   Future<bool> deleteFakeMessage(String transactionId) async => runOperation(
-      operationName: "deleteFakeMessage",
-      onRun: () {
-        batch(
-          (batch) {
-            batch.deleteWhere<RoomFakeEvents, RoomFakeEventRecord>(
-              roomFakeEvents,
-              (tbl) => tbl.transactionId.equals(transactionId),
-            );
-          },
-        );
-        return true;
-      },
-      onError: (error) {
-        showError("deleteFakeMessage", error);
-        return false;
-      },
-    );
+        operationName: "deleteFakeMessage",
+        onRun: () {
+          batch(
+            (batch) {
+              batch.deleteWhere<RoomFakeEvents, RoomFakeEventRecord>(
+                roomFakeEvents,
+                (tbl) => tbl.transactionId.equals(transactionId),
+              );
+            },
+          );
+          return true;
+        },
+        onError: (error) {
+          showError("deleteFakeMessage", error);
+          return false;
+        },
+      );
 
   /// Get the MemberChangeEvents for each user.
   Future<Iterable<RoomEventRecord>> getMemberEventRecordsOfSenders(

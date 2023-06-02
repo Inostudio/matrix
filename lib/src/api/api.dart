@@ -13,6 +13,7 @@ import 'package:http/http.dart' as http;
 import 'package:matrix_sdk/src/event/room/message_event.dart';
 import 'package:matrix_sdk/src/homeserver.dart';
 import 'package:matrix_sdk/src/model/api_call_statistics.dart';
+import 'package:matrix_sdk/src/model/identifier.dart';
 import 'package:matrix_sdk/src/search/search_request.dart';
 import 'package:meta/meta.dart';
 
@@ -545,12 +546,51 @@ class Rooms {
     return json.decode(response.body);
   }
 
+  Future<Map<String, dynamic>> react({
+    required String accessToken,
+    required String roomId,
+    required EventId eventId,
+    required String content,
+    required String key,
+    required String transactionId,
+  }) async {
+    final body = {
+      'msgtype': 'm.reaction',
+      'body': '$content',
+      "formatted_body": "$content",
+      "m.relates_to": {
+        "event_id": eventId.value,
+        "rel_type": "m.annotation",
+        "key": key,
+      }
+    };
+
+    final stopWatch = Stopwatch();
+    stopWatch.start();
+    final response = await _service.edit(
+      authorization: accessToken.toHeader(),
+      roomId: roomId.toString(),
+      content: json.encode(body),
+      txnId: transactionId,
+    );
+    stopWatch.stop();
+    _inApiCallStats.sendApiCallStats(
+      "$runtimeType.send",
+      stopWatch.elapsedMilliseconds,
+      response,
+    );
+
+    response.throwIfNeeded();
+
+    return json.decode(response.body);
+  }
+
   Future<Map<String, dynamic>> redact({
     required String accessToken,
     required String roomId,
     required String eventId,
     String transactionId = '',
-    String? reason,
+    Map? reason,
   }) async {
     final stopWatch = Stopwatch();
     stopWatch.start();
@@ -559,9 +599,9 @@ class Rooms {
       roomId: roomId.toString(),
       eventId: eventId.toString(),
       txnId: transactionId,
-      content: json.encode({
-        'reason': (reason ?? "").isEmpty ? 'Deleted by author' : reason,
-      }),
+      content: json.encode(
+        (reason == null) ? {"type": "DeletedByAuthor"} : reason,
+      ),
     );
     stopWatch.stop();
     _inApiCallStats.sendApiCallStats(

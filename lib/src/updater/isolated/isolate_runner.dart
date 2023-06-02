@@ -90,7 +90,7 @@ abstract class IsolateRunner {
               instruction.roomId,
               context: instruction.context,
               memberIds: instruction.memberIds,
-              limit: instruction.timelineLimit
+              limit: instruction.timelineLimit,
             );
             sendPort.send(
               makeResponseData(instruction, result),
@@ -107,6 +107,37 @@ abstract class IsolateRunner {
                   transactionId: instruction.transactionId,
                   stateKey: instruction.stateKey,
                   type: instruction.type,
+                )
+                .forEach(
+                  (update) => sendPort.send(
+                    makeResponseData(instruction, update),
+                  ),
+                );
+
+            return;
+          } else if (instruction is ReactEventInstruction) {
+            await updater
+                ?.react(
+                  roomId: instruction.roomId,
+                  eventId: instruction.eventId,
+                  content: instruction.content,
+                  key: instruction.key,
+                  transactionId: instruction.transactionId,
+                )
+                .forEach(
+                  (update) => sendPort.send(
+                    makeResponseData(instruction, update),
+                  ),
+                );
+
+            return;
+          } else if (instruction is StreamDeleteEventInstruction) {
+            await updater
+                ?.streamDelete(
+                  roomId: instruction.roomId,
+                  eventId: instruction.eventId,
+                  reason: instruction.reason,
+                  transactionId: instruction.transactionId,
                 )
                 .forEach(
                   (update) => sendPort.send(
