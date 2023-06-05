@@ -345,6 +345,46 @@ class MatrixClient {
     }
   }
 
+  Stream<RoomEvent?> reactEvent({
+    required RoomId roomId,
+    required EventId eventId,
+    required String content,
+    required String key,
+    String? transactionId,
+  }) async* {
+    if (isLocal == false && _updater != null) {
+      yield* _updater!.react(
+        roomId: roomId,
+        eventId: eventId,
+        content: content,
+        key: key,
+        transactionId: transactionId,
+      );
+    } else {
+      throw Exception(
+          "Cant send message updater not ready isLocal: $isLocal, updater: $_updater");
+    }
+  }
+
+  Stream<RoomEvent?> streamDelete({
+    required RoomId roomId,
+    required EventId eventId,
+    RedactionReason? reason,
+    String? transactionId,
+  }) async* {
+    if (isLocal == false && _updater != null) {
+      yield* _updater!.streamDelete(
+        roomId: roomId,
+        eventId: eventId,
+        reason: reason,
+        transactionId: transactionId,
+      );
+    } else {
+      throw Exception(
+          "Cant send message updater not ready isLocal: $isLocal, updater: $_updater");
+    }
+  }
+
   Stream<RoomEvent?> sendMessage({
     required RoomId roomId,
     required EventContent content,
@@ -361,7 +401,8 @@ class MatrixClient {
         type: type,
       );
     } else {
-      throw Exception("Cant send message updater not ready isLocal: $isLocal, updater: $_updater");
+      throw Exception(
+          "Cant send message updater not ready isLocal: $isLocal, updater: $_updater");
     }
   }
 

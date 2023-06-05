@@ -229,6 +229,8 @@ abstract class RoomEvent extends Event with Identifiable<EventId> {
       return RoomUpgradeEvent(args, content: content);
     } else if (content is PowerLevelsChange) {
       return PowerLevelsChangeEvent.instance(args, content: content);
+    } else if (content is ReactionMessage) {
+      return ReactionMessageEvent(args, content: content);
     } else if (content is RoomCreation) {
       return RoomCreationEvent(args, content: content);
       // TODO: Handle MemberChangeEvent
@@ -358,5 +360,4 @@ class RoomEventArgs {
   String toString() {
     return 'RoomEventArgs{id: $id, roomId: $roomId, senderId: $senderId, networkId: $networkId, time: $time, sentState: $sentState, transactionId: $transactionId}';
   }
-
 }

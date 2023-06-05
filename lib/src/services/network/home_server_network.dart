@@ -106,12 +106,30 @@ class HomeServerNetworking implements BaseNetwork {
       );
 
   @override
+  Future<Map<String, dynamic>> eventReact({
+    required String accessToken,
+    required String roomId,
+    required EventId eventId,
+    required String content,
+    required String key,
+    required String transactionId,
+  }) async =>
+      _homeServer.api.rooms.react(
+        accessToken: accessToken,
+        roomId: roomId,
+        eventId: eventId,
+        content: content,
+        key: key,
+        transactionId: transactionId,
+      );
+
+  @override
   Future<Map<String, dynamic>> roomsRedact({
     required String accessToken,
     required String roomId,
     required String eventId,
     String transactionId = '',
-    String? reason,
+    Map? reason,
   }) async =>
       _homeServer.api.rooms.redact(
         accessToken: accessToken,

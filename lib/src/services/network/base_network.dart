@@ -48,12 +48,21 @@ abstract class BaseNetwork {
     required String transactionId,
   });
 
+  Future<Map<String, dynamic>> eventReact({
+    required String accessToken,
+    required String roomId,
+    required EventId eventId,
+    required String content,
+    required String key,
+    required String transactionId,
+  });
+
   Future<Map<String, dynamic>> roomsRedact({
     required String accessToken,
     required String roomId,
     required String eventId,
     String transactionId = '',
-    String? reason,
+    Map? reason,
   });
 
   Future<void> setRoomsReadMarkers({

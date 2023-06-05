@@ -15,6 +15,7 @@ import 'package:matrix_sdk/src/util/subscription.dart';
 import 'package:synchronized/synchronized.dart';
 
 import '../../event/event.dart';
+import '../../event/room/redaction_event.dart';
 import '../../event/room/room_event.dart';
 import '../../homeserver.dart';
 import '../../model/models.dart';
@@ -536,6 +537,49 @@ class IsolatedUpdater extends Updater {
   }
 
   @override
+  Stream<RoomEvent?> react({
+    required RoomId roomId,
+    required EventId eventId,
+    required String content,
+    required String key,
+    String? transactionId,
+  }) async* {
+    yield* _executeStream(
+      ReactEventInstruction(
+        roomId: roomId,
+        eventId: eventId,
+        content: content,
+        key: key,
+        transactionId: transactionId,
+        instructionId: await _getNextInstructionNumber(),
+      ),
+      // 2 updates are sent, one for local echo and one for being sent.
+      updateCount: 2,
+    );
+  }
+
+  @override
+  Stream<RoomEvent?> streamDelete({
+    required RoomId roomId,
+    required EventId eventId,
+    String? transactionId,
+    RedactionReason? reason,
+    Room? room,
+  }) async* {
+    yield* _executeStream(
+      StreamDeleteEventInstruction(
+        roomId: roomId,
+        eventId: eventId,
+        reason: reason,
+        transactionId: transactionId,
+        instructionId: await _getNextInstructionNumber(),
+      ),
+      // 2 updates are sent, one for local echo and one for being sent.
+      updateCount: 2,
+    );
+  }
+
+  @override
   Stream<Room> startRoomSync(String roomId) async* {
     if (!_roomIdToSyncController.keys.contains(roomId)) {
       _roomIdToSyncController[roomId] =
@@ -565,7 +609,7 @@ class IsolatedUpdater extends Updater {
           context: context ?? user.context,
           memberIds: memberIds ?? [user.id],
           instructionId: await _getNextInstructionNumber(),
-          timelineLimit: limit ?? 15
+          timelineLimit: limit ?? 15,
         ),
       );
 
@@ -672,7 +716,7 @@ class IsolatedUpdater extends Updater {
     RoomId roomId,
     EventId eventId, {
     String? transactionId,
-    String? reason,
+    Map? reason,
     Room? room,
   }) async {
     return execute(

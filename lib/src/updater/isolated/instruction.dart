@@ -9,6 +9,7 @@ import 'package:matrix_sdk/src/event/room/message_event.dart';
 import 'package:matrix_sdk/src/event/room/room_event.dart';
 
 import '../../event/event.dart';
+import '../../event/room/redaction_event.dart';
 import '../../model/models.dart';
 import '../../model/sync_token.dart';
 import '../../room/member/member_timeline.dart';
@@ -56,6 +57,39 @@ class SendInstruction extends Instruction<IsolateRespose<RoomEvent>> {
     this.transactionId,
     required this.stateKey,
     required this.type,
+    required super.instructionId,
+  });
+}
+
+class ReactEventInstruction extends Instruction<IsolateRespose<RoomEvent>> {
+  final RoomId roomId;
+  final EventId eventId;
+  final String? transactionId;
+  final String content;
+  final String key;
+
+  ReactEventInstruction({
+    required this.roomId,
+    required this.eventId,
+    required this.content,
+    required this.key,
+    this.transactionId,
+    required super.instructionId,
+  });
+}
+
+class StreamDeleteEventInstruction
+    extends Instruction<IsolateRespose<RoomEvent>> {
+  final RoomId roomId;
+  final EventId eventId;
+  final String? transactionId;
+  final RedactionReason? reason;
+
+  StreamDeleteEventInstruction({
+    required this.roomId,
+    required this.eventId,
+    this.transactionId,
+    this.reason,
     required super.instructionId,
   });
 }
@@ -263,7 +297,7 @@ class DeleteEventInstruction extends RequestInstruction<Timeline> {
   final RoomId roomId;
   final EventId eventId;
   final String? transactionId;
-  final String? reason;
+  final Map? reason;
   final Room? room;
 
   DeleteEventInstruction({

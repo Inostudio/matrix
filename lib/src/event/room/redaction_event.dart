@@ -51,7 +51,7 @@ class RedactionEvent extends RoomEvent {
 
 @immutable
 class Redaction extends EventContent {
-  final String reason;
+  final RedactionReason reason;
 
   Redaction({
     required this.reason,
@@ -65,20 +65,44 @@ class Redaction extends EventContent {
   int get hashCode => reason.hashCode;
 
   static Redaction? fromJson(Map<String, dynamic>? content) {
-    if (content == null) {
-      return null;
+    if(content?.containsKey("reason") ?? false){
+      content = content!["reason"];
     }
-
-    String reason = '';
-    if (content.containsKey('reason')) {
-      reason = content['reason'] ?? '';
-    }
-
+    final reason = RedactionReason.fromJson(content ?? {"type": "DeletedByAuthor"});
     return Redaction(reason: reason);
   }
 
   @override
-  Map<String, dynamic> toJson() => super.toJson()..addAll({'reason': reason});
+  Map<String, dynamic> toJson() => super.toJson()..addAll({'reason': reason.toJson()});
+}
+
+
+class RedactionReason{
+  final String type;
+  final Map<String, dynamic>? data;
+
+  const RedactionReason({
+    required this.type,
+    required this.data,
+  });
+
+  factory RedactionReason.defaultReason(){
+    return RedactionReason.fromJson({"type": "DeletedByAuthor"});
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'type': type,
+      'data': data,
+    };
+  }
+
+  factory RedactionReason.fromJson(Map<String, dynamic> map) {
+    return RedactionReason(
+      type: map['type'] ?? "DeletedByAuthor",
+      data: map['data'] as Map<String, dynamic>?,
+    );
+  }
 }
 
 class RedactedEvent extends RoomEvent {

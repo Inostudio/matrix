@@ -397,7 +397,7 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
       return false;
     }
 
-    final kickerLevel = (powerLevels?.of(kickerId)) ?? 0;
+    final kickerLevel = powerLevels?.of(kickerId) ?? 0;
     final kickeeLevel = (kickeeId != null
             ? powerLevels?.of(kickeeId)
             : powerLevels?.defaults.users) ??
@@ -435,7 +435,7 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
       return false;
     }
 
-    final bannerLevel = (powerLevels?.of(bannerId)) ?? 0;
+    final bannerLevel = powerLevels?.of(bannerId) ?? 0;
     final banneeLevel = (banneeId != null
             ? powerLevels?.of(banneeId)
             : powerLevels?.defaults.users) ??
@@ -452,7 +452,7 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
     UserId inviterId, {
     UserId? inviteeId,
   }) {
-    final inviterLevel = (powerLevels?.of(inviterId)) ?? 0;
+    final inviterLevel = powerLevels?.of(inviterId) ?? 0;
     final inviteeLevel = (inviteeId != null
             ? powerLevels?.of(inviteeId)
             : powerLevels?.defaults.users) ??
@@ -470,7 +470,7 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
     UserId redacterId, {
     UserId? eventSenderId,
   }) {
-    final redacterLevel = (powerLevels?.of(redacterId)) ?? 0;
+    final redacterLevel = powerLevels?.of(redacterId) ?? 0;
     final eventSenderLevel = (eventSenderId != null
             ? powerLevels?.of(eventSenderId)
             : powerLevels?.defaults.users) ??
@@ -482,7 +482,7 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
 
   /// Whether the user can send the event of type [E].
   bool canSend<E extends RoomEvent>(UserId senderId) {
-    final senderLevel = (powerLevels?.of(senderId)) ?? 0;
+    final senderLevel = powerLevels?.of(senderId) ?? 0;
     final defaultLevel = (RoomEvent.isState(E)
             ? powerLevels?.defaults.stateEvents
             : powerLevels?.defaults.events) ??
@@ -600,7 +600,7 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
   Future<RequestUpdate<Timeline>?> delete(
     EventId eventId, {
     String? transactionId,
-    String? reason,
+    Map? reason,
   }) {
     final result = context?.updater?.delete(
       id,
@@ -612,7 +612,8 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
     return result ?? Future.value(null);
   }
 
-  Future<Update?> setName(String name) => makeTimeLineFromSend(RoomNameChange(name: name)).last;
+  Future<Update?> setName(String name) =>
+      makeTimeLineFromSend(RoomNameChange(name: name)).last;
 
   Future<Update?> setAvatarUri(Uri avatarUrl) =>
       makeTimeLineFromSend(RoomAvatarChange(url: avatarUrl)).last;

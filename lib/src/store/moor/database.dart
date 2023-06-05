@@ -257,12 +257,12 @@ class Database extends _$Database {
 
   Future<String?> getUserSyncToken() async {
     final query = select(myUsers);
-    final user = await runOperation(
+    final user = await runOperation<MyUserRecord>(
       onRun: query.getSingleOrNull,
       onError: (error) => showError("getUserSyncToken", error),
       operationName: "getUserSyncToken",
     );
-    return user?.syncToken;
+    return user.syncToken;
   }
 
   Selectable<MyUserRecordWithDeviceRecord?> _selectUserWithDevice() {

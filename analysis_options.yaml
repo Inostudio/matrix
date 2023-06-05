@@ -38,7 +38,6 @@ linter:
     # - avoid_returning_null
     - avoid_returning_null_for_future
     - avoid_returning_null_for_void
-    - avoid_returning_this
     - avoid_setters_without_getters
     - avoid_shadowing_type_parameters
     - avoid_single_cascade_in_expression_statements
@@ -67,7 +66,6 @@ linter:
     # - flutter_style_todos
     - hash_and_equals
     - implementation_imports
-    - invariant_booleans
     - iterable_contains_unrelated_type
     - join_return_with_assignment
     - library_names
@@ -98,8 +96,6 @@ linter:
     - prefer_const_literals_to_create_immutables
     - prefer_constructors_over_static_methods
     - prefer_contains
-    # - prefer_double_quotes
-    - prefer_equal_for_default_values
     # - prefer_expression_function_bodies
     - prefer_final_fields
     - prefer_final_in_for_each

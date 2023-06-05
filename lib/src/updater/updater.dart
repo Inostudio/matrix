@@ -615,6 +615,175 @@ class Updater {
     return body;
   }
 
+  Stream<RoomEvent?> react({
+    required RoomId roomId,
+    required EventId eventId,
+    required String content,
+    required String key,
+    String? transactionId,
+  }) async* {
+    transactionId ??= randomString();
+    final EventContent fakeContent = ReactionMessage(
+      body: content,
+      formattedBody: content,
+      inReplacementToId: eventId,
+      key: key,
+    );
+    final eventArgs = RoomEventArgs(
+      networkId: transactionId,
+      id: EventId(transactionId),
+      roomId: roomId,
+      time: DateTime.now(),
+      senderId: _user.id,
+      sentState: SentState.unsent,
+      transactionId: transactionId,
+    );
+
+    final fakeEvent = RoomEvent.fromContent(
+      fakeContent,
+      eventArgs,
+      type: "",
+      isState: false,
+    );
+    yield fakeEvent;
+
+    await _networkService.eventReact(
+      accessToken: _user.accessToken ?? "",
+      roomId: roomId.value,
+      transactionId: transactionId,
+      eventId: eventId,
+      content: content,
+      key: key,
+    );
+    try {
+      final Map<String, dynamic> body = await _networkService.eventReact(
+        accessToken: _user.accessToken ?? "",
+        roomId: roomId.value,
+        transactionId: transactionId,
+        eventId: eventId,
+        content: content,
+        key: key,
+      );
+      final networkEventId = EventId(body['event_id']);
+
+      final sentEvent = RoomEvent.fromContent(
+        fakeContent,
+        eventArgs.copyWith(
+          id: networkEventId,
+          networkId: networkEventId.value,
+          sentState: SentState.sent,
+          transactionId: transactionId,
+        ),
+        type: "",
+        isState: false,
+      );
+
+      yield sentEvent;
+
+      if (fakeEvent?.transactionId != null) {
+        await _syncStorage.deleteFakeEvent(fakeEvent!.transactionId!);
+      }
+    } catch (e) {
+      final eventArgs = RoomEventArgs(
+        networkId: transactionId,
+        id: EventId(transactionId),
+        roomId: roomId,
+        time: DateTime.now(),
+        senderId: _user.id,
+        sentState: SentState.sentError,
+        transactionId: transactionId,
+      );
+
+      final EventContent fakeContent = ReactionMessage(
+        body: content,
+        formattedBody: content,
+        inReplacementToId: eventId,
+        key: key,
+      );
+      final errorEvent = RoomEvent.fromContent(
+        fakeContent,
+        eventArgs,
+        type: "",
+        isState: false,
+      );
+
+      yield errorEvent;
+      if (errorEvent != null) {
+        await _syncStorage.addFakeEvent(errorEvent);
+      }
+    }
+  }
+
+  Stream<RoomEvent?> streamDelete({
+    required RoomId roomId,
+    required EventId eventId,
+    String? transactionId,
+    RedactionReason? reason,
+  }) async* {
+    transactionId ??= randomString();
+
+    reason = reason ?? RedactionReason.defaultReason();
+    final RedactionEvent fakeEvent = RedactionEvent(
+      RoomEventArgs(
+        id: EventId(transactionId),
+        networkId: transactionId,
+        transactionId: transactionId,
+        senderId: _user.id,
+        sentState: SentState.unsent,
+      ),
+      content: Redaction(reason: reason),
+      redacts: eventId,
+    );
+
+    yield fakeEvent;
+
+    try {
+      final Map<String, dynamic> body = await _networkService.roomsRedact(
+        accessToken: _user.accessToken ?? '',
+        roomId: roomId.value,
+        eventId: eventId.value,
+        transactionId: transactionId,
+        reason: reason.toJson(),
+      );
+
+      final networkEventId = EventId(body['event_id']);
+
+      final RedactionEvent sentEvent = RedactionEvent(
+        RoomEventArgs(
+          id: networkEventId,
+          networkId: networkEventId.value,
+          transactionId: transactionId,
+          senderId: _user.id,
+          sentState: SentState.sent,
+        ),
+        content: Redaction(reason: reason),
+        redacts: eventId,
+      );
+
+      yield sentEvent;
+
+      if (fakeEvent.transactionId != null) {
+        await _syncStorage.deleteFakeEvent(fakeEvent.transactionId!);
+      }
+    } catch (e) {
+      final RedactionEvent errorEvent = RedactionEvent(
+        RoomEventArgs(
+          id: EventId(transactionId),
+          networkId: transactionId,
+          transactionId: transactionId,
+          senderId: _user.id,
+          sentState: SentState.sentError,
+        ),
+        content: Redaction(reason: reason),
+        redacts: eventId,
+      );
+
+      yield errorEvent;
+
+      await _syncStorage.addFakeEvent(errorEvent);
+    }
+  }
+
   Future<RequestUpdate<Timeline>?> edit(
     RoomId roomId,
     TextMessageEvent event,
@@ -661,7 +830,7 @@ class Updater {
     RoomId roomId,
     EventId eventId, {
     String? transactionId,
-    String? reason,
+    Map? reason,
     Room? room,
   }) async {
     final Room? currentRoom = room ??=
