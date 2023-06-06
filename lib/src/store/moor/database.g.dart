@@ -17,7 +17,7 @@ class $DevicesTable extends Devices
   static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
   @override
   late final GeneratedColumn<String> userId = GeneratedColumn<String>(
-      'user_id', aliasedName, false,
+      'userId', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
@@ -28,13 +28,13 @@ class $DevicesTable extends Devices
       const VerificationMeta('lastSeen');
   @override
   late final GeneratedColumn<DateTime> lastSeen = GeneratedColumn<DateTime>(
-      'last_seen', aliasedName, true,
+      'lastSeen', aliasedName, true,
       type: DriftSqlType.dateTime, requiredDuringInsert: false);
   static const VerificationMeta _lastIpAddressMeta =
       const VerificationMeta('lastIpAddress');
   @override
   late final GeneratedColumn<String> lastIpAddress = GeneratedColumn<String>(
-      'last_ip_address', aliasedName, true,
+      'lastIpAddress', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns =>
@@ -53,9 +53,9 @@ class $DevicesTable extends Devices
     } else if (isInserting) {
       context.missing(_idMeta);
     }
-    if (data.containsKey('user_id')) {
+    if (data.containsKey('userId')) {
       context.handle(_userIdMeta,
-          userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta));
+          userId.isAcceptableOrUnknown(data['userId']!, _userIdMeta));
     } else if (isInserting) {
       context.missing(_userIdMeta);
     }
@@ -63,15 +63,15 @@ class $DevicesTable extends Devices
       context.handle(
           _nameMeta, name.isAcceptableOrUnknown(data['name']!, _nameMeta));
     }
-    if (data.containsKey('last_seen')) {
+    if (data.containsKey('lastSeen')) {
       context.handle(_lastSeenMeta,
-          lastSeen.isAcceptableOrUnknown(data['last_seen']!, _lastSeenMeta));
+          lastSeen.isAcceptableOrUnknown(data['lastSeen']!, _lastSeenMeta));
     }
-    if (data.containsKey('last_ip_address')) {
+    if (data.containsKey('lastIpAddress')) {
       context.handle(
           _lastIpAddressMeta,
           lastIpAddress.isAcceptableOrUnknown(
-              data['last_ip_address']!, _lastIpAddressMeta));
+              data['lastIpAddress']!, _lastIpAddressMeta));
     }
     return context;
   }
@@ -85,13 +85,13 @@ class $DevicesTable extends Devices
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       userId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}user_id'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}userId'])!,
       name: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}name']),
       lastSeen: attachedDatabase.typeMapping
-          .read(DriftSqlType.dateTime, data['${effectivePrefix}last_seen']),
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}lastSeen']),
       lastIpAddress: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}last_ip_address']),
+          .read(DriftSqlType.string, data['${effectivePrefix}lastIpAddress']),
     );
   }
 
@@ -117,15 +117,15 @@ class DeviceRecord extends DataClass implements Insertable<DeviceRecord> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
-    map['user_id'] = Variable<String>(userId);
+    map['userId'] = Variable<String>(userId);
     if (!nullToAbsent || name != null) {
       map['name'] = Variable<String>(name);
     }
     if (!nullToAbsent || lastSeen != null) {
-      map['last_seen'] = Variable<DateTime>(lastSeen);
+      map['lastSeen'] = Variable<DateTime>(lastSeen);
     }
     if (!nullToAbsent || lastIpAddress != null) {
-      map['last_ip_address'] = Variable<String>(lastIpAddress);
+      map['lastIpAddress'] = Variable<String>(lastIpAddress);
     }
     return map;
   }
@@ -240,10 +240,10 @@ class DevicesCompanion extends UpdateCompanion<DeviceRecord> {
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
-      if (userId != null) 'user_id': userId,
+      if (userId != null) 'userId': userId,
       if (name != null) 'name': name,
-      if (lastSeen != null) 'last_seen': lastSeen,
-      if (lastIpAddress != null) 'last_ip_address': lastIpAddress,
+      if (lastSeen != null) 'lastSeen': lastSeen,
+      if (lastIpAddress != null) 'lastIpAddress': lastIpAddress,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -272,16 +272,16 @@ class DevicesCompanion extends UpdateCompanion<DeviceRecord> {
       map['id'] = Variable<String>(id.value);
     }
     if (userId.present) {
-      map['user_id'] = Variable<String>(userId.value);
+      map['userId'] = Variable<String>(userId.value);
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
     }
     if (lastSeen.present) {
-      map['last_seen'] = Variable<DateTime>(lastSeen.value);
+      map['lastSeen'] = Variable<DateTime>(lastSeen.value);
     }
     if (lastIpAddress.present) {
-      map['last_ip_address'] = Variable<String>(lastIpAddress.value);
+      map['lastIpAddress'] = Variable<String>(lastIpAddress.value);
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -329,25 +329,25 @@ class $MyUsersTable extends MyUsers
       const VerificationMeta('avatarUrl');
   @override
   late final GeneratedColumn<String> avatarUrl = GeneratedColumn<String>(
-      'avatar_url', aliasedName, true,
+      'avatarUrl', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _accessTokenMeta =
       const VerificationMeta('accessToken');
   @override
   late final GeneratedColumn<String> accessToken = GeneratedColumn<String>(
-      'access_token', aliasedName, true,
+      'accessToken', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _syncTokenMeta =
       const VerificationMeta('syncToken');
   @override
   late final GeneratedColumn<String> syncToken = GeneratedColumn<String>(
-      'sync_token', aliasedName, true,
+      'syncToken', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _currentDeviceIdMeta =
       const VerificationMeta('currentDeviceId');
   @override
   late final GeneratedColumn<String> currentDeviceId = GeneratedColumn<String>(
-      'current_device_id', aliasedName, true,
+      'currentDeviceId', aliasedName, true,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
       $customConstraints: 'REFERENCES devices(id)');
@@ -355,11 +355,11 @@ class $MyUsersTable extends MyUsers
       const VerificationMeta('hasSynced');
   @override
   late final GeneratedColumn<bool> hasSynced =
-      GeneratedColumn<bool>('has_synced', aliasedName, true,
+      GeneratedColumn<bool>('hasSynced', aliasedName, true,
           type: DriftSqlType.bool,
           requiredDuringInsert: false,
           defaultConstraints: GeneratedColumn.constraintsDependsOnDialect({
-            SqlDialect.sqlite: 'CHECK ("has_synced" IN (0, 1))',
+            SqlDialect.sqlite: 'CHECK ("hasSynced" IN (0, 1))',
             SqlDialect.mysql: '',
             SqlDialect.postgres: '',
           }));
@@ -367,11 +367,11 @@ class $MyUsersTable extends MyUsers
       const VerificationMeta('isLoggedOut');
   @override
   late final GeneratedColumn<bool> isLoggedOut =
-      GeneratedColumn<bool>('is_logged_out', aliasedName, true,
+      GeneratedColumn<bool>('isLoggedOut', aliasedName, true,
           type: DriftSqlType.bool,
           requiredDuringInsert: false,
           defaultConstraints: GeneratedColumn.constraintsDependsOnDialect({
-            SqlDialect.sqlite: 'CHECK ("is_logged_out" IN (0, 1))',
+            SqlDialect.sqlite: 'CHECK ("isLoggedOut" IN (0, 1))',
             SqlDialect.mysql: '',
             SqlDialect.postgres: '',
           }));
@@ -409,35 +409,35 @@ class $MyUsersTable extends MyUsers
       context.handle(
           _nameMeta, name.isAcceptableOrUnknown(data['name']!, _nameMeta));
     }
-    if (data.containsKey('avatar_url')) {
+    if (data.containsKey('avatarUrl')) {
       context.handle(_avatarUrlMeta,
-          avatarUrl.isAcceptableOrUnknown(data['avatar_url']!, _avatarUrlMeta));
+          avatarUrl.isAcceptableOrUnknown(data['avatarUrl']!, _avatarUrlMeta));
     }
-    if (data.containsKey('access_token')) {
+    if (data.containsKey('accessToken')) {
       context.handle(
           _accessTokenMeta,
           accessToken.isAcceptableOrUnknown(
-              data['access_token']!, _accessTokenMeta));
+              data['accessToken']!, _accessTokenMeta));
     }
-    if (data.containsKey('sync_token')) {
+    if (data.containsKey('syncToken')) {
       context.handle(_syncTokenMeta,
-          syncToken.isAcceptableOrUnknown(data['sync_token']!, _syncTokenMeta));
+          syncToken.isAcceptableOrUnknown(data['syncToken']!, _syncTokenMeta));
     }
-    if (data.containsKey('current_device_id')) {
+    if (data.containsKey('currentDeviceId')) {
       context.handle(
           _currentDeviceIdMeta,
           currentDeviceId.isAcceptableOrUnknown(
-              data['current_device_id']!, _currentDeviceIdMeta));
+              data['currentDeviceId']!, _currentDeviceIdMeta));
     }
-    if (data.containsKey('has_synced')) {
+    if (data.containsKey('hasSynced')) {
       context.handle(_hasSyncedMeta,
-          hasSynced.isAcceptableOrUnknown(data['has_synced']!, _hasSyncedMeta));
+          hasSynced.isAcceptableOrUnknown(data['hasSynced']!, _hasSyncedMeta));
     }
-    if (data.containsKey('is_logged_out')) {
+    if (data.containsKey('isLoggedOut')) {
       context.handle(
           _isLoggedOutMeta,
           isLoggedOut.isAcceptableOrUnknown(
-              data['is_logged_out']!, _isLoggedOutMeta));
+              data['isLoggedOut']!, _isLoggedOutMeta));
     }
     return context;
   }
@@ -455,17 +455,17 @@ class $MyUsersTable extends MyUsers
       name: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}name']),
       avatarUrl: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}avatar_url']),
+          .read(DriftSqlType.string, data['${effectivePrefix}avatarUrl']),
       accessToken: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}access_token']),
+          .read(DriftSqlType.string, data['${effectivePrefix}accessToken']),
       syncToken: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}sync_token']),
-      currentDeviceId: attachedDatabase.typeMapping.read(
-          DriftSqlType.string, data['${effectivePrefix}current_device_id']),
+          .read(DriftSqlType.string, data['${effectivePrefix}syncToken']),
+      currentDeviceId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}currentDeviceId']),
       hasSynced: attachedDatabase.typeMapping
-          .read(DriftSqlType.bool, data['${effectivePrefix}has_synced']),
+          .read(DriftSqlType.bool, data['${effectivePrefix}hasSynced']),
       isLoggedOut: attachedDatabase.typeMapping
-          .read(DriftSqlType.bool, data['${effectivePrefix}is_logged_out']),
+          .read(DriftSqlType.bool, data['${effectivePrefix}isLoggedOut']),
     );
   }
 
@@ -508,22 +508,22 @@ class MyUserRecord extends DataClass implements Insertable<MyUserRecord> {
       map['name'] = Variable<String>(name);
     }
     if (!nullToAbsent || avatarUrl != null) {
-      map['avatar_url'] = Variable<String>(avatarUrl);
+      map['avatarUrl'] = Variable<String>(avatarUrl);
     }
     if (!nullToAbsent || accessToken != null) {
-      map['access_token'] = Variable<String>(accessToken);
+      map['accessToken'] = Variable<String>(accessToken);
     }
     if (!nullToAbsent || syncToken != null) {
-      map['sync_token'] = Variable<String>(syncToken);
+      map['syncToken'] = Variable<String>(syncToken);
     }
     if (!nullToAbsent || currentDeviceId != null) {
-      map['current_device_id'] = Variable<String>(currentDeviceId);
+      map['currentDeviceId'] = Variable<String>(currentDeviceId);
     }
     if (!nullToAbsent || hasSynced != null) {
-      map['has_synced'] = Variable<bool>(hasSynced);
+      map['hasSynced'] = Variable<bool>(hasSynced);
     }
     if (!nullToAbsent || isLoggedOut != null) {
-      map['is_logged_out'] = Variable<bool>(isLoggedOut);
+      map['isLoggedOut'] = Variable<bool>(isLoggedOut);
     }
     return map;
   }
@@ -695,12 +695,12 @@ class MyUsersCompanion extends UpdateCompanion<MyUserRecord> {
       if (homeserver != null) 'homeserver': homeserver,
       if (id != null) 'id': id,
       if (name != null) 'name': name,
-      if (avatarUrl != null) 'avatar_url': avatarUrl,
-      if (accessToken != null) 'access_token': accessToken,
-      if (syncToken != null) 'sync_token': syncToken,
-      if (currentDeviceId != null) 'current_device_id': currentDeviceId,
-      if (hasSynced != null) 'has_synced': hasSynced,
-      if (isLoggedOut != null) 'is_logged_out': isLoggedOut,
+      if (avatarUrl != null) 'avatarUrl': avatarUrl,
+      if (accessToken != null) 'accessToken': accessToken,
+      if (syncToken != null) 'syncToken': syncToken,
+      if (currentDeviceId != null) 'currentDeviceId': currentDeviceId,
+      if (hasSynced != null) 'hasSynced': hasSynced,
+      if (isLoggedOut != null) 'isLoggedOut': isLoggedOut,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -743,22 +743,22 @@ class MyUsersCompanion extends UpdateCompanion<MyUserRecord> {
       map['name'] = Variable<String>(name.value);
     }
     if (avatarUrl.present) {
-      map['avatar_url'] = Variable<String>(avatarUrl.value);
+      map['avatarUrl'] = Variable<String>(avatarUrl.value);
     }
     if (accessToken.present) {
-      map['access_token'] = Variable<String>(accessToken.value);
+      map['accessToken'] = Variable<String>(accessToken.value);
     }
     if (syncToken.present) {
-      map['sync_token'] = Variable<String>(syncToken.value);
+      map['syncToken'] = Variable<String>(syncToken.value);
     }
     if (currentDeviceId.present) {
-      map['current_device_id'] = Variable<String>(currentDeviceId.value);
+      map['currentDeviceId'] = Variable<String>(currentDeviceId.value);
     }
     if (hasSynced.present) {
-      map['has_synced'] = Variable<bool>(hasSynced.value);
+      map['hasSynced'] = Variable<bool>(hasSynced.value);
     }
     if (isLoggedOut.present) {
-      map['is_logged_out'] = Variable<bool>(isLoggedOut.value);
+      map['isLoggedOut'] = Variable<bool>(isLoggedOut.value);
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -799,7 +799,7 @@ class $RoomEventsTable extends RoomEvents
       const VerificationMeta('networkId');
   @override
   late final GeneratedColumn<String> networkId = GeneratedColumn<String>(
-      'network_id', aliasedName, false,
+      'networkId', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _typeMeta = const VerificationMeta('type');
   @override
@@ -809,7 +809,7 @@ class $RoomEventsTable extends RoomEvents
   static const VerificationMeta _roomIdMeta = const VerificationMeta('roomId');
   @override
   late final GeneratedColumn<String> roomId = GeneratedColumn<String>(
-      'room_id', aliasedName, false,
+      'roomId', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: true,
       $customConstraints: 'REFERENCES room_events(id)');
@@ -817,7 +817,7 @@ class $RoomEventsTable extends RoomEvents
       const VerificationMeta('senderId');
   @override
   late final GeneratedColumn<String> senderId = GeneratedColumn<String>(
-      'sender_id', aliasedName, false,
+      'senderId', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _timeMeta = const VerificationMeta('time');
   @override
@@ -834,25 +834,25 @@ class $RoomEventsTable extends RoomEvents
       const VerificationMeta('previousContent');
   @override
   late final GeneratedColumn<String> previousContent = GeneratedColumn<String>(
-      'previous_content', aliasedName, true,
+      'previousContent', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _sentStateMeta =
       const VerificationMeta('sentState');
   @override
   late final GeneratedColumn<String> sentState = GeneratedColumn<String>(
-      'sent_state', aliasedName, true,
+      'sentState', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _transactionIdMeta =
       const VerificationMeta('transactionId');
   @override
   late final GeneratedColumn<String> transactionId = GeneratedColumn<String>(
-      'transaction_id', aliasedName, true,
+      'transactionId', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _stateKeyMeta =
       const VerificationMeta('stateKey');
   @override
   late final GeneratedColumn<String> stateKey = GeneratedColumn<String>(
-      'state_key', aliasedName, true,
+      'stateKey', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _redactsMeta =
       const VerificationMeta('redacts');
@@ -863,15 +863,9 @@ class $RoomEventsTable extends RoomEvents
   static const VerificationMeta _inTimelineMeta =
       const VerificationMeta('inTimeline');
   @override
-  late final GeneratedColumn<bool> inTimeline =
-      GeneratedColumn<bool>('in_timeline', aliasedName, false,
-          type: DriftSqlType.bool,
-          requiredDuringInsert: true,
-          defaultConstraints: GeneratedColumn.constraintsDependsOnDialect({
-            SqlDialect.sqlite: 'CHECK ("in_timeline" IN (0, 1))',
-            SqlDialect.mysql: '',
-            SqlDialect.postgres: '',
-          }));
+  late final GeneratedColumn<int> inTimeline = GeneratedColumn<int>(
+      'inTimeline', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -902,9 +896,9 @@ class $RoomEventsTable extends RoomEvents
     } else if (isInserting) {
       context.missing(_idMeta);
     }
-    if (data.containsKey('network_id')) {
+    if (data.containsKey('networkId')) {
       context.handle(_networkIdMeta,
-          networkId.isAcceptableOrUnknown(data['network_id']!, _networkIdMeta));
+          networkId.isAcceptableOrUnknown(data['networkId']!, _networkIdMeta));
     } else if (isInserting) {
       context.missing(_networkIdMeta);
     }
@@ -914,15 +908,15 @@ class $RoomEventsTable extends RoomEvents
     } else if (isInserting) {
       context.missing(_typeMeta);
     }
-    if (data.containsKey('room_id')) {
+    if (data.containsKey('roomId')) {
       context.handle(_roomIdMeta,
-          roomId.isAcceptableOrUnknown(data['room_id']!, _roomIdMeta));
+          roomId.isAcceptableOrUnknown(data['roomId']!, _roomIdMeta));
     } else if (isInserting) {
       context.missing(_roomIdMeta);
     }
-    if (data.containsKey('sender_id')) {
+    if (data.containsKey('senderId')) {
       context.handle(_senderIdMeta,
-          senderId.isAcceptableOrUnknown(data['sender_id']!, _senderIdMeta));
+          senderId.isAcceptableOrUnknown(data['senderId']!, _senderIdMeta));
     } else if (isInserting) {
       context.missing(_senderIdMeta);
     }
@@ -934,35 +928,35 @@ class $RoomEventsTable extends RoomEvents
       context.handle(_contentMeta,
           content.isAcceptableOrUnknown(data['content']!, _contentMeta));
     }
-    if (data.containsKey('previous_content')) {
+    if (data.containsKey('previousContent')) {
       context.handle(
           _previousContentMeta,
           previousContent.isAcceptableOrUnknown(
-              data['previous_content']!, _previousContentMeta));
+              data['previousContent']!, _previousContentMeta));
     }
-    if (data.containsKey('sent_state')) {
+    if (data.containsKey('sentState')) {
       context.handle(_sentStateMeta,
-          sentState.isAcceptableOrUnknown(data['sent_state']!, _sentStateMeta));
+          sentState.isAcceptableOrUnknown(data['sentState']!, _sentStateMeta));
     }
-    if (data.containsKey('transaction_id')) {
+    if (data.containsKey('transactionId')) {
       context.handle(
           _transactionIdMeta,
           transactionId.isAcceptableOrUnknown(
-              data['transaction_id']!, _transactionIdMeta));
+              data['transactionId']!, _transactionIdMeta));
     }
-    if (data.containsKey('state_key')) {
+    if (data.containsKey('stateKey')) {
       context.handle(_stateKeyMeta,
-          stateKey.isAcceptableOrUnknown(data['state_key']!, _stateKeyMeta));
+          stateKey.isAcceptableOrUnknown(data['stateKey']!, _stateKeyMeta));
     }
     if (data.containsKey('redacts')) {
       context.handle(_redactsMeta,
           redacts.isAcceptableOrUnknown(data['redacts']!, _redactsMeta));
     }
-    if (data.containsKey('in_timeline')) {
+    if (data.containsKey('inTimeline')) {
       context.handle(
           _inTimelineMeta,
           inTimeline.isAcceptableOrUnknown(
-              data['in_timeline']!, _inTimelineMeta));
+              data['inTimeline']!, _inTimelineMeta));
     } else if (isInserting) {
       context.missing(_inTimelineMeta);
     }
@@ -978,29 +972,29 @@ class $RoomEventsTable extends RoomEvents
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       networkId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}network_id'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}networkId'])!,
       type: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}type'])!,
       roomId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}room_id'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}roomId'])!,
       senderId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}sender_id'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}senderId'])!,
       time: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}time']),
       content: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}content']),
-      previousContent: attachedDatabase.typeMapping.read(
-          DriftSqlType.string, data['${effectivePrefix}previous_content']),
+      previousContent: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}previousContent']),
       sentState: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}sent_state']),
+          .read(DriftSqlType.string, data['${effectivePrefix}sentState']),
       transactionId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}transaction_id']),
+          .read(DriftSqlType.string, data['${effectivePrefix}transactionId']),
       stateKey: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}state_key']),
+          .read(DriftSqlType.string, data['${effectivePrefix}stateKey']),
       redacts: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}redacts']),
       inTimeline: attachedDatabase.typeMapping
-          .read(DriftSqlType.bool, data['${effectivePrefix}in_timeline'])!,
+          .read(DriftSqlType.int, data['${effectivePrefix}inTimeline'])!,
     );
   }
 
@@ -1023,7 +1017,7 @@ class RoomEventRecord extends DataClass implements Insertable<RoomEventRecord> {
   final String? transactionId;
   final String? stateKey;
   final String? redacts;
-  final bool inTimeline;
+  final int inTimeline;
   const RoomEventRecord(
       {required this.id,
       required this.networkId,
@@ -1042,10 +1036,10 @@ class RoomEventRecord extends DataClass implements Insertable<RoomEventRecord> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
-    map['network_id'] = Variable<String>(networkId);
+    map['networkId'] = Variable<String>(networkId);
     map['type'] = Variable<String>(type);
-    map['room_id'] = Variable<String>(roomId);
-    map['sender_id'] = Variable<String>(senderId);
+    map['roomId'] = Variable<String>(roomId);
+    map['senderId'] = Variable<String>(senderId);
     if (!nullToAbsent || time != null) {
       map['time'] = Variable<DateTime>(time);
     }
@@ -1053,21 +1047,21 @@ class RoomEventRecord extends DataClass implements Insertable<RoomEventRecord> {
       map['content'] = Variable<String>(content);
     }
     if (!nullToAbsent || previousContent != null) {
-      map['previous_content'] = Variable<String>(previousContent);
+      map['previousContent'] = Variable<String>(previousContent);
     }
     if (!nullToAbsent || sentState != null) {
-      map['sent_state'] = Variable<String>(sentState);
+      map['sentState'] = Variable<String>(sentState);
     }
     if (!nullToAbsent || transactionId != null) {
-      map['transaction_id'] = Variable<String>(transactionId);
+      map['transactionId'] = Variable<String>(transactionId);
     }
     if (!nullToAbsent || stateKey != null) {
-      map['state_key'] = Variable<String>(stateKey);
+      map['stateKey'] = Variable<String>(stateKey);
     }
     if (!nullToAbsent || redacts != null) {
       map['redacts'] = Variable<String>(redacts);
     }
-    map['in_timeline'] = Variable<bool>(inTimeline);
+    map['inTimeline'] = Variable<int>(inTimeline);
     return map;
   }
 
@@ -1117,7 +1111,7 @@ class RoomEventRecord extends DataClass implements Insertable<RoomEventRecord> {
       transactionId: serializer.fromJson<String?>(json['transactionId']),
       stateKey: serializer.fromJson<String?>(json['stateKey']),
       redacts: serializer.fromJson<String?>(json['redacts']),
-      inTimeline: serializer.fromJson<bool>(json['inTimeline']),
+      inTimeline: serializer.fromJson<int>(json['inTimeline']),
     );
   }
   @override
@@ -1136,7 +1130,7 @@ class RoomEventRecord extends DataClass implements Insertable<RoomEventRecord> {
       'transactionId': serializer.toJson<String?>(transactionId),
       'stateKey': serializer.toJson<String?>(stateKey),
       'redacts': serializer.toJson<String?>(redacts),
-      'inTimeline': serializer.toJson<bool>(inTimeline),
+      'inTimeline': serializer.toJson<int>(inTimeline),
     };
   }
 
@@ -1153,7 +1147,7 @@ class RoomEventRecord extends DataClass implements Insertable<RoomEventRecord> {
           Value<String?> transactionId = const Value.absent(),
           Value<String?> stateKey = const Value.absent(),
           Value<String?> redacts = const Value.absent(),
-          bool? inTimeline}) =>
+          int? inTimeline}) =>
       RoomEventRecord(
         id: id ?? this.id,
         networkId: networkId ?? this.networkId,
@@ -1239,7 +1233,7 @@ class RoomEventsCompanion extends UpdateCompanion<RoomEventRecord> {
   final Value<String?> transactionId;
   final Value<String?> stateKey;
   final Value<String?> redacts;
-  final Value<bool> inTimeline;
+  final Value<int> inTimeline;
   final Value<int> rowid;
   const RoomEventsCompanion({
     this.id = const Value.absent(),
@@ -1270,7 +1264,7 @@ class RoomEventsCompanion extends UpdateCompanion<RoomEventRecord> {
     this.transactionId = const Value.absent(),
     this.stateKey = const Value.absent(),
     this.redacts = const Value.absent(),
-    required bool inTimeline,
+    required int inTimeline,
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         networkId = Value(networkId),
@@ -1291,23 +1285,23 @@ class RoomEventsCompanion extends UpdateCompanion<RoomEventRecord> {
     Expression<String>? transactionId,
     Expression<String>? stateKey,
     Expression<String>? redacts,
-    Expression<bool>? inTimeline,
+    Expression<int>? inTimeline,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
-      if (networkId != null) 'network_id': networkId,
+      if (networkId != null) 'networkId': networkId,
       if (type != null) 'type': type,
-      if (roomId != null) 'room_id': roomId,
-      if (senderId != null) 'sender_id': senderId,
+      if (roomId != null) 'roomId': roomId,
+      if (senderId != null) 'senderId': senderId,
       if (time != null) 'time': time,
       if (content != null) 'content': content,
-      if (previousContent != null) 'previous_content': previousContent,
-      if (sentState != null) 'sent_state': sentState,
-      if (transactionId != null) 'transaction_id': transactionId,
-      if (stateKey != null) 'state_key': stateKey,
+      if (previousContent != null) 'previousContent': previousContent,
+      if (sentState != null) 'sentState': sentState,
+      if (transactionId != null) 'transactionId': transactionId,
+      if (stateKey != null) 'stateKey': stateKey,
       if (redacts != null) 'redacts': redacts,
-      if (inTimeline != null) 'in_timeline': inTimeline,
+      if (inTimeline != null) 'inTimeline': inTimeline,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1325,7 +1319,7 @@ class RoomEventsCompanion extends UpdateCompanion<RoomEventRecord> {
       Value<String?>? transactionId,
       Value<String?>? stateKey,
       Value<String?>? redacts,
-      Value<bool>? inTimeline,
+      Value<int>? inTimeline,
       Value<int>? rowid}) {
     return RoomEventsCompanion(
       id: id ?? this.id,
@@ -1352,16 +1346,16 @@ class RoomEventsCompanion extends UpdateCompanion<RoomEventRecord> {
       map['id'] = Variable<String>(id.value);
     }
     if (networkId.present) {
-      map['network_id'] = Variable<String>(networkId.value);
+      map['networkId'] = Variable<String>(networkId.value);
     }
     if (type.present) {
       map['type'] = Variable<String>(type.value);
     }
     if (roomId.present) {
-      map['room_id'] = Variable<String>(roomId.value);
+      map['roomId'] = Variable<String>(roomId.value);
     }
     if (senderId.present) {
-      map['sender_id'] = Variable<String>(senderId.value);
+      map['senderId'] = Variable<String>(senderId.value);
     }
     if (time.present) {
       map['time'] = Variable<DateTime>(time.value);
@@ -1370,22 +1364,22 @@ class RoomEventsCompanion extends UpdateCompanion<RoomEventRecord> {
       map['content'] = Variable<String>(content.value);
     }
     if (previousContent.present) {
-      map['previous_content'] = Variable<String>(previousContent.value);
+      map['previousContent'] = Variable<String>(previousContent.value);
     }
     if (sentState.present) {
-      map['sent_state'] = Variable<String>(sentState.value);
+      map['sentState'] = Variable<String>(sentState.value);
     }
     if (transactionId.present) {
-      map['transaction_id'] = Variable<String>(transactionId.value);
+      map['transactionId'] = Variable<String>(transactionId.value);
     }
     if (stateKey.present) {
-      map['state_key'] = Variable<String>(stateKey.value);
+      map['stateKey'] = Variable<String>(stateKey.value);
     }
     if (redacts.present) {
       map['redacts'] = Variable<String>(redacts.value);
     }
     if (inTimeline.present) {
-      map['in_timeline'] = Variable<bool>(inTimeline.value);
+      map['inTimeline'] = Variable<int>(inTimeline.value);
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -1424,7 +1418,7 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
       const VerificationMeta('myMembership');
   @override
   late final GeneratedColumn<String> myMembership = GeneratedColumn<String>(
-      'my_membership', aliasedName, true,
+      'myMembership', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
@@ -1435,19 +1429,18 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
       const VerificationMeta('timelinePreviousBatch');
   @override
   late final GeneratedColumn<String> timelinePreviousBatch =
-      GeneratedColumn<String>('timeline_previous_batch', aliasedName, true,
+      GeneratedColumn<String>('timelinePreviousBatch', aliasedName, true,
           type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _timelinePreviousBatchSetBySyncMeta =
       const VerificationMeta('timelinePreviousBatchSetBySync');
   @override
   late final GeneratedColumn<bool> timelinePreviousBatchSetBySync =
-      GeneratedColumn<bool>(
-          'timeline_previous_batch_set_by_sync', aliasedName, true,
+      GeneratedColumn<bool>('timelinePreviousBatchSetBySync', aliasedName, true,
           type: DriftSqlType.bool,
           requiredDuringInsert: false,
           defaultConstraints: GeneratedColumn.constraintsDependsOnDialect({
             SqlDialect.sqlite:
-                'CHECK ("timeline_previous_batch_set_by_sync" IN (0, 1))',
+                'CHECK ("timelinePreviousBatchSetBySync" IN (0, 1))',
             SqlDialect.mysql: '',
             SqlDialect.postgres: '',
           }));
@@ -1455,19 +1448,19 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
       const VerificationMeta('summaryJoinedMembersCount');
   @override
   late final GeneratedColumn<int> summaryJoinedMembersCount =
-      GeneratedColumn<int>('summary_joined_members_count', aliasedName, true,
+      GeneratedColumn<int>('summaryJoinedMembersCount', aliasedName, true,
           type: DriftSqlType.int, requiredDuringInsert: false);
   static const VerificationMeta _summaryInvitedMembersCountMeta =
       const VerificationMeta('summaryInvitedMembersCount');
   @override
   late final GeneratedColumn<int> summaryInvitedMembersCount =
-      GeneratedColumn<int>('summary_invited_members_count', aliasedName, true,
+      GeneratedColumn<int>('summaryInvitedMembersCount', aliasedName, true,
           type: DriftSqlType.int, requiredDuringInsert: false);
   static const VerificationMeta _nameChangeEventIdMeta =
       const VerificationMeta('nameChangeEventId');
   @override
   late final GeneratedColumn<String> nameChangeEventId =
-      GeneratedColumn<String>('name_change_event_id', aliasedName, true,
+      GeneratedColumn<String>('nameChangeEventId', aliasedName, true,
           type: DriftSqlType.string,
           requiredDuringInsert: false,
           $customConstraints: 'REFERENCES room_events(id)');
@@ -1475,7 +1468,7 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
       const VerificationMeta('avatarChangeEventId');
   @override
   late final GeneratedColumn<String> avatarChangeEventId =
-      GeneratedColumn<String>('avatar_change_event_id', aliasedName, true,
+      GeneratedColumn<String>('avatarChangeEventId', aliasedName, true,
           type: DriftSqlType.string,
           requiredDuringInsert: false,
           $customConstraints: 'REFERENCES room_events(id)');
@@ -1483,7 +1476,7 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
       const VerificationMeta('topicChangeEventId');
   @override
   late final GeneratedColumn<String> topicChangeEventId =
-      GeneratedColumn<String>('topic_change_event_id', aliasedName, true,
+      GeneratedColumn<String>('topicChangeEventId', aliasedName, true,
           type: DriftSqlType.string,
           requiredDuringInsert: false,
           $customConstraints: 'REFERENCES room_events(id)');
@@ -1491,7 +1484,7 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
       const VerificationMeta('powerLevelsChangeEventId');
   @override
   late final GeneratedColumn<String> powerLevelsChangeEventId =
-      GeneratedColumn<String>('power_levels_change_event_id', aliasedName, true,
+      GeneratedColumn<String>('powerLevelsChangeEventId', aliasedName, true,
           type: DriftSqlType.string,
           requiredDuringInsert: false,
           $customConstraints: 'REFERENCES room_events(id)');
@@ -1499,7 +1492,7 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
       const VerificationMeta('joinRulesChangeEventId');
   @override
   late final GeneratedColumn<String> joinRulesChangeEventId =
-      GeneratedColumn<String>('join_rules_change_event_id', aliasedName, true,
+      GeneratedColumn<String>('joinRulesChangeEventId', aliasedName, true,
           type: DriftSqlType.string,
           requiredDuringInsert: false,
           $customConstraints: 'REFERENCES room_events(id)');
@@ -1507,8 +1500,7 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
       const VerificationMeta('canonicalAliasChangeEventId');
   @override
   late final GeneratedColumn<String> canonicalAliasChangeEventId =
-      GeneratedColumn<String>(
-          'canonical_alias_change_event_id', aliasedName, true,
+      GeneratedColumn<String>('canonicalAliasChangeEventId', aliasedName, true,
           type: DriftSqlType.string,
           requiredDuringInsert: false,
           $customConstraints: 'REFERENCES room_events(id)');
@@ -1516,7 +1508,7 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
       const VerificationMeta('creationEventId');
   @override
   late final GeneratedColumn<String> creationEventId = GeneratedColumn<String>(
-      'creation_event_id', aliasedName, true,
+      'creationEventId', aliasedName, true,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
       $customConstraints: 'REFERENCES room_events(id)');
@@ -1524,7 +1516,7 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
       const VerificationMeta('upgradeEventId');
   @override
   late final GeneratedColumn<String> upgradeEventId = GeneratedColumn<String>(
-      'upgrade_event_id', aliasedName, true,
+      'upgradeEventId', aliasedName, true,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
       $customConstraints: 'REFERENCES room_events(id)');
@@ -1533,19 +1525,19 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
   @override
   late final GeneratedColumn<int> highlightedUnreadNotificationCount =
       GeneratedColumn<int>(
-          'highlighted_unread_notification_count', aliasedName, true,
+          'highlightedUnreadNotificationCount', aliasedName, true,
           type: DriftSqlType.int, requiredDuringInsert: false);
   static const VerificationMeta _totalUnreadNotificationCountMeta =
       const VerificationMeta('totalUnreadNotificationCount');
   @override
   late final GeneratedColumn<int> totalUnreadNotificationCount =
-      GeneratedColumn<int>('total_unread_notification_count', aliasedName, true,
+      GeneratedColumn<int>('totalUnreadNotificationCount', aliasedName, true,
           type: DriftSqlType.int, requiredDuringInsert: false);
   static const VerificationMeta _lastMessageTimeIntervalMeta =
       const VerificationMeta('lastMessageTimeInterval');
   @override
   late final GeneratedColumn<int> lastMessageTimeInterval =
-      GeneratedColumn<int>('last_message_time_interval', aliasedName, false,
+      GeneratedColumn<int>('lastMessageTimeInterval', aliasedName, false,
           type: DriftSqlType.int,
           requiredDuringInsert: false,
           defaultValue: const Constant(0));
@@ -1553,7 +1545,7 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
       const VerificationMeta('directUserId');
   @override
   late final GeneratedColumn<String> directUserId = GeneratedColumn<String>(
-      'direct_user_id', aliasedName, true,
+      'directUserId', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
@@ -1585,121 +1577,119 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
       {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
-    if (data.containsKey('my_membership')) {
+    if (data.containsKey('myMembership')) {
       context.handle(
           _myMembershipMeta,
           myMembership.isAcceptableOrUnknown(
-              data['my_membership']!, _myMembershipMeta));
+              data['myMembership']!, _myMembershipMeta));
     }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     } else if (isInserting) {
       context.missing(_idMeta);
     }
-    if (data.containsKey('timeline_previous_batch')) {
+    if (data.containsKey('timelinePreviousBatch')) {
       context.handle(
           _timelinePreviousBatchMeta,
           timelinePreviousBatch.isAcceptableOrUnknown(
-              data['timeline_previous_batch']!, _timelinePreviousBatchMeta));
+              data['timelinePreviousBatch']!, _timelinePreviousBatchMeta));
     }
-    if (data.containsKey('timeline_previous_batch_set_by_sync')) {
+    if (data.containsKey('timelinePreviousBatchSetBySync')) {
       context.handle(
           _timelinePreviousBatchSetBySyncMeta,
           timelinePreviousBatchSetBySync.isAcceptableOrUnknown(
-              data['timeline_previous_batch_set_by_sync']!,
+              data['timelinePreviousBatchSetBySync']!,
               _timelinePreviousBatchSetBySyncMeta));
     }
-    if (data.containsKey('summary_joined_members_count')) {
+    if (data.containsKey('summaryJoinedMembersCount')) {
       context.handle(
           _summaryJoinedMembersCountMeta,
           summaryJoinedMembersCount.isAcceptableOrUnknown(
-              data['summary_joined_members_count']!,
+              data['summaryJoinedMembersCount']!,
               _summaryJoinedMembersCountMeta));
     }
-    if (data.containsKey('summary_invited_members_count')) {
+    if (data.containsKey('summaryInvitedMembersCount')) {
       context.handle(
           _summaryInvitedMembersCountMeta,
           summaryInvitedMembersCount.isAcceptableOrUnknown(
-              data['summary_invited_members_count']!,
+              data['summaryInvitedMembersCount']!,
               _summaryInvitedMembersCountMeta));
     }
-    if (data.containsKey('name_change_event_id')) {
+    if (data.containsKey('nameChangeEventId')) {
       context.handle(
           _nameChangeEventIdMeta,
           nameChangeEventId.isAcceptableOrUnknown(
-              data['name_change_event_id']!, _nameChangeEventIdMeta));
+              data['nameChangeEventId']!, _nameChangeEventIdMeta));
     }
-    if (data.containsKey('avatar_change_event_id')) {
+    if (data.containsKey('avatarChangeEventId')) {
       context.handle(
           _avatarChangeEventIdMeta,
           avatarChangeEventId.isAcceptableOrUnknown(
-              data['avatar_change_event_id']!, _avatarChangeEventIdMeta));
+              data['avatarChangeEventId']!, _avatarChangeEventIdMeta));
     }
-    if (data.containsKey('topic_change_event_id')) {
+    if (data.containsKey('topicChangeEventId')) {
       context.handle(
           _topicChangeEventIdMeta,
           topicChangeEventId.isAcceptableOrUnknown(
-              data['topic_change_event_id']!, _topicChangeEventIdMeta));
+              data['topicChangeEventId']!, _topicChangeEventIdMeta));
     }
-    if (data.containsKey('power_levels_change_event_id')) {
+    if (data.containsKey('powerLevelsChangeEventId')) {
       context.handle(
           _powerLevelsChangeEventIdMeta,
           powerLevelsChangeEventId.isAcceptableOrUnknown(
-              data['power_levels_change_event_id']!,
+              data['powerLevelsChangeEventId']!,
               _powerLevelsChangeEventIdMeta));
     }
-    if (data.containsKey('join_rules_change_event_id')) {
+    if (data.containsKey('joinRulesChangeEventId')) {
       context.handle(
           _joinRulesChangeEventIdMeta,
           joinRulesChangeEventId.isAcceptableOrUnknown(
-              data['join_rules_change_event_id']!,
-              _joinRulesChangeEventIdMeta));
+              data['joinRulesChangeEventId']!, _joinRulesChangeEventIdMeta));
     }
-    if (data.containsKey('canonical_alias_change_event_id')) {
+    if (data.containsKey('canonicalAliasChangeEventId')) {
       context.handle(
           _canonicalAliasChangeEventIdMeta,
           canonicalAliasChangeEventId.isAcceptableOrUnknown(
-              data['canonical_alias_change_event_id']!,
+              data['canonicalAliasChangeEventId']!,
               _canonicalAliasChangeEventIdMeta));
     }
-    if (data.containsKey('creation_event_id')) {
+    if (data.containsKey('creationEventId')) {
       context.handle(
           _creationEventIdMeta,
           creationEventId.isAcceptableOrUnknown(
-              data['creation_event_id']!, _creationEventIdMeta));
+              data['creationEventId']!, _creationEventIdMeta));
     }
-    if (data.containsKey('upgrade_event_id')) {
+    if (data.containsKey('upgradeEventId')) {
       context.handle(
           _upgradeEventIdMeta,
           upgradeEventId.isAcceptableOrUnknown(
-              data['upgrade_event_id']!, _upgradeEventIdMeta));
+              data['upgradeEventId']!, _upgradeEventIdMeta));
     }
-    if (data.containsKey('highlighted_unread_notification_count')) {
+    if (data.containsKey('highlightedUnreadNotificationCount')) {
       context.handle(
           _highlightedUnreadNotificationCountMeta,
           highlightedUnreadNotificationCount.isAcceptableOrUnknown(
-              data['highlighted_unread_notification_count']!,
+              data['highlightedUnreadNotificationCount']!,
               _highlightedUnreadNotificationCountMeta));
     }
-    if (data.containsKey('total_unread_notification_count')) {
+    if (data.containsKey('totalUnreadNotificationCount')) {
       context.handle(
           _totalUnreadNotificationCountMeta,
           totalUnreadNotificationCount.isAcceptableOrUnknown(
-              data['total_unread_notification_count']!,
+              data['totalUnreadNotificationCount']!,
               _totalUnreadNotificationCountMeta));
     }
-    if (data.containsKey('last_message_time_interval')) {
+    if (data.containsKey('lastMessageTimeInterval')) {
       context.handle(
           _lastMessageTimeIntervalMeta,
           lastMessageTimeInterval.isAcceptableOrUnknown(
-              data['last_message_time_interval']!,
-              _lastMessageTimeIntervalMeta));
+              data['lastMessageTimeInterval']!, _lastMessageTimeIntervalMeta));
     }
-    if (data.containsKey('direct_user_id')) {
+    if (data.containsKey('directUserId')) {
       context.handle(
           _directUserIdMeta,
           directUserId.isAcceptableOrUnknown(
-              data['direct_user_id']!, _directUserIdMeta));
+              data['directUserId']!, _directUserIdMeta));
     }
     return context;
   }
@@ -1711,52 +1701,49 @@ class $RoomsTable extends Rooms with TableInfo<$RoomsTable, RoomRecord> {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return RoomRecord(
       myMembership: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}my_membership']),
+          .read(DriftSqlType.string, data['${effectivePrefix}myMembership']),
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       timelinePreviousBatch: attachedDatabase.typeMapping.read(
-          DriftSqlType.string,
-          data['${effectivePrefix}timeline_previous_batch']),
+          DriftSqlType.string, data['${effectivePrefix}timelinePreviousBatch']),
       timelinePreviousBatchSetBySync: attachedDatabase.typeMapping.read(
           DriftSqlType.bool,
-          data['${effectivePrefix}timeline_previous_batch_set_by_sync']),
+          data['${effectivePrefix}timelinePreviousBatchSetBySync']),
       summaryJoinedMembersCount: attachedDatabase.typeMapping.read(
           DriftSqlType.int,
-          data['${effectivePrefix}summary_joined_members_count']),
+          data['${effectivePrefix}summaryJoinedMembersCount']),
       summaryInvitedMembersCount: attachedDatabase.typeMapping.read(
           DriftSqlType.int,
-          data['${effectivePrefix}summary_invited_members_count']),
+          data['${effectivePrefix}summaryInvitedMembersCount']),
       nameChangeEventId: attachedDatabase.typeMapping.read(
-          DriftSqlType.string, data['${effectivePrefix}name_change_event_id']),
+          DriftSqlType.string, data['${effectivePrefix}nameChangeEventId']),
       avatarChangeEventId: attachedDatabase.typeMapping.read(
-          DriftSqlType.string,
-          data['${effectivePrefix}avatar_change_event_id']),
+          DriftSqlType.string, data['${effectivePrefix}avatarChangeEventId']),
       topicChangeEventId: attachedDatabase.typeMapping.read(
-          DriftSqlType.string, data['${effectivePrefix}topic_change_event_id']),
+          DriftSqlType.string, data['${effectivePrefix}topicChangeEventId']),
       powerLevelsChangeEventId: attachedDatabase.typeMapping.read(
           DriftSqlType.string,
-          data['${effectivePrefix}power_levels_change_event_id']),
+          data['${effectivePrefix}powerLevelsChangeEventId']),
       joinRulesChangeEventId: attachedDatabase.typeMapping.read(
           DriftSqlType.string,
-          data['${effectivePrefix}join_rules_change_event_id']),
+          data['${effectivePrefix}joinRulesChangeEventId']),
       canonicalAliasChangeEventId: attachedDatabase.typeMapping.read(
           DriftSqlType.string,
-          data['${effectivePrefix}canonical_alias_change_event_id']),
-      creationEventId: attachedDatabase.typeMapping.read(
-          DriftSqlType.string, data['${effectivePrefix}creation_event_id']),
-      upgradeEventId: attachedDatabase.typeMapping.read(
-          DriftSqlType.string, data['${effectivePrefix}upgrade_event_id']),
+          data['${effectivePrefix}canonicalAliasChangeEventId']),
+      creationEventId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}creationEventId']),
+      upgradeEventId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}upgradeEventId']),
       highlightedUnreadNotificationCount: attachedDatabase.typeMapping.read(
           DriftSqlType.int,
-          data['${effectivePrefix}highlighted_unread_notification_count']),
+          data['${effectivePrefix}highlightedUnreadNotificationCount']),
       totalUnreadNotificationCount: attachedDatabase.typeMapping.read(
           DriftSqlType.int,
-          data['${effectivePrefix}total_unread_notification_count']),
+          data['${effectivePrefix}totalUnreadNotificationCount']),
       lastMessageTimeInterval: attachedDatabase.typeMapping.read(
-          DriftSqlType.int,
-          data['${effectivePrefix}last_message_time_interval'])!,
+          DriftSqlType.int, data['${effectivePrefix}lastMessageTimeInterval'])!,
       directUserId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}direct_user_id']),
+          .read(DriftSqlType.string, data['${effectivePrefix}directUserId']),
     );
   }
 
@@ -1808,62 +1795,61 @@ class RoomRecord extends DataClass implements Insertable<RoomRecord> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     if (!nullToAbsent || myMembership != null) {
-      map['my_membership'] = Variable<String>(myMembership);
+      map['myMembership'] = Variable<String>(myMembership);
     }
     map['id'] = Variable<String>(id);
     if (!nullToAbsent || timelinePreviousBatch != null) {
-      map['timeline_previous_batch'] = Variable<String>(timelinePreviousBatch);
+      map['timelinePreviousBatch'] = Variable<String>(timelinePreviousBatch);
     }
     if (!nullToAbsent || timelinePreviousBatchSetBySync != null) {
-      map['timeline_previous_batch_set_by_sync'] =
+      map['timelinePreviousBatchSetBySync'] =
           Variable<bool>(timelinePreviousBatchSetBySync);
     }
     if (!nullToAbsent || summaryJoinedMembersCount != null) {
-      map['summary_joined_members_count'] =
+      map['summaryJoinedMembersCount'] =
           Variable<int>(summaryJoinedMembersCount);
     }
     if (!nullToAbsent || summaryInvitedMembersCount != null) {
-      map['summary_invited_members_count'] =
+      map['summaryInvitedMembersCount'] =
           Variable<int>(summaryInvitedMembersCount);
     }
     if (!nullToAbsent || nameChangeEventId != null) {
-      map['name_change_event_id'] = Variable<String>(nameChangeEventId);
+      map['nameChangeEventId'] = Variable<String>(nameChangeEventId);
     }
     if (!nullToAbsent || avatarChangeEventId != null) {
-      map['avatar_change_event_id'] = Variable<String>(avatarChangeEventId);
+      map['avatarChangeEventId'] = Variable<String>(avatarChangeEventId);
     }
     if (!nullToAbsent || topicChangeEventId != null) {
-      map['topic_change_event_id'] = Variable<String>(topicChangeEventId);
+      map['topicChangeEventId'] = Variable<String>(topicChangeEventId);
     }
     if (!nullToAbsent || powerLevelsChangeEventId != null) {
-      map['power_levels_change_event_id'] =
+      map['powerLevelsChangeEventId'] =
           Variable<String>(powerLevelsChangeEventId);
     }
     if (!nullToAbsent || joinRulesChangeEventId != null) {
-      map['join_rules_change_event_id'] =
-          Variable<String>(joinRulesChangeEventId);
+      map['joinRulesChangeEventId'] = Variable<String>(joinRulesChangeEventId);
     }
     if (!nullToAbsent || canonicalAliasChangeEventId != null) {
-      map['canonical_alias_change_event_id'] =
+      map['canonicalAliasChangeEventId'] =
           Variable<String>(canonicalAliasChangeEventId);
     }
     if (!nullToAbsent || creationEventId != null) {
-      map['creation_event_id'] = Variable<String>(creationEventId);
+      map['creationEventId'] = Variable<String>(creationEventId);
     }
     if (!nullToAbsent || upgradeEventId != null) {
-      map['upgrade_event_id'] = Variable<String>(upgradeEventId);
+      map['upgradeEventId'] = Variable<String>(upgradeEventId);
     }
     if (!nullToAbsent || highlightedUnreadNotificationCount != null) {
-      map['highlighted_unread_notification_count'] =
+      map['highlightedUnreadNotificationCount'] =
           Variable<int>(highlightedUnreadNotificationCount);
     }
     if (!nullToAbsent || totalUnreadNotificationCount != null) {
-      map['total_unread_notification_count'] =
+      map['totalUnreadNotificationCount'] =
           Variable<int>(totalUnreadNotificationCount);
     }
-    map['last_message_time_interval'] = Variable<int>(lastMessageTimeInterval);
+    map['lastMessageTimeInterval'] = Variable<int>(lastMessageTimeInterval);
     if (!nullToAbsent || directUserId != null) {
-      map['direct_user_id'] = Variable<String>(directUserId);
+      map['directUserId'] = Variable<String>(directUserId);
     }
     return map;
   }
@@ -2231,37 +2217,36 @@ class RoomsCompanion extends UpdateCompanion<RoomRecord> {
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
-      if (myMembership != null) 'my_membership': myMembership,
+      if (myMembership != null) 'myMembership': myMembership,
       if (id != null) 'id': id,
       if (timelinePreviousBatch != null)
-        'timeline_previous_batch': timelinePreviousBatch,
+        'timelinePreviousBatch': timelinePreviousBatch,
       if (timelinePreviousBatchSetBySync != null)
-        'timeline_previous_batch_set_by_sync': timelinePreviousBatchSetBySync,
+        'timelinePreviousBatchSetBySync': timelinePreviousBatchSetBySync,
       if (summaryJoinedMembersCount != null)
-        'summary_joined_members_count': summaryJoinedMembersCount,
+        'summaryJoinedMembersCount': summaryJoinedMembersCount,
       if (summaryInvitedMembersCount != null)
-        'summary_invited_members_count': summaryInvitedMembersCount,
-      if (nameChangeEventId != null) 'name_change_event_id': nameChangeEventId,
+        'summaryInvitedMembersCount': summaryInvitedMembersCount,
+      if (nameChangeEventId != null) 'nameChangeEventId': nameChangeEventId,
       if (avatarChangeEventId != null)
-        'avatar_change_event_id': avatarChangeEventId,
-      if (topicChangeEventId != null)
-        'topic_change_event_id': topicChangeEventId,
+        'avatarChangeEventId': avatarChangeEventId,
+      if (topicChangeEventId != null) 'topicChangeEventId': topicChangeEventId,
       if (powerLevelsChangeEventId != null)
-        'power_levels_change_event_id': powerLevelsChangeEventId,
+        'powerLevelsChangeEventId': powerLevelsChangeEventId,
       if (joinRulesChangeEventId != null)
-        'join_rules_change_event_id': joinRulesChangeEventId,
+        'joinRulesChangeEventId': joinRulesChangeEventId,
       if (canonicalAliasChangeEventId != null)
-        'canonical_alias_change_event_id': canonicalAliasChangeEventId,
-      if (creationEventId != null) 'creation_event_id': creationEventId,
-      if (upgradeEventId != null) 'upgrade_event_id': upgradeEventId,
+        'canonicalAliasChangeEventId': canonicalAliasChangeEventId,
+      if (creationEventId != null) 'creationEventId': creationEventId,
+      if (upgradeEventId != null) 'upgradeEventId': upgradeEventId,
       if (highlightedUnreadNotificationCount != null)
-        'highlighted_unread_notification_count':
+        'highlightedUnreadNotificationCount':
             highlightedUnreadNotificationCount,
       if (totalUnreadNotificationCount != null)
-        'total_unread_notification_count': totalUnreadNotificationCount,
+        'totalUnreadNotificationCount': totalUnreadNotificationCount,
       if (lastMessageTimeInterval != null)
-        'last_message_time_interval': lastMessageTimeInterval,
-      if (directUserId != null) 'direct_user_id': directUserId,
+        'lastMessageTimeInterval': lastMessageTimeInterval,
+      if (directUserId != null) 'directUserId': directUserId,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2323,69 +2308,68 @@ class RoomsCompanion extends UpdateCompanion<RoomRecord> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     if (myMembership.present) {
-      map['my_membership'] = Variable<String>(myMembership.value);
+      map['myMembership'] = Variable<String>(myMembership.value);
     }
     if (id.present) {
       map['id'] = Variable<String>(id.value);
     }
     if (timelinePreviousBatch.present) {
-      map['timeline_previous_batch'] =
+      map['timelinePreviousBatch'] =
           Variable<String>(timelinePreviousBatch.value);
     }
     if (timelinePreviousBatchSetBySync.present) {
-      map['timeline_previous_batch_set_by_sync'] =
+      map['timelinePreviousBatchSetBySync'] =
           Variable<bool>(timelinePreviousBatchSetBySync.value);
     }
     if (summaryJoinedMembersCount.present) {
-      map['summary_joined_members_count'] =
+      map['summaryJoinedMembersCount'] =
           Variable<int>(summaryJoinedMembersCount.value);
     }
     if (summaryInvitedMembersCount.present) {
-      map['summary_invited_members_count'] =
+      map['summaryInvitedMembersCount'] =
           Variable<int>(summaryInvitedMembersCount.value);
     }
     if (nameChangeEventId.present) {
-      map['name_change_event_id'] = Variable<String>(nameChangeEventId.value);
+      map['nameChangeEventId'] = Variable<String>(nameChangeEventId.value);
     }
     if (avatarChangeEventId.present) {
-      map['avatar_change_event_id'] =
-          Variable<String>(avatarChangeEventId.value);
+      map['avatarChangeEventId'] = Variable<String>(avatarChangeEventId.value);
     }
     if (topicChangeEventId.present) {
-      map['topic_change_event_id'] = Variable<String>(topicChangeEventId.value);
+      map['topicChangeEventId'] = Variable<String>(topicChangeEventId.value);
     }
     if (powerLevelsChangeEventId.present) {
-      map['power_levels_change_event_id'] =
+      map['powerLevelsChangeEventId'] =
           Variable<String>(powerLevelsChangeEventId.value);
     }
     if (joinRulesChangeEventId.present) {
-      map['join_rules_change_event_id'] =
+      map['joinRulesChangeEventId'] =
           Variable<String>(joinRulesChangeEventId.value);
     }
     if (canonicalAliasChangeEventId.present) {
-      map['canonical_alias_change_event_id'] =
+      map['canonicalAliasChangeEventId'] =
           Variable<String>(canonicalAliasChangeEventId.value);
     }
     if (creationEventId.present) {
-      map['creation_event_id'] = Variable<String>(creationEventId.value);
+      map['creationEventId'] = Variable<String>(creationEventId.value);
     }
     if (upgradeEventId.present) {
-      map['upgrade_event_id'] = Variable<String>(upgradeEventId.value);
+      map['upgradeEventId'] = Variable<String>(upgradeEventId.value);
     }
     if (highlightedUnreadNotificationCount.present) {
-      map['highlighted_unread_notification_count'] =
+      map['highlightedUnreadNotificationCount'] =
           Variable<int>(highlightedUnreadNotificationCount.value);
     }
     if (totalUnreadNotificationCount.present) {
-      map['total_unread_notification_count'] =
+      map['totalUnreadNotificationCount'] =
           Variable<int>(totalUnreadNotificationCount.value);
     }
     if (lastMessageTimeInterval.present) {
-      map['last_message_time_interval'] =
+      map['lastMessageTimeInterval'] =
           Variable<int>(lastMessageTimeInterval.value);
     }
     if (directUserId.present) {
-      map['direct_user_id'] = Variable<String>(directUserId.value);
+      map['directUserId'] = Variable<String>(directUserId.value);
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -2432,7 +2416,7 @@ class $EphemeralEventsTable extends EphemeralEvents
   static const VerificationMeta _roomIdMeta = const VerificationMeta('roomId');
   @override
   late final GeneratedColumn<String> roomId = GeneratedColumn<String>(
-      'room_id', aliasedName, false,
+      'roomId', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: true,
       $customConstraints: 'REFERENCES room_events(id)');
@@ -2453,9 +2437,9 @@ class $EphemeralEventsTable extends EphemeralEvents
       {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
-    if (data.containsKey('room_id')) {
+    if (data.containsKey('roomId')) {
       context.handle(_roomIdMeta,
-          roomId.isAcceptableOrUnknown(data['room_id']!, _roomIdMeta));
+          roomId.isAcceptableOrUnknown(data['roomId']!, _roomIdMeta));
     } else if (isInserting) {
       context.missing(_roomIdMeta);
     }
@@ -2473,7 +2457,7 @@ class $EphemeralEventsTable extends EphemeralEvents
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return EphemeralEventRecord(
       roomId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}room_id'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}roomId'])!,
       typing: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}typing']),
     );
@@ -2493,7 +2477,7 @@ class EphemeralEventRecord extends DataClass
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    map['room_id'] = Variable<String>(roomId);
+    map['roomId'] = Variable<String>(roomId);
     if (!nullToAbsent || typing != null) {
       map['typing'] = Variable<String>(typing);
     }
@@ -2570,7 +2554,7 @@ class EphemeralEventsCompanion extends UpdateCompanion<EphemeralEventRecord> {
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
-      if (roomId != null) 'room_id': roomId,
+      if (roomId != null) 'roomId': roomId,
       if (typing != null) 'typing': typing,
       if (rowid != null) 'rowid': rowid,
     });
@@ -2589,7 +2573,7 @@ class EphemeralEventsCompanion extends UpdateCompanion<EphemeralEventRecord> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     if (roomId.present) {
-      map['room_id'] = Variable<String>(roomId.value);
+      map['roomId'] = Variable<String>(roomId.value);
     }
     if (typing.present) {
       map['typing'] = Variable<String>(typing.value);
@@ -2626,7 +2610,7 @@ class $RoomFakeEventsTable extends RoomFakeEvents
       const VerificationMeta('networkId');
   @override
   late final GeneratedColumn<String> networkId = GeneratedColumn<String>(
-      'network_id', aliasedName, false,
+      'networkId', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _typeMeta = const VerificationMeta('type');
   @override
@@ -2636,7 +2620,7 @@ class $RoomFakeEventsTable extends RoomFakeEvents
   static const VerificationMeta _roomIdMeta = const VerificationMeta('roomId');
   @override
   late final GeneratedColumn<String> roomId = GeneratedColumn<String>(
-      'room_id', aliasedName, false,
+      'roomId', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: true,
       $customConstraints: 'REFERENCES room_events(id)');
@@ -2644,7 +2628,7 @@ class $RoomFakeEventsTable extends RoomFakeEvents
       const VerificationMeta('senderId');
   @override
   late final GeneratedColumn<String> senderId = GeneratedColumn<String>(
-      'sender_id', aliasedName, false,
+      'senderId', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _timeMeta = const VerificationMeta('time');
   @override
@@ -2661,25 +2645,25 @@ class $RoomFakeEventsTable extends RoomFakeEvents
       const VerificationMeta('previousContent');
   @override
   late final GeneratedColumn<String> previousContent = GeneratedColumn<String>(
-      'previous_content', aliasedName, true,
+      'previousContent', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _sentStateMeta =
       const VerificationMeta('sentState');
   @override
   late final GeneratedColumn<String> sentState = GeneratedColumn<String>(
-      'sent_state', aliasedName, true,
+      'sentState', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _transactionIdMeta =
       const VerificationMeta('transactionId');
   @override
   late final GeneratedColumn<String> transactionId = GeneratedColumn<String>(
-      'transaction_id', aliasedName, true,
+      'transactionId', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _stateKeyMeta =
       const VerificationMeta('stateKey');
   @override
   late final GeneratedColumn<String> stateKey = GeneratedColumn<String>(
-      'state_key', aliasedName, true,
+      'stateKey', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _redactsMeta =
       const VerificationMeta('redacts');
@@ -2690,15 +2674,9 @@ class $RoomFakeEventsTable extends RoomFakeEvents
   static const VerificationMeta _inTimelineMeta =
       const VerificationMeta('inTimeline');
   @override
-  late final GeneratedColumn<bool> inTimeline =
-      GeneratedColumn<bool>('in_timeline', aliasedName, false,
-          type: DriftSqlType.bool,
-          requiredDuringInsert: true,
-          defaultConstraints: GeneratedColumn.constraintsDependsOnDialect({
-            SqlDialect.sqlite: 'CHECK ("in_timeline" IN (0, 1))',
-            SqlDialect.mysql: '',
-            SqlDialect.postgres: '',
-          }));
+  late final GeneratedColumn<int> inTimeline = GeneratedColumn<int>(
+      'inTimeline', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -2730,9 +2708,9 @@ class $RoomFakeEventsTable extends RoomFakeEvents
     } else if (isInserting) {
       context.missing(_idMeta);
     }
-    if (data.containsKey('network_id')) {
+    if (data.containsKey('networkId')) {
       context.handle(_networkIdMeta,
-          networkId.isAcceptableOrUnknown(data['network_id']!, _networkIdMeta));
+          networkId.isAcceptableOrUnknown(data['networkId']!, _networkIdMeta));
     } else if (isInserting) {
       context.missing(_networkIdMeta);
     }
@@ -2742,15 +2720,15 @@ class $RoomFakeEventsTable extends RoomFakeEvents
     } else if (isInserting) {
       context.missing(_typeMeta);
     }
-    if (data.containsKey('room_id')) {
+    if (data.containsKey('roomId')) {
       context.handle(_roomIdMeta,
-          roomId.isAcceptableOrUnknown(data['room_id']!, _roomIdMeta));
+          roomId.isAcceptableOrUnknown(data['roomId']!, _roomIdMeta));
     } else if (isInserting) {
       context.missing(_roomIdMeta);
     }
-    if (data.containsKey('sender_id')) {
+    if (data.containsKey('senderId')) {
       context.handle(_senderIdMeta,
-          senderId.isAcceptableOrUnknown(data['sender_id']!, _senderIdMeta));
+          senderId.isAcceptableOrUnknown(data['senderId']!, _senderIdMeta));
     } else if (isInserting) {
       context.missing(_senderIdMeta);
     }
@@ -2762,35 +2740,35 @@ class $RoomFakeEventsTable extends RoomFakeEvents
       context.handle(_contentMeta,
           content.isAcceptableOrUnknown(data['content']!, _contentMeta));
     }
-    if (data.containsKey('previous_content')) {
+    if (data.containsKey('previousContent')) {
       context.handle(
           _previousContentMeta,
           previousContent.isAcceptableOrUnknown(
-              data['previous_content']!, _previousContentMeta));
+              data['previousContent']!, _previousContentMeta));
     }
-    if (data.containsKey('sent_state')) {
+    if (data.containsKey('sentState')) {
       context.handle(_sentStateMeta,
-          sentState.isAcceptableOrUnknown(data['sent_state']!, _sentStateMeta));
+          sentState.isAcceptableOrUnknown(data['sentState']!, _sentStateMeta));
     }
-    if (data.containsKey('transaction_id')) {
+    if (data.containsKey('transactionId')) {
       context.handle(
           _transactionIdMeta,
           transactionId.isAcceptableOrUnknown(
-              data['transaction_id']!, _transactionIdMeta));
+              data['transactionId']!, _transactionIdMeta));
     }
-    if (data.containsKey('state_key')) {
+    if (data.containsKey('stateKey')) {
       context.handle(_stateKeyMeta,
-          stateKey.isAcceptableOrUnknown(data['state_key']!, _stateKeyMeta));
+          stateKey.isAcceptableOrUnknown(data['stateKey']!, _stateKeyMeta));
     }
     if (data.containsKey('redacts')) {
       context.handle(_redactsMeta,
           redacts.isAcceptableOrUnknown(data['redacts']!, _redactsMeta));
     }
-    if (data.containsKey('in_timeline')) {
+    if (data.containsKey('inTimeline')) {
       context.handle(
           _inTimelineMeta,
           inTimeline.isAcceptableOrUnknown(
-              data['in_timeline']!, _inTimelineMeta));
+              data['inTimeline']!, _inTimelineMeta));
     } else if (isInserting) {
       context.missing(_inTimelineMeta);
     }
@@ -2806,29 +2784,29 @@ class $RoomFakeEventsTable extends RoomFakeEvents
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       networkId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}network_id'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}networkId'])!,
       type: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}type'])!,
       roomId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}room_id'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}roomId'])!,
       senderId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}sender_id'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}senderId'])!,
       time: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}time']),
       content: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}content']),
-      previousContent: attachedDatabase.typeMapping.read(
-          DriftSqlType.string, data['${effectivePrefix}previous_content']),
+      previousContent: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}previousContent']),
       sentState: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}sent_state']),
+          .read(DriftSqlType.string, data['${effectivePrefix}sentState']),
       transactionId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}transaction_id']),
+          .read(DriftSqlType.string, data['${effectivePrefix}transactionId']),
       stateKey: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}state_key']),
+          .read(DriftSqlType.string, data['${effectivePrefix}stateKey']),
       redacts: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}redacts']),
       inTimeline: attachedDatabase.typeMapping
-          .read(DriftSqlType.bool, data['${effectivePrefix}in_timeline'])!,
+          .read(DriftSqlType.int, data['${effectivePrefix}inTimeline'])!,
     );
   }
 
@@ -2852,7 +2830,7 @@ class RoomFakeEventRecord extends DataClass
   final String? transactionId;
   final String? stateKey;
   final String? redacts;
-  final bool inTimeline;
+  final int inTimeline;
   const RoomFakeEventRecord(
       {required this.id,
       required this.networkId,
@@ -2871,10 +2849,10 @@ class RoomFakeEventRecord extends DataClass
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
-    map['network_id'] = Variable<String>(networkId);
+    map['networkId'] = Variable<String>(networkId);
     map['type'] = Variable<String>(type);
-    map['room_id'] = Variable<String>(roomId);
-    map['sender_id'] = Variable<String>(senderId);
+    map['roomId'] = Variable<String>(roomId);
+    map['senderId'] = Variable<String>(senderId);
     if (!nullToAbsent || time != null) {
       map['time'] = Variable<DateTime>(time);
     }
@@ -2882,21 +2860,21 @@ class RoomFakeEventRecord extends DataClass
       map['content'] = Variable<String>(content);
     }
     if (!nullToAbsent || previousContent != null) {
-      map['previous_content'] = Variable<String>(previousContent);
+      map['previousContent'] = Variable<String>(previousContent);
     }
     if (!nullToAbsent || sentState != null) {
-      map['sent_state'] = Variable<String>(sentState);
+      map['sentState'] = Variable<String>(sentState);
     }
     if (!nullToAbsent || transactionId != null) {
-      map['transaction_id'] = Variable<String>(transactionId);
+      map['transactionId'] = Variable<String>(transactionId);
     }
     if (!nullToAbsent || stateKey != null) {
-      map['state_key'] = Variable<String>(stateKey);
+      map['stateKey'] = Variable<String>(stateKey);
     }
     if (!nullToAbsent || redacts != null) {
       map['redacts'] = Variable<String>(redacts);
     }
-    map['in_timeline'] = Variable<bool>(inTimeline);
+    map['inTimeline'] = Variable<int>(inTimeline);
     return map;
   }
 
@@ -2946,7 +2924,7 @@ class RoomFakeEventRecord extends DataClass
       transactionId: serializer.fromJson<String?>(json['transactionId']),
       stateKey: serializer.fromJson<String?>(json['stateKey']),
       redacts: serializer.fromJson<String?>(json['redacts']),
-      inTimeline: serializer.fromJson<bool>(json['inTimeline']),
+      inTimeline: serializer.fromJson<int>(json['inTimeline']),
     );
   }
   @override
@@ -2965,7 +2943,7 @@ class RoomFakeEventRecord extends DataClass
       'transactionId': serializer.toJson<String?>(transactionId),
       'stateKey': serializer.toJson<String?>(stateKey),
       'redacts': serializer.toJson<String?>(redacts),
-      'inTimeline': serializer.toJson<bool>(inTimeline),
+      'inTimeline': serializer.toJson<int>(inTimeline),
     };
   }
 
@@ -2982,7 +2960,7 @@ class RoomFakeEventRecord extends DataClass
           Value<String?> transactionId = const Value.absent(),
           Value<String?> stateKey = const Value.absent(),
           Value<String?> redacts = const Value.absent(),
-          bool? inTimeline}) =>
+          int? inTimeline}) =>
       RoomFakeEventRecord(
         id: id ?? this.id,
         networkId: networkId ?? this.networkId,
@@ -3068,7 +3046,7 @@ class RoomFakeEventsCompanion extends UpdateCompanion<RoomFakeEventRecord> {
   final Value<String?> transactionId;
   final Value<String?> stateKey;
   final Value<String?> redacts;
-  final Value<bool> inTimeline;
+  final Value<int> inTimeline;
   final Value<int> rowid;
   const RoomFakeEventsCompanion({
     this.id = const Value.absent(),
@@ -3099,7 +3077,7 @@ class RoomFakeEventsCompanion extends UpdateCompanion<RoomFakeEventRecord> {
     this.transactionId = const Value.absent(),
     this.stateKey = const Value.absent(),
     this.redacts = const Value.absent(),
-    required bool inTimeline,
+    required int inTimeline,
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         networkId = Value(networkId),
@@ -3120,23 +3098,23 @@ class RoomFakeEventsCompanion extends UpdateCompanion<RoomFakeEventRecord> {
     Expression<String>? transactionId,
     Expression<String>? stateKey,
     Expression<String>? redacts,
-    Expression<bool>? inTimeline,
+    Expression<int>? inTimeline,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
-      if (networkId != null) 'network_id': networkId,
+      if (networkId != null) 'networkId': networkId,
       if (type != null) 'type': type,
-      if (roomId != null) 'room_id': roomId,
-      if (senderId != null) 'sender_id': senderId,
+      if (roomId != null) 'roomId': roomId,
+      if (senderId != null) 'senderId': senderId,
       if (time != null) 'time': time,
       if (content != null) 'content': content,
-      if (previousContent != null) 'previous_content': previousContent,
-      if (sentState != null) 'sent_state': sentState,
-      if (transactionId != null) 'transaction_id': transactionId,
-      if (stateKey != null) 'state_key': stateKey,
+      if (previousContent != null) 'previousContent': previousContent,
+      if (sentState != null) 'sentState': sentState,
+      if (transactionId != null) 'transactionId': transactionId,
+      if (stateKey != null) 'stateKey': stateKey,
       if (redacts != null) 'redacts': redacts,
-      if (inTimeline != null) 'in_timeline': inTimeline,
+      if (inTimeline != null) 'inTimeline': inTimeline,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -3154,7 +3132,7 @@ class RoomFakeEventsCompanion extends UpdateCompanion<RoomFakeEventRecord> {
       Value<String?>? transactionId,
       Value<String?>? stateKey,
       Value<String?>? redacts,
-      Value<bool>? inTimeline,
+      Value<int>? inTimeline,
       Value<int>? rowid}) {
     return RoomFakeEventsCompanion(
       id: id ?? this.id,
@@ -3181,16 +3159,16 @@ class RoomFakeEventsCompanion extends UpdateCompanion<RoomFakeEventRecord> {
       map['id'] = Variable<String>(id.value);
     }
     if (networkId.present) {
-      map['network_id'] = Variable<String>(networkId.value);
+      map['networkId'] = Variable<String>(networkId.value);
     }
     if (type.present) {
       map['type'] = Variable<String>(type.value);
     }
     if (roomId.present) {
-      map['room_id'] = Variable<String>(roomId.value);
+      map['roomId'] = Variable<String>(roomId.value);
     }
     if (senderId.present) {
-      map['sender_id'] = Variable<String>(senderId.value);
+      map['senderId'] = Variable<String>(senderId.value);
     }
     if (time.present) {
       map['time'] = Variable<DateTime>(time.value);
@@ -3199,22 +3177,22 @@ class RoomFakeEventsCompanion extends UpdateCompanion<RoomFakeEventRecord> {
       map['content'] = Variable<String>(content.value);
     }
     if (previousContent.present) {
-      map['previous_content'] = Variable<String>(previousContent.value);
+      map['previousContent'] = Variable<String>(previousContent.value);
     }
     if (sentState.present) {
-      map['sent_state'] = Variable<String>(sentState.value);
+      map['sentState'] = Variable<String>(sentState.value);
     }
     if (transactionId.present) {
-      map['transaction_id'] = Variable<String>(transactionId.value);
+      map['transactionId'] = Variable<String>(transactionId.value);
     }
     if (stateKey.present) {
-      map['state_key'] = Variable<String>(stateKey.value);
+      map['stateKey'] = Variable<String>(stateKey.value);
     }
     if (redacts.present) {
       map['redacts'] = Variable<String>(redacts.value);
     }
     if (inTimeline.present) {
-      map['in_timeline'] = Variable<bool>(inTimeline.value);
+      map['inTimeline'] = Variable<int>(inTimeline.value);
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -3253,24 +3231,24 @@ class $EphemeralReceiptEventTable extends EphemeralReceiptEvent
   static const VerificationMeta _roomIdMeta = const VerificationMeta('roomId');
   @override
   late final GeneratedColumn<String> roomId = GeneratedColumn<String>(
-      'room_id', aliasedName, false,
+      'roomId', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
   @override
   late final GeneratedColumn<String> userId = GeneratedColumn<String>(
-      'user_id', aliasedName, false,
+      'userId', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _eventIdMeta =
       const VerificationMeta('eventId');
   @override
   late final GeneratedColumn<String> eventId = GeneratedColumn<String>(
-      'event_id', aliasedName, false,
+      'eventId', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _timeStampMeta =
       const VerificationMeta('timeStamp');
   @override
   late final GeneratedColumn<int> timeStamp = GeneratedColumn<int>(
-      'time_stamp', aliasedName, false,
+      'timeStamp', aliasedName, false,
       type: DriftSqlType.int, requiredDuringInsert: true);
   @override
   List<GeneratedColumn> get $columns => [roomId, userId, eventId, timeStamp];
@@ -3284,27 +3262,27 @@ class $EphemeralReceiptEventTable extends EphemeralReceiptEvent
       {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
-    if (data.containsKey('room_id')) {
+    if (data.containsKey('roomId')) {
       context.handle(_roomIdMeta,
-          roomId.isAcceptableOrUnknown(data['room_id']!, _roomIdMeta));
+          roomId.isAcceptableOrUnknown(data['roomId']!, _roomIdMeta));
     } else if (isInserting) {
       context.missing(_roomIdMeta);
     }
-    if (data.containsKey('user_id')) {
+    if (data.containsKey('userId')) {
       context.handle(_userIdMeta,
-          userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta));
+          userId.isAcceptableOrUnknown(data['userId']!, _userIdMeta));
     } else if (isInserting) {
       context.missing(_userIdMeta);
     }
-    if (data.containsKey('event_id')) {
+    if (data.containsKey('eventId')) {
       context.handle(_eventIdMeta,
-          eventId.isAcceptableOrUnknown(data['event_id']!, _eventIdMeta));
+          eventId.isAcceptableOrUnknown(data['eventId']!, _eventIdMeta));
     } else if (isInserting) {
       context.missing(_eventIdMeta);
     }
-    if (data.containsKey('time_stamp')) {
+    if (data.containsKey('timeStamp')) {
       context.handle(_timeStampMeta,
-          timeStamp.isAcceptableOrUnknown(data['time_stamp']!, _timeStampMeta));
+          timeStamp.isAcceptableOrUnknown(data['timeStamp']!, _timeStampMeta));
     } else if (isInserting) {
       context.missing(_timeStampMeta);
     }
@@ -3319,13 +3297,13 @@ class $EphemeralReceiptEventTable extends EphemeralReceiptEvent
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return EphemeralReceiptEventRecord(
       roomId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}room_id'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}roomId'])!,
       userId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}user_id'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}userId'])!,
       eventId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}event_id'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}eventId'])!,
       timeStamp: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}time_stamp'])!,
+          .read(DriftSqlType.int, data['${effectivePrefix}timeStamp'])!,
     );
   }
 
@@ -3349,10 +3327,10 @@ class EphemeralReceiptEventRecord extends DataClass
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    map['room_id'] = Variable<String>(roomId);
-    map['user_id'] = Variable<String>(userId);
-    map['event_id'] = Variable<String>(eventId);
-    map['time_stamp'] = Variable<int>(timeStamp);
+    map['roomId'] = Variable<String>(roomId);
+    map['userId'] = Variable<String>(userId);
+    map['eventId'] = Variable<String>(eventId);
+    map['timeStamp'] = Variable<int>(timeStamp);
     return map;
   }
 
@@ -3449,10 +3427,10 @@ class EphemeralReceiptEventCompanion
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
-      if (roomId != null) 'room_id': roomId,
-      if (userId != null) 'user_id': userId,
-      if (eventId != null) 'event_id': eventId,
-      if (timeStamp != null) 'time_stamp': timeStamp,
+      if (roomId != null) 'roomId': roomId,
+      if (userId != null) 'userId': userId,
+      if (eventId != null) 'eventId': eventId,
+      if (timeStamp != null) 'timeStamp': timeStamp,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -3476,16 +3454,16 @@ class EphemeralReceiptEventCompanion
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     if (roomId.present) {
-      map['room_id'] = Variable<String>(roomId.value);
+      map['roomId'] = Variable<String>(roomId.value);
     }
     if (userId.present) {
-      map['user_id'] = Variable<String>(userId.value);
+      map['userId'] = Variable<String>(userId.value);
     }
     if (eventId.present) {
-      map['event_id'] = Variable<String>(eventId.value);
+      map['eventId'] = Variable<String>(eventId.value);
     }
     if (timeStamp.present) {
-      map['time_stamp'] = Variable<int>(timeStamp.value);
+      map['timeStamp'] = Variable<int>(timeStamp.value);
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -3510,16 +3488,16 @@ abstract class _$Database extends GeneratedDatabase {
   _$Database(QueryExecutor e) : super(e);
   late final $DevicesTable devices = $DevicesTable(this);
   late final Index ixDevicesUser = Index('ix_devices_user',
-      'CREATE INDEX IF NOT EXISTS ix_devices_user ON devices (user_id)');
+      'CREATE INDEX IF NOT EXISTS ix_devices_user ON devices (userId)');
   late final $MyUsersTable myUsers = $MyUsersTable(this);
   late final Index ixMyuserDevice = Index('ix_myuser_device',
-      'CREATE INDEX IF NOT EXISTS ix_myuser_device ON my_users (current_device_id)');
+      'CREATE INDEX IF NOT EXISTS ix_myuser_device ON my_users (currentDeviceId)');
   late final $RoomEventsTable roomEvents = $RoomEventsTable(this);
   late final Index ixRoomevents = Index('ix_roomevents',
-      'CREATE INDEX IF NOT EXISTS ix_roomevents ON room_events (room_id, sender_id, transaction_id)');
+      'CREATE INDEX IF NOT EXISTS ix_roomevents ON room_events (roomId, senderId, transactionId)');
   late final $RoomsTable rooms = $RoomsTable(this);
   late final Index ixRooms = Index('ix_rooms',
-      'CREATE INDEX IF NOT EXISTS ix_rooms ON rooms (name_change_event_id, avatar_change_event_id, topic_change_event_id, power_levels_change_event_id, join_rules_change_event_id, canonical_alias_change_event_id, creation_event_id, upgrade_event_id, direct_user_id)');
+      'CREATE INDEX IF NOT EXISTS ix_rooms ON rooms (nameChangeEventId, avatarChangeEventId, topicChangeEventId, powerLevelsChangeEventId, joinRulesChangeEventId, canonicalAliasChangeEventId, creationEventId, upgradeEventId, directUserId)');
   late final $EphemeralEventsTable ephemeralEvents =
       $EphemeralEventsTable(this);
   late final $RoomFakeEventsTable roomFakeEvents = $RoomFakeEventsTable(this);

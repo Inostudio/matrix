@@ -26,18 +26,20 @@ class MyUsers extends Table {
 
   TextColumn get name => text().nullable()();
 
-  TextColumn get avatarUrl => text().nullable()();
+  TextColumn get avatarUrl => text().nullable().named("avatarUrl")();
 
-  TextColumn get accessToken => text().nullable()();
+  TextColumn get accessToken => text().nullable().named("accessToken")();
 
-  TextColumn get syncToken => text().nullable()();
+  TextColumn get syncToken => text().nullable().named("syncToken")();
 
-  TextColumn get currentDeviceId =>
-      text().nullable().customConstraint('REFERENCES devices(id)')();
+  TextColumn get currentDeviceId => text()
+      .nullable()
+      .customConstraint('REFERENCES devices(id)')
+      .named("currentDeviceId")();
 
-  BoolColumn get hasSynced => boolean().nullable()();
+  BoolColumn get hasSynced => boolean().nullable().named("hasSynced")();
 
-  BoolColumn get isLoggedOut => boolean().nullable()();
+  BoolColumn get isLoggedOut => boolean().nullable().named("isLoggedOut")();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -45,50 +47,73 @@ class MyUsers extends Table {
 
 @DataClassName('RoomRecord')
 class Rooms extends Table {
-  TextColumn get myMembership => text().nullable()();
+  TextColumn get myMembership => text().nullable().named("myMembership")();
 
   TextColumn get id => text()();
 
-  TextColumn get timelinePreviousBatch => text().nullable()();
+  TextColumn get timelinePreviousBatch =>
+      text().nullable().named("timelinePreviousBatch")();
 
-  BoolColumn get timelinePreviousBatchSetBySync => boolean().nullable()();
+  BoolColumn get timelinePreviousBatchSetBySync =>
+      boolean().nullable().named("timelinePreviousBatchSetBySync")();
 
-  IntColumn get summaryJoinedMembersCount => integer().nullable()();
+  IntColumn get summaryJoinedMembersCount =>
+      integer().nullable().named("summaryJoinedMembersCount")();
 
-  IntColumn get summaryInvitedMembersCount => integer().nullable()();
+  IntColumn get summaryInvitedMembersCount =>
+      integer().nullable().named("summaryInvitedMembersCount")();
 
-  TextColumn get nameChangeEventId =>
-      text().customConstraint('REFERENCES room_events(id)').nullable()();
+  TextColumn get nameChangeEventId => text()
+      .customConstraint('REFERENCES room_events(id)')
+      .nullable()
+      .named("nameChangeEventId")();
 
-  TextColumn get avatarChangeEventId =>
-      text().customConstraint('REFERENCES room_events(id)').nullable()();
+  TextColumn get avatarChangeEventId => text()
+      .customConstraint('REFERENCES room_events(id)')
+      .nullable()
+      .named("avatarChangeEventId")();
 
-  TextColumn get topicChangeEventId =>
-      text().customConstraint('REFERENCES room_events(id)').nullable()();
+  TextColumn get topicChangeEventId => text()
+      .customConstraint('REFERENCES room_events(id)')
+      .nullable()
+      .named("topicChangeEventId")();
 
-  TextColumn get powerLevelsChangeEventId =>
-      text().customConstraint('REFERENCES room_events(id)').nullable()();
+  TextColumn get powerLevelsChangeEventId => text()
+      .customConstraint('REFERENCES room_events(id)')
+      .nullable()
+      .named("powerLevelsChangeEventId")();
 
-  TextColumn get joinRulesChangeEventId =>
-      text().customConstraint('REFERENCES room_events(id)').nullable()();
+  TextColumn get joinRulesChangeEventId => text()
+      .customConstraint('REFERENCES room_events(id)')
+      .nullable()
+      .named("joinRulesChangeEventId")();
 
-  TextColumn get canonicalAliasChangeEventId =>
-      text().customConstraint('REFERENCES room_events(id)').nullable()();
+  TextColumn get canonicalAliasChangeEventId => text()
+      .customConstraint('REFERENCES room_events(id)')
+      .nullable()
+      .named("canonicalAliasChangeEventId")();
 
-  TextColumn get creationEventId =>
-      text().customConstraint('REFERENCES room_events(id)').nullable()();
+  TextColumn get creationEventId => text()
+      .customConstraint('REFERENCES room_events(id)')
+      .nullable()
+      .named("creationEventId")();
 
-  TextColumn get upgradeEventId =>
-      text().customConstraint('REFERENCES room_events(id)').nullable()();
+  TextColumn get upgradeEventId => text()
+      .customConstraint('REFERENCES room_events(id)')
+      .nullable()
+      .named("upgradeEventId")();
 
-  IntColumn get highlightedUnreadNotificationCount => integer().nullable()();
+  IntColumn get highlightedUnreadNotificationCount =>
+      integer().nullable().named("highlightedUnreadNotificationCount")();
 
-  IntColumn get totalUnreadNotificationCount => integer().nullable()();
+  IntColumn get totalUnreadNotificationCount =>
+      integer().nullable().named("totalUnreadNotificationCount")();
 
-  IntColumn get lastMessageTimeInterval =>
-      integer().withDefault(const Constant(0))();
+  IntColumn get lastMessageTimeInterval => integer()
+      .withDefault(const Constant(0))
+      .named("lastMessageTimeInterval")();
 
-  TextColumn get directUserId => text().nullable()();
+  TextColumn get directUserId => text().nullable().named("directUserId")();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -99,30 +124,31 @@ class RoomFakeEvents extends Table {
   TextColumn get id => text()();
 
   //TODO now id and networkId is duplicated. If work stable - remove networkId
-  TextColumn get networkId => text()();
+  TextColumn get networkId => text().named("networkId")();
 
   TextColumn get type => text()();
 
   TextColumn get roomId =>
-      text().customConstraint('REFERENCES room_events(id)')();
+      text().customConstraint('REFERENCES room_events(id)').named("roomId")();
 
-  TextColumn get senderId => text()();
+  TextColumn get senderId => text().named("senderId")();
 
   DateTimeColumn get time => dateTime().nullable()();
 
   TextColumn get content => text().nullable()();
 
-  TextColumn get previousContent => text().nullable()();
+  TextColumn get previousContent =>
+      text().nullable().named("previousContent")();
 
-  TextColumn get sentState => text().nullable()();
+  TextColumn get sentState => text().nullable().named("sentState")();
 
-  TextColumn get transactionId => text().nullable()();
+  TextColumn get transactionId => text().nullable().named("transactionId")();
 
-  TextColumn get stateKey => text().nullable()();
+  TextColumn get stateKey => text().nullable().named("stateKey")();
 
-  TextColumn get redacts => text().nullable()();
+  TextColumn get redacts => text().nullable().named("redacts")();
 
-  BoolColumn get inTimeline => boolean()();
+  IntColumn get inTimeline => integer().named("inTimeline")();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -133,30 +159,31 @@ class RoomEvents extends Table {
   TextColumn get id => text()();
 
   //TODO now id and networkId is duplicated. If work stable - remove networkId
-  TextColumn get networkId => text()();
+  TextColumn get networkId => text().named("networkId")();
 
   TextColumn get type => text()();
 
   TextColumn get roomId =>
-      text().customConstraint('REFERENCES room_events(id)')();
+      text().customConstraint('REFERENCES room_events(id)').named("roomId")();
 
-  TextColumn get senderId => text()();
+  TextColumn get senderId => text().named("senderId")();
 
   DateTimeColumn get time => dateTime().nullable()();
 
   TextColumn get content => text().nullable()();
 
-  TextColumn get previousContent => text().nullable()();
+  TextColumn get previousContent =>
+      text().nullable().named("previousContent")();
 
-  TextColumn get sentState => text().nullable()();
+  TextColumn get sentState => text().nullable().named("sentState")();
 
-  TextColumn get transactionId => text().nullable()();
+  TextColumn get transactionId => text().nullable().named("transactionId")();
 
-  TextColumn get stateKey => text().nullable()();
+  TextColumn get stateKey => text().nullable().named("stateKey")();
 
   TextColumn get redacts => text().nullable()();
 
-  BoolColumn get inTimeline => boolean()();
+  IntColumn get inTimeline => integer().named("inTimeline")();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -165,7 +192,7 @@ class RoomEvents extends Table {
 @DataClassName('EphemeralEventRecord')
 class EphemeralEvents extends Table {
   TextColumn get roomId =>
-      text().customConstraint('REFERENCES room_events(id)')();
+      text().customConstraint('REFERENCES room_events(id)').named("roomId")();
 
   TextColumn get typing => text().nullable()();
 
@@ -175,13 +202,13 @@ class EphemeralEvents extends Table {
 
 @DataClassName('EphemeralReceiptEventRecord')
 class EphemeralReceiptEvent extends Table {
-  TextColumn get roomId => text()();
+  TextColumn get roomId => text().named("roomId")();
 
-  TextColumn get userId => text()();
+  TextColumn get userId => text().named("userId")();
 
-  TextColumn get eventId => text()();
+  TextColumn get eventId => text().named("eventId")();
 
-  IntColumn get timeStamp => integer()();
+  IntColumn get timeStamp => integer().named("timeStamp")();
 
   @override
   Set<Column> get primaryKey => {roomId, userId};
@@ -191,13 +218,13 @@ class EphemeralReceiptEvent extends Table {
 class Devices extends Table {
   TextColumn get id => text()();
 
-  TextColumn get userId => text()();
+  TextColumn get userId => text().named("userId")();
 
   TextColumn get name => text().nullable()();
 
-  DateTimeColumn get lastSeen => dateTime().nullable()();
+  DateTimeColumn get lastSeen => dateTime().nullable().named("lastSeen")();
 
-  TextColumn get lastIpAddress => text().nullable()();
+  TextColumn get lastIpAddress => text().nullable().named("lastIpAddress")();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -208,9 +235,10 @@ class Devices extends Table {
 }, tables: [
   MyUsers,
   Rooms,
-  RoomEvents,
   EphemeralEvents,
   Devices,
+  RoomEvents,
+  RoomFakeEvents
 ])
 class Database extends _$Database {
   int maxAttempts = 5;
@@ -250,7 +278,7 @@ class Database extends _$Database {
   }
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => destructiveFallback;
@@ -495,16 +523,16 @@ class Database extends _$Database {
         ? requestsList.map((e) => "\'$e\'").join(", ")
         : "";
 
-    String whereClause = "room_id = rv1.room_id";
+    String whereClause = "roomId = rv1.roomId";
     if (roomIds.isNotEmpty) {
-      whereClause += " AND room_id IN ($roomsList)";
+      whereClause += " AND roomId IN ($roomsList)";
     }
 
     if (requestTypesStrings.isNotEmpty) {
       whereClause += " AND type IN ($requestTypesStrings)";
     }
     if (inTimeline != null) {
-      whereClause += " AND in_timeline = ${inTimeline.toString()}";
+      whereClause += " AND inTimeline = ${inTimeline.toString()}";
     }
     if (fromTime != null) {
       whereClause +=
@@ -567,7 +595,7 @@ class Database extends _$Database {
         final List<EphemeralEventTransition> result = [];
         final roomsList = roomIds.map((e) => "\'$e\'").join(", ");
 
-        String whereClause = "room_id = rv1.room_id";
+        String whereClause = "roomId = rv1.roomId";
         if (roomIds.isNotEmpty) {
           whereClause += " AND room_id IN ($roomsList)";
         }
@@ -575,9 +603,9 @@ class Database extends _$Database {
         final query = customSelect(
           """select  *
         from ephemeral_events rv1
-        where room_id in
+        where roomId in
         (
-        select room_id
+        select roomId
         from ephemeral_events rv2
         where $whereClause
         ${count == null ? '' : 'limit $count'}
@@ -629,8 +657,13 @@ class Database extends _$Database {
       );
     }
 
-    if (inTimeline != null) {
-      query.where((tbl) => tbl.inTimeline.equals(inTimeline));
+    final int? inTimelineValue = inTimeline == null
+        ? null
+        : inTimeline
+            ? 1
+            : 0;
+    if (inTimelineValue != null) {
+      query.where((tbl) => tbl.inTimeline.equals(inTimelineValue));
     }
 
     if (fromTime != null) {
@@ -669,7 +702,8 @@ class Database extends _$Database {
             (tbl) => tbl.id.isIn(
               records
                   .map((r) => r.transactionId)
-                  .where((txnId) => txnId != null).whereNotNull(),
+                  .where((txnId) => txnId != null)
+                  .whereNotNull(),
             ),
           );
         }),

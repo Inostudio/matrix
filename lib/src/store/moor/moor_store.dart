@@ -1076,7 +1076,7 @@ extension on RoomEvent {
       transactionId: transactionId,
       stateKey: stateKey,
       redacts: redacts,
-      inTimeline: inTimeline,
+      inTimeline: inTimeline ? 1 : 0,
     );
   }
 
@@ -1112,7 +1112,7 @@ extension on RoomEvent {
       transactionId: transactionId,
       stateKey: stateKey,
       redacts: redacts,
-      inTimeline: inTimeline,
+      inTimeline: inTimeline ? 1 : 0,
     );
   }
 
