@@ -233,12 +233,12 @@ class Devices extends Table {
 @DriftDatabase(include: {
   'indices.drift'
 }, tables: [
-  MyUsers, //
+  MyUsers,
   Rooms,
   EphemeralEvents,
-  Devices, //
-  RoomEvents, //
-  RoomFakeEvents //
+  Devices,
+  RoomEvents,
+  RoomFakeEvents
 ])
 class Database extends _$Database {
   int maxAttempts = 5;
