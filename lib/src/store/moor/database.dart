@@ -527,7 +527,11 @@ class Database extends _$Database {
     );
 
     final finQuery = query.map((row) {
-      return RoomEventRecord.fromJson(row.data);
+      final data = row.data;
+      if (data["time"] is int) {
+        data["time"] = data["time"] * 1000;
+      }
+      return RoomEventRecord.fromJson(data);
     });
 
     final result = await runOperation(
