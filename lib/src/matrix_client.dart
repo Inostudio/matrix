@@ -362,7 +362,7 @@ class MatrixClient {
       );
     } else {
       throw Exception(
-          "Cant send message updater not ready isLocal: $isLocal, updater: $_updater");
+          "Cant react message updater not ready isLocal: $isLocal, updater: $_updater");
     }
   }
 
@@ -381,7 +381,7 @@ class MatrixClient {
       );
     } else {
       throw Exception(
-          "Cant send message updater not ready isLocal: $isLocal, updater: $_updater");
+          "Cant delete message updater not ready isLocal: $isLocal, updater: $_updater");
     }
   }
 
