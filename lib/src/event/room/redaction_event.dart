@@ -7,10 +7,10 @@
 
 import 'package:meta/meta.dart';
 
-import 'state/state_event.dart';
 import '../../model/identifier.dart';
 import '../event.dart';
 import 'room_event.dart';
+import 'state/state_event.dart';
 
 class RedactionEvent extends RoomEvent {
   static const matrixType = 'm.room.redaction';
@@ -18,8 +18,7 @@ class RedactionEvent extends RoomEvent {
   @override
   final String type = matrixType;
 
-  RedactionEvent(
-    RoomEventArgs args, {
+  RedactionEvent(RoomEventArgs args, {
     required this.content,
     required this.redacts,
   }) : super(args);
@@ -29,10 +28,8 @@ class RedactionEvent extends RoomEvent {
 
   final EventId redacts;
 
-  factory RedactionEvent.fromJson(
-    RoomEventArgs args,
-    Map<String, dynamic> json,
-  ) {
+  factory RedactionEvent.fromJson(RoomEventArgs args,
+      Map<String, dynamic> json,) {
     final redacts = EventId(json['redacts']);
 
     return RedactionEvent(
@@ -65,10 +62,13 @@ class Redaction extends EventContent {
   int get hashCode => reason.hashCode;
 
   static Redaction? fromJson(Map<String, dynamic>? content) {
-    if(content?.containsKey("reason") ?? false){
-      content = content!["reason"];
+    Map<String, dynamic> contentToSet = {"type": "DeletedByAuthor"};
+
+    if (content != null && content.containsKey("reason") &&
+        content["reason"] is Map<String, dynamic>) {
+      contentToSet = content["reason"];
     }
-    final reason = RedactionReason.fromJson(content ?? {"type": "DeletedByAuthor"});
+    final reason = RedactionReason.fromJson(contentToSet);
     return Redaction(reason: reason);
   }
 
@@ -77,7 +77,7 @@ class Redaction extends EventContent {
 }
 
 
-class RedactionReason{
+class RedactionReason {
   final String type;
   final Map<String, dynamic>? data;
 
