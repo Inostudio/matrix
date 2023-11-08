@@ -93,6 +93,7 @@ class RedactionReason {
   Map<String, dynamic> toJson() {
     return {
       'type': type,
+      'reason': type,
       'data': data,
     };
   }
