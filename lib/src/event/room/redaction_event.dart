@@ -67,7 +67,11 @@ class Redaction extends EventContent {
     }
     String reason = '';
     if (content.containsKey('reason')) {
-      reason = content['reason'] ?? '';
+      if (content['reason'] is Map<String, dynamic>) {
+        reason = content['reason']["type"];
+      } else {
+        reason = content['reason'] ?? '';
+      }
     }
     return Redaction(reason: reason);
   }
