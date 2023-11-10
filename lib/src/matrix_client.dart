@@ -369,7 +369,7 @@ class MatrixClient {
   Stream<RoomEvent?> streamDelete({
     required RoomId roomId,
     required EventId eventId,
-    RedactionReason? reason,
+    String? reason,
     String? transactionId,
   }) async* {
     if (isLocal == false && _updater != null) {

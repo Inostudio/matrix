@@ -590,7 +590,7 @@ class Rooms {
     required String roomId,
     required String eventId,
     String transactionId = '',
-    Map? reason,
+    String? reason,
   }) async {
     final stopWatch = Stopwatch();
     stopWatch.start();

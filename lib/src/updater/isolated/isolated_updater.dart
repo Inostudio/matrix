@@ -563,7 +563,7 @@ class IsolatedUpdater extends Updater {
     required RoomId roomId,
     required EventId eventId,
     String? transactionId,
-    RedactionReason? reason,
+    String? reason,
     Room? room,
   }) async* {
     yield* _executeStream(
@@ -716,7 +716,7 @@ class IsolatedUpdater extends Updater {
     RoomId roomId,
     EventId eventId, {
     String? transactionId,
-    Map? reason,
+    String? reason,
     Room? room,
   }) async {
     return execute(

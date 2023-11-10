@@ -62,7 +62,7 @@ abstract class BaseNetwork {
     required String roomId,
     required String eventId,
     String transactionId = '',
-    Map? reason,
+    String? reason,
   });
 
   Future<void> setRoomsReadMarkers({

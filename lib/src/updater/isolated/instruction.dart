@@ -83,7 +83,7 @@ class StreamDeleteEventInstruction
   final RoomId roomId;
   final EventId eventId;
   final String? transactionId;
-  final RedactionReason? reason;
+  final String? reason;
 
   StreamDeleteEventInstruction({
     required this.roomId,
@@ -297,7 +297,7 @@ class DeleteEventInstruction extends RequestInstruction<Timeline> {
   final RoomId roomId;
   final EventId eventId;
   final String? transactionId;
-  final Map? reason;
+  final String? reason;
   final Room? room;
 
   DeleteEventInstruction({
