@@ -600,7 +600,7 @@ class Rooms {
       eventId: eventId.toString(),
       txnId: transactionId,
       content: json.encode(
-        (reason == null) ? {"type": "DeletedByAuthor"} : reason,
+        {"reason": ((reason == null) ? "DeletedByAuthor" : reason)},
       ),
     );
     stopWatch.stop();
