@@ -72,13 +72,13 @@ class Rooms extends DelegatingIterable<Room> implements Contextual<Rooms> {
 
     //Make curr and other map <RoomId, index in list>
     final Map<RoomId, int> currMap = {
-      for (var e in currList.mapIndexed(
+      for (final e in currList.mapIndexed(
         (i, e) => MapEntry<RoomId, int>(e.id, i),
       ))
         e.key: e.value
     };
     final Map<RoomId, int> otherMap = {
-      for (var e in otherList.mapIndexed(
+      for (final e in otherList.mapIndexed(
         (i, e) => MapEntry<RoomId, int>(e.id, i),
       ))
         e.key: e.value

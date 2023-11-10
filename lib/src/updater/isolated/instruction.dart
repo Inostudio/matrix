@@ -9,7 +9,6 @@ import 'package:matrix_sdk/src/event/room/message_event.dart';
 import 'package:matrix_sdk/src/event/room/room_event.dart';
 
 import '../../event/event.dart';
-import '../../event/room/redaction_event.dart';
 import '../../model/models.dart';
 import '../../model/sync_token.dart';
 import '../../room/member/member_timeline.dart';

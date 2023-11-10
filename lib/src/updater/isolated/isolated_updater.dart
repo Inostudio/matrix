@@ -15,7 +15,6 @@ import 'package:matrix_sdk/src/util/subscription.dart';
 import 'package:synchronized/synchronized.dart';
 
 import '../../event/event.dart';
-import '../../event/room/redaction_event.dart';
 import '../../event/room/room_event.dart';
 import '../../homeserver.dart';
 import '../../model/models.dart';
