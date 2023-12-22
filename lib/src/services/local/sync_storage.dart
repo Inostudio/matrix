@@ -102,7 +102,10 @@ class SyncStorage implements BaseSyncStorage {
       );
 
   @override
-  Future<String?> getToken() async => store.getToken();
+  Future<String?> getToken() async => store.getSyncToken();
+
+  @override
+  Future<MyUser?> getLightWeightUser() async => store.getLightWeightUser();
 
   @override
   Future<MyUser?> getMyUser({
@@ -130,8 +133,7 @@ class SyncStorage implements BaseSyncStorage {
   Future<List<RoomEvent>> getAllFakeEvents() => store.getAllFakeEvents();
 
   @override
-  Future<bool> addFakeEvent(RoomEvent fakeRoomEvent) =>
-      store.addFakeEvent(fakeRoomEvent);
+  Future<bool> addFakeEvent(RoomEvent fakeRoomEvent) => store.addFakeEvent(fakeRoomEvent);
 
   @override
   Future<bool> deleteFakeEvent(String transactionId) {

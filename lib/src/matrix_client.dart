@@ -116,7 +116,7 @@ class MatrixClient {
     await _syncStorage.ensureOpen();
 
     MyUser? myUser;
-    final localUser = await _syncStorage.getMyUser();
+    final localUser = await _syncStorage.getLightWeightUser();
     final userToken = localUser?.accessToken;
 
     if (localUser != null && userToken != null && userToken.isNotEmpty) {

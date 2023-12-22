@@ -54,6 +54,8 @@ abstract class BaseSyncStorage {
 
   Future<String?> getToken();
 
+  Future<MyUser?> getLightWeightUser();
+
   Future<MyUser?> getMyUser({
     List<RoomId>? roomIds,
     int timelineLimit,
