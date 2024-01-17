@@ -59,6 +59,8 @@ abstract class BaseSyncStorage {
     int timelineLimit,
   });
 
+  Future<void> deleteUser(String userID);
+
   Future<bool> addFakeEvent(RoomEvent fakeRoomEvent);
 
   Future<bool> deleteFakeEvent(String transactionId);

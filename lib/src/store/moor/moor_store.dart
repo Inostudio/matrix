@@ -213,6 +213,11 @@ class MoorStore extends Store {
     );
   }
 
+  @override
+  Future<void> deleteUser(String userID) async {
+     await _db!.deleteUser(userID);
+  }
+
   Future<MyUser> _userRecordToUser(
     MyUserRecordWithDeviceRecord myUserWithDeviceRecord, {
     Iterable<RoomId>? roomIds,

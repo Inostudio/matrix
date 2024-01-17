@@ -49,6 +49,8 @@ abstract class Store {
     int timelineLimit = 100,
   });
 
+  Future<void> deleteUser(String userID);
+
   ///Get current user sync token to get minimized updates from matrix server
   Future<String?> getToken();
 

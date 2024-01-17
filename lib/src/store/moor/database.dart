@@ -329,6 +329,19 @@ class Database extends _$Database {
         operationName: "setMyUser",
       );
 
+  Future<void> deleteUser(String userID) async => runOperation(
+        onRun: () => batch(
+          (batch) => batch.deleteWhere(
+            myUsers,
+            (tbl) => tbl.id.equals(
+              userID,
+            ),
+          ),
+        ),
+        onError: (error) => showError("deleteMyUser", error),
+        operationName: "deleteMyUser",
+      );
+
   Selectable<RoomRecordWithStateRecords> selectRoomRecordsByIDs(
     Iterable<String>? roomIds,
   ) {
