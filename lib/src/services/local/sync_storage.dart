@@ -118,6 +118,9 @@ class SyncStorage implements BaseSyncStorage {
       );
 
   @override
+  Future<void> deleteUser(String userID) async => store.deleteUser(userID);
+
+  @override
   bool isReady() => store.isOpen;
 
   @override

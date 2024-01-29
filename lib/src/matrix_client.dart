@@ -196,6 +196,14 @@ class MatrixClient {
     return result;
   }
 
+  Future<void> deleteUserFromDB() {
+    final userID = _updater?.user.id.value;
+    if (userID != null && userID.isNotEmpty) {
+      return _syncStorage.deleteUser(userID);
+    }
+    return Future.value();
+  }
+
   Future<MyUser> login(
     UserIdentifier user,
     String password, {
