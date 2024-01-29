@@ -9,7 +9,6 @@ import 'package:matrix_sdk/src/event/room/message_event.dart';
 import 'package:matrix_sdk/src/event/room/room_event.dart';
 
 import '../../event/event.dart';
-import '../../event/room/redaction_event.dart';
 import '../../model/models.dart';
 import '../../model/sync_token.dart';
 import '../../room/member/member_timeline.dart';
@@ -83,7 +82,7 @@ class StreamDeleteEventInstruction
   final RoomId roomId;
   final EventId eventId;
   final String? transactionId;
-  final RedactionReason? reason;
+  final String? reason;
 
   StreamDeleteEventInstruction({
     required this.roomId,
@@ -297,7 +296,7 @@ class DeleteEventInstruction extends RequestInstruction<Timeline> {
   final RoomId roomId;
   final EventId eventId;
   final String? transactionId;
-  final Map? reason;
+  final String? reason;
   final Room? room;
 
   DeleteEventInstruction({

@@ -50,7 +50,10 @@ abstract class Store {
   });
 
   ///Get current user sync token to get minimized updates from matrix server
-  Future<String?> getToken();
+  Future<String?> getSyncToken();
+
+  ///Get minimized user with no rooms
+  Future<MyUser?> getLightWeightUser();
 
   ///Get sync to [MyUser] in local database
   Stream<MyUser> myUserStorageSync({

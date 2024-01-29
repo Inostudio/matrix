@@ -129,7 +129,7 @@ class HomeServerNetworking implements BaseNetwork {
     required String roomId,
     required String eventId,
     String transactionId = '',
-    Map? reason,
+    String? reason,
   }) async =>
       _homeServer.api.rooms.redact(
         accessToken: accessToken,

@@ -718,11 +718,11 @@ class Updater {
     required RoomId roomId,
     required EventId eventId,
     String? transactionId,
-    RedactionReason? reason,
+    String? reason,
   }) async* {
     transactionId ??= randomString();
 
-    reason = reason ?? RedactionReason.defaultReason();
+    reason = reason ?? "Deleted by Author";
     final RedactionEvent fakeEvent = RedactionEvent(
       RoomEventArgs(
         id: EventId(transactionId),
@@ -743,7 +743,7 @@ class Updater {
         roomId: roomId.value,
         eventId: eventId.value,
         transactionId: transactionId,
-        reason: reason.toJson(),
+        reason: reason,
       );
 
       final networkEventId = EventId(body['event_id']);
@@ -830,7 +830,7 @@ class Updater {
     RoomId roomId,
     EventId eventId, {
     String? transactionId,
-    Map? reason,
+    String? reason,
     Room? room,
   }) async {
     final Room? currentRoom = room ??=

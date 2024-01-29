@@ -116,7 +116,7 @@ class MatrixClient {
     await _syncStorage.ensureOpen();
 
     MyUser? myUser;
-    final localUser = await _syncStorage.getMyUser();
+    final localUser = await _syncStorage.getLightWeightUser();
     final userToken = localUser?.accessToken;
 
     if (localUser != null && userToken != null && userToken.isNotEmpty) {
@@ -369,7 +369,7 @@ class MatrixClient {
   Stream<RoomEvent?> streamDelete({
     required RoomId roomId,
     required EventId eventId,
-    RedactionReason? reason,
+    String? reason,
     String? transactionId,
   }) async* {
     if (isLocal == false && _updater != null) {

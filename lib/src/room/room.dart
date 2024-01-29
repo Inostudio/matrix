@@ -600,7 +600,7 @@ class Room with Identifiable<RoomId> implements Contextual<Room> {
   Future<RequestUpdate<Timeline>?> delete(
     EventId eventId, {
     String? transactionId,
-    Map? reason,
+    String? reason,
   }) {
     final result = context?.updater?.delete(
       id,

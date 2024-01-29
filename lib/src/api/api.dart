@@ -590,7 +590,7 @@ class Rooms {
     required String roomId,
     required String eventId,
     String transactionId = '',
-    Map? reason,
+    String? reason,
   }) async {
     final stopWatch = Stopwatch();
     stopWatch.start();
@@ -600,7 +600,7 @@ class Rooms {
       eventId: eventId.toString(),
       txnId: transactionId,
       content: json.encode(
-        (reason == null) ? {"type": "DeletedByAuthor"} : reason,
+        {"reason": ((reason == null) ? "DeletedByAuthor" : reason)},
       ),
     );
     stopWatch.stop();

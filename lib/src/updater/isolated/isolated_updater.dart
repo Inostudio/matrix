@@ -15,7 +15,6 @@ import 'package:matrix_sdk/src/util/subscription.dart';
 import 'package:synchronized/synchronized.dart';
 
 import '../../event/event.dart';
-import '../../event/room/redaction_event.dart';
 import '../../event/room/room_event.dart';
 import '../../homeserver.dart';
 import '../../model/models.dart';
@@ -563,7 +562,7 @@ class IsolatedUpdater extends Updater {
     required RoomId roomId,
     required EventId eventId,
     String? transactionId,
-    RedactionReason? reason,
+    String? reason,
     Room? room,
   }) async* {
     yield* _executeStream(
@@ -716,7 +715,7 @@ class IsolatedUpdater extends Updater {
     RoomId roomId,
     EventId eventId, {
     String? transactionId,
-    Map? reason,
+    String? reason,
     Room? room,
   }) async {
     return execute(
